@@ -19,7 +19,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TianziMod_windows")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1e920300ef7c160a0148f637c387bf7a08e8e348")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+100871712b6dae47ac5ce617bf0cc7d743e85010")]
 [assembly: System.Reflection.AssemblyProductAttribute("TianziMod_windows")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TianziMod_windows")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

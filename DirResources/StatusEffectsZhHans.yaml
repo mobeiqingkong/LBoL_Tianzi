@@ -101,7 +101,6 @@ TianziParityKwSe:
   Name: 奇偶数
   Description: |-
     根据手牌张数的奇数 / 偶数触发不同效果。
-    手中存在带有此关键字的牌时，没有该效果的手牌会变色。
   Brief: 按手牌张数的奇偶触发效果。
 
 TianziKarmaKwSe:
