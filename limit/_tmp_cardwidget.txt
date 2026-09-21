@@ -1,0 +1,1251 @@
+﻿using System;
+using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
+using DG.Tweening;
+using LBoL.Base;
+using LBoL.Base.Extensions;
+using LBoL.Core;
+using LBoL.Core.Cards;
+using LBoL.Core.SaveData;
+using LBoL.Presentation.Effect;
+using LBoL.Presentation.I10N;
+using LBoL.Presentation.UI.Panels;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace LBoL.Presentation.UI.Widgets;
+
+[DisallowMultipleComponent]
+public sealed class CardWidget : MonoBehaviour, ICardTooltipSource
+{
+	public enum EdgeStatus
+	{
+		None,
+		Afford,
+		AffordKicker,
+		High,
+		HighKicker
+	}
+
+	private static Dictionary<(ManaColor, Rarity, bool), Texture2D> _bgTextureTable;
+
+	private static Dictionary<(Rarity, bool), Texture2D> _rainbowBgTextureTable;
+
+	private static Dictionary<(Rarity, bool), Texture2D> _toolBgTextureTable;
+
+	private static Dictionary<(Rarity, bool), Texture2D> _misfortuneBgTextureTable;
+
+	private static Dictionary<string, Sprite> _ownerSpriteTable;
+
+	private static Dictionary<CardType, Sprite> _typeSpriteTable;
+
+	private const string BgTexturePath = "Sprite/Card/Bg/";
+
+	private const string BgCloneTexturePath = "Sprite/Card/Bg/Clone/";
+
+	private string _currentIllustrator;
+
+	private bool _awaken;
+
+	private bool _lazySetCard;
+
+	private Card _card;
+
+	private GameObject _cardActive;
+
+	private string _tempIllustratorId;
+
+	private bool _changed;
+
+	private string _rawPath;
+
+	private bool _marginAsFriend;
+
+	private bool _dontShowMana;
+
+	private bool _showManaHand;
+
+	private const float DistanceX = 150f;
+
+	private const float Duration = 0.1f;
+
+	private bool _costMoreLeft;
+
+	private bool _shouldChangeImageWhenUpgrade;
+
+	private bool _changedImageWhenUpgrade;
+
+	private GameObject _edgeAfford;
+
+	private GameObject _edgeAffordKicker;
+
+	private GameObject _edgeHigh;
+
+	private GameObject _edgeHighKicker;
+
+	private GameObject _edgeEndNotify;
+
+	private GameObject _edgeActivatingOnce;
+
+	private GameObject _edgeActivatingLoop;
+
+	private bool _showStickerYinxiang;
+
+	private static readonly TooltipPosition[] DefaultTooltipPositions = new TooltipPosition[5]
+	{
+		new TooltipPosition(TooltipDirection.Right, TooltipAlignment.Max),
+		new TooltipPosition(TooltipDirection.Left, TooltipAlignment.Max),
+		new TooltipPosition(TooltipDirection.Top, TooltipAlignment.Center),
+		new TooltipPosition(TooltipDirection.Bottom, TooltipAlignment.Center),
+		new TooltipPosition(TooltipDirection.Left, TooltipAlignment.Min)
+	};
+
+	[Header("组件引用")]
+	[SerializeField]
+	private TextMeshProUGUI nameText;
+
+	[SerializeField]
+	private TextMeshProUGUI typeText;
+
+	[SerializeField]
+	private TextMeshProUGUI descriptionText;
+
+	[SerializeField]
+	private CostWidget costWidget;
+
+	[SerializeField]
+	private RectTransform costRegularRect;
+
+	[SerializeField]
+	private RectTransform costHandRect;
+
+	[SerializeField]
+	private RawImage cardImage;
+
+	[SerializeField]
+	private RawImage cardMainBg;
+
+	[SerializeField]
+	private RawImage cardSubBg;
+
+	[SerializeField]
+	private Image cardTypeIcon;
+
+	[SerializeField]
+	private Image cardOwnerIcon;
+
+	[SerializeField]
+	private Transform effectBack;
+
+	[SerializeField]
+	private Transform effectFront;
+
+	[SerializeField]
+	private Image cardBack;
+
+	[SerializeField]
+	private Transform root;
+
+	[SerializeField]
+	private Transform exileLayer;
+
+	[SerializeField]
+	private RectTransform rectTransform;
+
+	[SerializeField]
+	private CanvasGroup canvasGroup;
+
+	[SerializeField]
+	private GameObject baseLoyaltyObj;
+
+	[SerializeField]
+	private TextMeshProUGUI baseLoyalty;
+
+	[Header("SubInfos")]
+	[SerializeField]
+	private TextMeshProUGUI cardIdText;
+
+	[SerializeField]
+	private TextMeshProUGUI otherInfo;
+
+	[SerializeField]
+	private TextMeshProUGUI unfinished;
+
+	[SerializeField]
+	private TextMeshProUGUI illustrator;
+
+	[SerializeField]
+	private TextMeshProUGUI deckIndex;
+
+	[Header("Stickers")]
+	[SerializeField]
+	private Image stickerYinxiang;
+
+	[SerializeField]
+	private Image stickerPack;
+
+	[SerializeField]
+	private Image stickerEnchantment;
+
+	[Header("资源引用")]
+	[SerializeField]
+	private GameObject edgeAfford;
+
+	[SerializeField]
+	private GameObject edgeAffordKicker;
+
+	[SerializeField]
+	private GameObject edgeHigh;
+
+	[SerializeField]
+	private GameObject edgeHighKicker;
+
+	[SerializeField]
+	private GameObject edgeEndNotify;
+
+	[SerializeField]
+	private GameObject edgeActivating;
+
+	[SerializeField]
+	private GameObject friendEffect;
+
+	[SerializeField]
+	private AssociationList<TransformCardType, GameObject> transformEffects;
+
+	[SerializeField]
+	private Texture defaultCardImage;
+
+	public ExileCoverEffect cardExile;
+
+	public RemoveCoverEffect cardRemove;
+
+	private int _cardImageLoadVersion;
+
+	[Header("Gamepad")]
+	[SerializeField]
+	private GameObject gamepadTipNormal;
+
+	[SerializeField]
+	private GameObject gamepadTipBattle;
+
+	[SerializeField]
+	private RawImage cardLoading;
+
+	private string CurrentIllustrator
+	{
+		get
+		{
+			return _currentIllustrator;
+		}
+		set
+		{
+			_currentIllustrator = value;
+			illustrator.text = GetSimpleIllustrator(value);
+		}
+	}
+
+	public bool NotReveal { get; set; }
+
+	public bool NotReadyInMuseum { get; set; }
+
+	public RectTransform RectTransform => rectTransform;
+
+	public CanvasGroup CanvasGroup => canvasGroup;
+
+	public Card Card
+	{
+		get
+		{
+			return _card;
+		}
+		set
+		{
+			if (_card != null && base.isActiveAndEnabled)
+			{
+				RemoveHandlers(_card);
+			}
+			_card = value;
+			if (value != null)
+			{
+				if (_awaken)
+				{
+					LazySetCard();
+				}
+				else
+				{
+					_lazySetCard = true;
+				}
+				_changed = true;
+				if (base.isActiveAndEnabled)
+				{
+					AddHandlers(value);
+				}
+			}
+		}
+	}
+
+	public bool MarginAsFriend
+	{
+		get
+		{
+			return _marginAsFriend;
+		}
+		set
+		{
+			if (_marginAsFriend != value)
+			{
+				_marginAsFriend = value;
+				descriptionText.margin = (_marginAsFriend ? Vector4.zero : new Vector4(77f, 0f, 0f, 0f));
+			}
+		}
+	}
+
+	public bool ShowManaHand
+	{
+		get
+		{
+			return _showManaHand;
+		}
+		set
+		{
+			if (_showManaHand != value)
+			{
+				_showManaHand = value;
+				RectTransform obj = costWidget.rectTransform;
+				RectTransform rectTransform = (_showManaHand ? costHandRect : costRegularRect);
+				obj.SetParent(rectTransform);
+				obj.anchoredPosition = Vector2.zero;
+				obj.sizeDelta = rectTransform.sizeDelta;
+			}
+		}
+	}
+
+	public bool CostMoreLeft
+	{
+		get
+		{
+			return _costMoreLeft;
+		}
+		set
+		{
+			if (_costMoreLeft != value)
+			{
+				_costMoreLeft = value;
+				costHandRect.DOComplete();
+				costHandRect.DOLocalMoveX(value ? (-150f) : 150f, 0.1f).SetRelative(isRelative: true).SetUpdate(isIndependentUpdate: true)
+					.SetTarget(costHandRect);
+			}
+		}
+	}
+
+	public EdgeStatus Edge { get; set; }
+
+	public bool ShowStickerYinxiang
+	{
+		get
+		{
+			return _showStickerYinxiang;
+		}
+		set
+		{
+			_showStickerYinxiang = value;
+			stickerYinxiang.gameObject.SetActive(value);
+		}
+	}
+
+	public TooltipPosition[] TooltipPositions { get; set; } = DefaultTooltipPositions;
+
+
+	private int TooltipId { get; set; }
+
+	public bool TooltipEnabled { get; set; } = true;
+
+
+	public GameObject GamepadTipNormal => gamepadTipNormal;
+
+	public GameObject GamepadTipBattle => gamepadTipBattle;
+
+	private static string GetSimpleIllustrator(string id)
+	{
+		if (id.EndsWith("(Sketch)"))
+		{
+			return id.Substring(0, id.Length - 8);
+		}
+		if (id.EndsWith("(Community)"))
+		{
+			return id.Substring(0, id.Length - 11);
+		}
+		return id;
+	}
+
+	private static async UniTask<Texture2D> LoadTextureAsync(string pathClone)
+	{
+		ResourceRequest request = Resources.LoadAsync<Texture2D>(pathClone);
+		await request.ToUniTask();
+		await UniTask.NextFrame();
+		return request.asset as Texture2D;
+	}
+
+	public static async UniTask LoadSprites()
+	{
+		Rarity[] array = new Rarity[3]
+		{
+			Rarity.Common,
+			Rarity.Uncommon,
+			Rarity.Rare
+		};
+		ManaColor[] colors = new ManaColor[7]
+		{
+			ManaColor.Any,
+			ManaColor.White,
+			ManaColor.Blue,
+			ManaColor.Black,
+			ManaColor.Red,
+			ManaColor.Green,
+			ManaColor.Colorless
+		};
+		_bgTextureTable = new Dictionary<(ManaColor, Rarity, bool), Texture2D>();
+		_rainbowBgTextureTable = new Dictionary<(Rarity, bool), Texture2D>();
+		_toolBgTextureTable = new Dictionary<(Rarity, bool), Texture2D>();
+		_misfortuneBgTextureTable = new Dictionary<(Rarity, bool), Texture2D>();
+		_ownerSpriteTable = new Dictionary<string, Sprite>();
+		_typeSpriteTable = new Dictionary<CardType, Sprite>();
+		Rarity[] array2 = array;
+		for (int i = 0; i < array2.Length; i++)
+		{
+			Rarity rarity = array2[i];
+			ManaColor[] array3 = colors;
+			for (int j = 0; j < array3.Length; j++)
+			{
+				ManaColor color = array3[j];
+				string path;
+				string pathClone;
+				if (color == ManaColor.Colorless)
+				{
+					path = "Sprite/Card/Bg/" + rarity.ToString() + ManaColor.Any;
+					pathClone = "Sprite/Card/Bg/Clone/" + rarity.ToString() + ManaColor.Any;
+				}
+				else
+				{
+					path = "Sprite/Card/Bg/" + rarity.ToString() + color;
+					pathClone = "Sprite/Card/Bg/Clone/" + rarity.ToString() + color;
+				}
+				Texture2D texture2D = await LoadTextureAsync(path);
+				if ((bool)texture2D)
+				{
+					_bgTextureTable.Add((color, rarity, false), texture2D);
+				}
+				else
+				{
+					Debug.LogError("Cannot load card bg sprite '" + path + "'");
+				}
+				texture2D = await LoadTextureAsync(pathClone);
+				if ((bool)texture2D)
+				{
+					_bgTextureTable.Add((color, rarity, true), texture2D);
+				}
+				else
+				{
+					Debug.LogError("Cannot load card bg sprite '" + pathClone + "'");
+				}
+			}
+			string rainbowPath2 = "Sprite/Card/Bg/" + rarity.ToString() + "Rainbow";
+			Texture2D texture2D2 = await LoadTextureAsync(rainbowPath2);
+			if ((bool)texture2D2)
+			{
+				_rainbowBgTextureTable.Add((rarity, false), texture2D2);
+			}
+			else
+			{
+				Debug.LogError("Cannot load card bg sprite '" + rainbowPath2 + "'");
+			}
+			rainbowPath2 = "Sprite/Card/Bg/Clone/" + rarity.ToString() + "Rainbow";
+			texture2D2 = await LoadTextureAsync(rainbowPath2);
+			if ((bool)texture2D2)
+			{
+				_rainbowBgTextureTable.Add((rarity, true), texture2D2);
+			}
+			else
+			{
+				Debug.LogError("Cannot load card bg sprite '" + rainbowPath2 + "'");
+			}
+			string toolPath2 = "Sprite/Card/Bg/" + rarity.ToString() + "Tool";
+			Texture2D texture2D3 = await LoadTextureAsync(toolPath2);
+			if ((bool)texture2D3)
+			{
+				_toolBgTextureTable.Add((rarity, false), texture2D3);
+			}
+			else
+			{
+				Debug.LogError("Cannot load card bg sprite '" + toolPath2 + "'");
+			}
+			toolPath2 = "Sprite/Card/Bg/Clone/" + rarity.ToString() + "Tool";
+			texture2D3 = await LoadTextureAsync(toolPath2);
+			if ((bool)texture2D3)
+			{
+				_toolBgTextureTable.Add((rarity, true), texture2D3);
+			}
+			else
+			{
+				Debug.LogError("Cannot load card bg sprite '" + toolPath2 + "'");
+			}
+			Texture2D texture2D4 = await LoadTextureAsync("Sprite/Card/Bg/" + rarity.ToString() + "Misfortune");
+			if ((bool)texture2D4)
+			{
+				_misfortuneBgTextureTable.Add((rarity, false), texture2D4);
+			}
+			else
+			{
+				Debug.LogError("Cannot load card bg sprite '" + toolPath2 + "'");
+			}
+			texture2D4 = await LoadTextureAsync("Sprite/Card/Bg/Clone/" + rarity.ToString() + "Misfortune");
+			if ((bool)texture2D4)
+			{
+				_misfortuneBgTextureTable.Add((rarity, true), texture2D4);
+			}
+			else
+			{
+				Debug.LogError("Cannot load card bg sprite '" + toolPath2 + "'");
+			}
+		}
+		Sprite[] array4 = Resources.LoadAll<Sprite>("Sprite/Card/Owner/");
+		foreach (Sprite sprite in array4)
+		{
+			_ownerSpriteTable.Add(sprite.name, sprite);
+		}
+		CardType[] array5 = new CardType[8]
+		{
+			CardType.Attack,
+			CardType.Defense,
+			CardType.Skill,
+			CardType.Ability,
+			CardType.Friend,
+			CardType.Tool,
+			CardType.Status,
+			CardType.Misfortune
+		};
+		for (int k = 0; k < array5.Length; k++)
+		{
+			CardType key = array5[k];
+			string text = "Sprite/Card/Type/" + key;
+			Sprite sprite2 = Resources.Load<Sprite>(text);
+			if ((bool)sprite2)
+			{
+				_typeSpriteTable.Add(key, sprite2);
+			}
+			else
+			{
+				Debug.LogError("Cannot load card type sprite '" + text + "'");
+			}
+		}
+	}
+
+	public void RefreshBgTextureForLoopOrder()
+	{
+		Card card = _card;
+		if (card != null && card.CardType != CardType.Tool && card.CardType != CardType.Misfortune)
+		{
+			IReadOnlyList<ManaColor> readOnlyList;
+			if (!card.IsPurified)
+			{
+				readOnlyList = card.Config.Colors;
+			}
+			else
+			{
+				IReadOnlyList<ManaColor> readOnlyList2 = new List<ManaColor>();
+				readOnlyList = readOnlyList2;
+			}
+			if (readOnlyList.Count == 2)
+			{
+				SetBgTexture(_card);
+				costWidget.SetCost(_card, _card.Zone == CardZone.Hand);
+			}
+		}
+	}
+
+	public static (Texture2D main, Texture2D sub) GetBgTexture(Card card)
+	{
+		if (card.CardType == CardType.Tool)
+		{
+			if (_toolBgTextureTable.TryGetValue((card.Config.Rarity, card.UseTransparentTexture), out var value))
+			{
+				return (main: value, sub: null);
+			}
+			Debug.LogError($"Cannot find BG sprite for '{card.Config.Rarity}'-Tool");
+			return (main: null, sub: null);
+		}
+		if (card.CardType == CardType.Misfortune)
+		{
+			if (_misfortuneBgTextureTable.TryGetValue((card.Config.Rarity, card.UseTransparentTexture), out var value2))
+			{
+				return (main: value2, sub: null);
+			}
+			Debug.LogError($"Cannot find BG sprite for '{card.Config.Rarity}'-Tool");
+			return (main: null, sub: null);
+		}
+		Rarity rarity = card.Config.Rarity;
+		IReadOnlyList<ManaColor> readOnlyList;
+		if (!card.IsPurified)
+		{
+			readOnlyList = card.Config.Colors;
+		}
+		else
+		{
+			IReadOnlyList<ManaColor> readOnlyList2 = new List<ManaColor>();
+			readOnlyList = readOnlyList2;
+		}
+		IReadOnlyList<ManaColor> readOnlyList3 = readOnlyList;
+		if (readOnlyList3.Count >= 3)
+		{
+			if (_rainbowBgTextureTable.TryGetValue((card.Config.Rarity, card.UseTransparentTexture), out var value3))
+			{
+				return (main: value3, sub: null);
+			}
+			Debug.LogError($"Cannot find BG texture for '{card.Config.Rarity}'-Rainbow");
+			return (main: null, sub: null);
+		}
+		if (readOnlyList3.Count == 2)
+		{
+			ManaColor firstOut;
+			ManaColor secondOut;
+			if (GameMaster.IsLoopOrder)
+			{
+				ManaColors.GetLoopOrder(readOnlyList3[0], readOnlyList3[1], out firstOut, out secondOut);
+			}
+			else
+			{
+				firstOut = readOnlyList3[0];
+				secondOut = readOnlyList3[1];
+			}
+			if (!_bgTextureTable.TryGetValue((firstOut, rarity, card.UseTransparentTexture), out var value4))
+			{
+				Debug.LogError($"Cannot find BG texture for '{firstOut}-{rarity}'");
+			}
+			if (!_bgTextureTable.TryGetValue((secondOut, rarity, card.UseTransparentTexture), out var value5))
+			{
+				Debug.LogError($"Cannot find BG texture for '{secondOut}-{rarity}'");
+			}
+			return (main: value4, sub: value5);
+		}
+		ManaColor item = ((readOnlyList3.Count > 0) ? readOnlyList3[0] : ManaColor.Any);
+		if (!_bgTextureTable.TryGetValue((item, rarity, card.UseTransparentTexture), out var value6))
+		{
+			Debug.LogError($"Cannot find BG texture for '{readOnlyList3[0]}-{rarity}'");
+		}
+		return (main: value6, sub: null);
+	}
+
+	private static Sprite GetOwnerSprite(Card card)
+	{
+		string owner = card.Config.Owner;
+		if (string.IsNullOrWhiteSpace(owner))
+		{
+			return null;
+		}
+		if (_ownerSpriteTable.TryGetValue(owner, out var value))
+		{
+			return value;
+		}
+		Debug.LogError("Cannot find owner sprite for '" + owner + "'");
+		return null;
+	}
+
+	private static Sprite GetTypeSprite(Card card)
+	{
+		if (_typeSpriteTable.TryGetValue(card.Config.Type, out var value))
+		{
+			return value;
+		}
+		Debug.LogError($"Cannot find type sprite for '{card.Config.Type}'");
+		return null;
+	}
+
+	public void SetIdVisible(bool visible)
+	{
+		cardIdText.gameObject.SetActive(visible);
+	}
+
+	private void Awake()
+	{
+		_rawPath = Utils.GetScenePath(base.transform);
+		_awaken = true;
+		if (_lazySetCard)
+		{
+			LazySetCard();
+		}
+		deckIndex.gameObject.SetActive(value: false);
+	}
+
+	private void LateUpdate()
+	{
+		if (_changed)
+		{
+			_changed = false;
+			SetProperties();
+		}
+	}
+
+	private void OnEnable()
+	{
+		L10nManager.LocaleChanged += OnLocaleChanged;
+		GameMaster.SettingsChanged += OnSettingsChanged;
+		if (_card != null)
+		{
+			AddHandlers(_card);
+		}
+	}
+
+	private void OnDisable()
+	{
+		L10nManager.LocaleChanged -= OnLocaleChanged;
+		GameMaster.SettingsChanged -= OnSettingsChanged;
+		if (_card != null)
+		{
+			RemoveHandlers(_card);
+		}
+		HideTooltip();
+		DOTween.Kill(this);
+	}
+
+	private void OnDestroy()
+	{
+		if (_card != null)
+		{
+			RemoveHandlers(_card);
+			_card = null;
+		}
+	}
+
+	private void AddHandlers(Card card)
+	{
+		card.PropertyChanged += OnPropertyChanged;
+		card.Activating += OnActivating;
+	}
+
+	private void RemoveHandlers(Card card)
+	{
+		card.PropertyChanged -= OnPropertyChanged;
+		card.Activating -= OnActivating;
+	}
+
+	private void OnLocaleChanged()
+	{
+		if (_card != null)
+		{
+			_changed = true;
+		}
+	}
+
+	private void OnSettingsChanged(GameSettingsSaveData settings)
+	{
+		if (!this)
+		{
+			Debug.LogError("OnSettingsChanged invoked on destroyed: " + _rawPath);
+		}
+		else if (_card != null)
+		{
+			if ((bool)illustrator.gameObject)
+			{
+				illustrator.gameObject.SetActive(settings.ShowIllustrator);
+			}
+			RefreshCardImage();
+		}
+		else if ((bool)illustrator.gameObject)
+		{
+			illustrator.gameObject.SetActive(value: false);
+		}
+	}
+
+	private void LazySetCard()
+	{
+		if (_card != null)
+		{
+			cardIdText.text = _card.GetType().Name;
+			cardIdText.gameObject.SetActive(GameMaster.ShowCardId);
+			otherInfo.text = ((_card.Config.DebugLevel > 0) ? "Debug" : null);
+			otherInfo.gameObject.SetActive(_card.Config.DebugLevel > 0);
+			RefreshCardImage();
+			RefreshPackSticker();
+			RefreshEnchantmentSticker();
+			illustrator.gameObject.SetActive(GameMaster.ShowIllustrator);
+			_dontShowMana = _card.IsForbidden;
+			costWidget.gameObject.SetActive(!_dontShowMana);
+			SetBgTexture(_card);
+			Sprite ownerSprite = GetOwnerSprite(_card);
+			cardOwnerIcon.sprite = ownerSprite;
+			cardOwnerIcon.gameObject.SetActive(ownerSprite);
+			Sprite typeSprite = GetTypeSprite(_card);
+			cardTypeIcon.sprite = typeSprite;
+			cardTypeIcon.gameObject.SetActive(typeSprite);
+			baseLoyaltyObj.SetActive(_card.CardType == CardType.Friend);
+			MarginAsFriend = _card.CardType == CardType.Friend && !NotReveal;
+			_shouldChangeImageWhenUpgrade = !_card.Config.UpgradeImageId.IsNullOrEmpty();
+			if (_shouldChangeImageWhenUpgrade)
+			{
+				_changedImageWhenUpgrade = _card.IsUpgraded;
+			}
+		}
+	}
+
+	public void SetCardIllustrator(string id)
+	{
+		_tempIllustratorId = id;
+		_changed = true;
+	}
+
+	private void RefreshCardImage()
+	{
+		string text = GameMaster.GetPreferredCardIllustrator(_card);
+		if (_tempIllustratorId != null)
+		{
+			text = _tempIllustratorId;
+		}
+		if (text != null && text != "")
+		{
+			CurrentIllustrator = text;
+			unfinished.gameObject.SetActive(value: false);
+		}
+		else if (_card.Config.Illustrator.IsNullOrEmpty())
+		{
+			CurrentIllustrator = "";
+			unfinished.gameObject.SetActive(value: false);
+		}
+		else
+		{
+			CurrentIllustrator = ((!_card.Config.Illustrator.IsNullOrEmpty()) ? _card.Config.Illustrator : "");
+			unfinished.gameObject.SetActive(value: false);
+		}
+		string text2 = ((_card.Config.UpgradeImageId.IsNullOrEmpty() || !_card.IsUpgraded) ? (_card.Config.ImageId.IsNullOrEmpty() ? _card.Id : _card.Config.ImageId) : _card.Config.UpgradeImageId);
+		RefreshCardImageTexture(text2 + text);
+	}
+
+	private void RefreshCardImageTexture(string imageKey)
+	{
+		_cardImageLoadVersion++;
+		int cardImageLoadVersion = _cardImageLoadVersion;
+		Texture texture = ResourcesHelper.TryGetCardImage(imageKey);
+		if ((bool)texture)
+		{
+			cardImage.texture = texture;
+			CardImageLoadComplete();
+			return;
+		}
+		cardImage.texture = defaultCardImage;
+		if (GameEntry.PostJobEnd)
+		{
+			CardImageLoadComplete();
+			return;
+		}
+		ShowCardImageLoading();
+		WaitForCardImageAsync(imageKey, cardImageLoadVersion).Forget();
+	}
+
+	private async UniTask WaitForCardImageAsync(string imageKey, int version)
+	{
+		while ((bool)this && version == _cardImageLoadVersion)
+		{
+			await UniTask.Delay(TimeSpan.FromSeconds(UnityEngine.Random.Range(0.5f, 2f)));
+			if (!this || version != _cardImageLoadVersion)
+			{
+				break;
+			}
+			Texture texture = ResourcesHelper.TryGetCardImage(imageKey);
+			if ((bool)texture)
+			{
+				cardImage.texture = texture;
+				CardImageLoadComplete();
+				break;
+			}
+			if (GameEntry.PostJobEnd)
+			{
+				CardImageLoadComplete();
+				break;
+			}
+		}
+	}
+
+	private void ShowCardImageLoading()
+	{
+		if ((bool)cardLoading)
+		{
+			cardLoading.DOKill();
+			Color color = cardLoading.color;
+			color.a = 1f;
+			cardLoading.color = color;
+			cardLoading.gameObject.SetActive(value: true);
+		}
+	}
+
+	private void SetBgTexture(Card card)
+	{
+		var (texture, texture2D) = GetBgTexture(card);
+		cardMainBg.texture = texture;
+		cardSubBg.texture = texture2D;
+		cardSubBg.gameObject.SetActive(texture2D);
+	}
+
+	public void SetCostToLeftInstant(bool left = true)
+	{
+		_costMoreLeft = left;
+		costHandRect.DOComplete();
+		if (left)
+		{
+			costHandRect.localPosition += new Vector3(-150f, 0f, 0f);
+		}
+		else
+		{
+			costHandRect.localPosition += new Vector3(150f, 0f, 0f);
+		}
+	}
+
+	public void OnActivating()
+	{
+		if (!this)
+		{
+			Debug.Log("Activating " + _card.DebugName + " error: Widget " + _rawPath + " already destroyed.");
+		}
+		else
+		{
+			PlayActivatingEdge();
+			DOTween.Sequence().Append(base.transform.DOScale(1.2f, 0.2f)).AppendInterval(0.3f)
+				.Append(base.transform.DOScale(1f, 0.2f))
+				.SetUpdate(isIndependentUpdate: true)
+				.SetLink(base.gameObject);
+		}
+	}
+
+	private void OnPropertyChanged()
+	{
+		_changed = true;
+	}
+
+	public void RefreshStatus()
+	{
+		_changed = true;
+	}
+
+	private void SetProperties()
+	{
+		if (_card == null)
+		{
+			return;
+		}
+		TextMeshProUGUI textMeshProUGUI = nameText;
+		object text;
+		if (!_card.IsUpgraded)
+		{
+			text = _card.Name;
+		}
+		else
+		{
+			int? upgradeCounter = _card.UpgradeCounter;
+			text = ((upgradeCounter.HasValue && upgradeCounter.GetValueOrDefault() > 0) ? (_card.Name + "+" + _card.UpgradeCounter.Value) : (_card.Name + "+"));
+		}
+		textMeshProUGUI.text = (string)text;
+		typeText.text = ("CardType." + _card.Config.Type).Localize();
+		descriptionText.text = _card.Description;
+		nameText.color = (_card.IsUpgraded ? GlobalConfig.UpgradedGreen : Color.white);
+		if (_card.EnchantmentChanged)
+		{
+			RefreshEnchantmentSticker();
+		}
+		costWidget.SetCost(_card, _card.Zone == CardZone.Hand);
+		if (_card.CardType == CardType.Friend)
+		{
+			baseLoyaltyObj.SetActive(!_card.Summoned);
+			if (!_card.Summoned)
+			{
+				baseLoyalty.text = _card.Loyalty.ToString();
+			}
+		}
+		if (NotReadyInMuseum)
+		{
+			descriptionText.text = "Museum.CardNotReady".Localize();
+		}
+		else if (NotReveal)
+		{
+			descriptionText.text = "???";
+			nameText.text = "Museum.UnRevealCard".Localize();
+		}
+		SetBgTexture(_card);
+		if (_shouldChangeImageWhenUpgrade && _card.IsUpgraded && !_changedImageWhenUpgrade)
+		{
+			RefreshCardImage();
+			_changedImageWhenUpgrade = true;
+		}
+		MarginAsFriend = _card.CardType == CardType.Friend && !NotReveal;
+		descriptionText.ForceMeshUpdate();
+		int lineCount = descriptionText.textInfo.lineCount;
+		if (NotReveal)
+		{
+			descriptionText.alignment = TextAlignmentOptions.Center;
+		}
+		else
+		{
+			descriptionText.alignment = ((lineCount > 1 || _card.CardType == CardType.Friend) ? TextAlignmentOptions.Left : TextAlignmentOptions.Center);
+		}
+	}
+
+	public void SetCardEdge(EdgeStatus status)
+	{
+		Edge = status;
+		switch (status)
+		{
+		case EdgeStatus.None:
+			SetEdgeAfford(b: false);
+			SetEdgeAffordKicker(b: false);
+			SetEdgeHigh(b: false);
+			SetEdgeHighKicker(b: false);
+			break;
+		case EdgeStatus.Afford:
+			SetEdgeAfford(b: true);
+			SetEdgeAffordKicker(b: false);
+			SetEdgeHigh(b: false);
+			SetEdgeHighKicker(b: false);
+			break;
+		case EdgeStatus.AffordKicker:
+			SetEdgeAfford(b: false);
+			SetEdgeAffordKicker(b: true);
+			SetEdgeHigh(b: false);
+			SetEdgeHighKicker(b: false);
+			break;
+		case EdgeStatus.High:
+			SetEdgeAfford(b: false);
+			SetEdgeAffordKicker(b: false);
+			SetEdgeHigh(b: true);
+			SetEdgeHighKicker(b: false);
+			break;
+		case EdgeStatus.HighKicker:
+			SetEdgeAfford(b: false);
+			SetEdgeAffordKicker(b: false);
+			SetEdgeHigh(b: false);
+			SetEdgeHighKicker(b: true);
+			break;
+		default:
+			throw new ArgumentOutOfRangeException("status", status, null);
+		}
+	}
+
+	private void SetEdgeAfford(bool b)
+	{
+		if (b && !_edgeAfford)
+		{
+			_edgeAfford = UnityEngine.Object.Instantiate(edgeAfford, effectFront);
+			float r = UnityEngine.Random.Range(0f, 1f);
+			_edgeAfford.GetComponent<Image>().color = new Color(r, 0.25f, 1f, 0.33f);
+		}
+		if ((bool)_edgeAfford)
+		{
+			_edgeAfford.SetActive(b);
+		}
+	}
+
+	private void SetEdgeAffordKicker(bool b)
+	{
+		if (b && !_edgeAffordKicker)
+		{
+			_edgeAffordKicker = UnityEngine.Object.Instantiate(edgeAffordKicker, effectFront);
+			float r = UnityEngine.Random.Range(0f, 1f);
+			_edgeAffordKicker.GetComponent<Image>().color = new Color(r, 0.6f, 1f, 0.5f);
+		}
+		if ((bool)_edgeAffordKicker)
+		{
+			_edgeAffordKicker.SetActive(b);
+		}
+	}
+
+	private void SetEdgeHigh(bool b)
+	{
+		if (b && !_edgeHigh)
+		{
+			_edgeHigh = UnityEngine.Object.Instantiate(edgeHigh, effectFront);
+		}
+		if ((bool)_edgeHigh)
+		{
+			_edgeHigh.SetActive(b);
+		}
+	}
+
+	private void SetEdgeHighKicker(bool b)
+	{
+		if (b && !_edgeHighKicker)
+		{
+			_edgeHighKicker = UnityEngine.Object.Instantiate(edgeHighKicker, effectFront);
+		}
+		if ((bool)_edgeHighKicker)
+		{
+			_edgeHighKicker.SetActive(b);
+		}
+	}
+
+	private void PlayActivatingEdge()
+	{
+		if (!_edgeActivatingOnce)
+		{
+			_edgeActivatingOnce = UnityEngine.Object.Instantiate(edgeActivating, effectFront);
+		}
+		_edgeActivatingOnce.GetComponentInChildren<ParticleSystem>().Play(withChildren: true);
+	}
+
+	public void PlayFriendEffect()
+	{
+		GameObject obj = UnityEngine.Object.Instantiate(friendEffect, effectFront);
+		obj.GetComponentInChildren<ParticleSystem>().Play(withChildren: true);
+		UnityEngine.Object.Destroy(obj, 2f);
+	}
+
+	public void PlayTransformEffect(TransformCardType transformCardType)
+	{
+		base.transform.DOLocalRotate(new Vector3(0f, 360f, 0f), 0.5f, RotateMode.FastBeyond360);
+		GameObject obj = UnityEngine.Object.Instantiate(transformEffects[transformCardType], effectFront);
+		obj.GetComponentInChildren<ParticleSystem>().Play(withChildren: true);
+		UnityEngine.Object.Destroy(obj, 3f);
+	}
+
+	public void SetEndingNotify()
+	{
+		if (!_edgeEndNotify)
+		{
+			_edgeEndNotify = UnityEngine.Object.Instantiate(edgeEndNotify, effectBack);
+		}
+		_edgeEndNotify.GetComponentInChildren<ParticleSystem>().Stop();
+		_edgeEndNotify.GetComponentInChildren<ParticleSystem>().Play();
+	}
+
+	public ExileCoverEffect Exile()
+	{
+		AudioManager.PlayUi("CardExile");
+		ExileCoverEffect exileCoverEffect = UnityEngine.Object.Instantiate(cardExile, exileLayer);
+		exileCoverEffect.CloseObjects.Add(root.gameObject);
+		exileCoverEffect.RootObject = base.gameObject;
+		exileCoverEffect.Exile();
+		return exileCoverEffect;
+	}
+
+	public RemoveCoverEffect Remove()
+	{
+		AudioManager.PlayUi("CardExile");
+		RemoveCoverEffect removeCoverEffect = UnityEngine.Object.Instantiate(cardRemove, exileLayer);
+		removeCoverEffect.CloseObjects.Add(root.gameObject);
+		removeCoverEffect.RootObject = base.gameObject;
+		removeCoverEffect.Remove();
+		return removeCoverEffect;
+	}
+
+	public void Summon()
+	{
+		ShowManaHand = true;
+		PlayFriendEffect();
+		AudioManager.PlayUi("SummonFriend");
+	}
+
+	private void HidePackSticker()
+	{
+		stickerPack.gameObject.SetActive(value: false);
+	}
+
+	private void ShowPackSticker(string packId, bool on = true)
+	{
+		stickerPack.gameObject.SetActive(value: true);
+		stickerPack.sprite = ResourcesHelper.TryGetSticker(packId + "Sticker", on);
+	}
+
+	public void RefreshPackSticker()
+	{
+		if (_card.Config.Pack.IsNullOrEmpty())
+		{
+			HidePackSticker();
+			return;
+		}
+		List<string> list = null;
+		if (Singleton<GameMaster>.Instance.CurrentGameRun != null)
+		{
+			list = Singleton<GameMaster>.Instance.CurrentGameRun.Packs;
+		}
+		else if (Singleton<GameMaster>.Instance.CurrentProfile != null)
+		{
+			list = Singleton<GameMaster>.Instance.CurrentProfile.Settings.Packs;
+		}
+		bool on = list?.Contains(_card.Config.Pack) ?? false;
+		ShowPackSticker(_card.Config.Pack, on);
+	}
+
+	private void HideEnchantmentSticker()
+	{
+		stickerEnchantment.gameObject.SetActive(value: false);
+	}
+
+	private void ShowEnchantmentSticker(string enchantmentId)
+	{
+		stickerEnchantment.gameObject.SetActive(value: true);
+		stickerEnchantment.sprite = ResourcesHelper.TryGetSticker(enchantmentId + "Sticker");
+	}
+
+	public void RefreshEnchantmentSticker()
+	{
+		if (_card.EnchantmentStickerId.IsNullOrEmpty())
+		{
+			HideEnchantmentSticker();
+		}
+		else
+		{
+			ShowEnchantmentSticker(_card.EnchantmentStickerId);
+		}
+		_card.EnchantmentChanged = false;
+	}
+
+	public void ShowTooltip()
+	{
+		if (Card != null && TooltipEnabled)
+		{
+			TooltipId = TooltipsLayer.ShowCard(this);
+		}
+	}
+
+	public void HideTooltip()
+	{
+		if (TooltipId != 0)
+		{
+			TooltipsLayer.Hide(TooltipId);
+			TooltipId = 0;
+		}
+	}
+
+	public void ShowDeckIndex(int index, bool top = false, bool bottom = false)
+	{
+		string text = index.ToString();
+		if (top)
+		{
+			text = ((!bottom) ? (text + "Game.TopSuffix".Localize()) : (text + "Game.TopBottomSuffix".Localize()));
+		}
+		else if (bottom)
+		{
+			text += "Game.BottomSuffix".Localize();
+		}
+		deckIndex.text = text;
+		deckIndex.gameObject.SetActive(value: true);
+	}
+
+	public void HideDeckIndex()
+	{
+		deckIndex.gameObject.SetActive(value: false);
+	}
+
+	private void CardImageLoadComplete()
+	{
+		if (!cardLoading || !cardLoading.gameObject.activeSelf)
+		{
+			return;
+		}
+		cardLoading.DOKill();
+		cardLoading.DOFade(0f, 0.3f).OnComplete(delegate
+		{
+			if ((bool)cardLoading)
+			{
+				cardLoading.gameObject.SetActive(value: false);
+			}
+		});
+	}
+}
+

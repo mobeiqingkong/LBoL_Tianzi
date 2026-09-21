@@ -1,0 +1,705 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using JetBrains.Annotations;
+using LBoL.Base;
+using LBoL.ConfigData;
+using LBoL.Core.Attributes;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.Cards;
+using LBoL.Core.Helpers;
+using LBoL.Core.Units;
+using UnityEngine;
+
+namespace LBoL.Core.StatusEffects;
+
+[Localizable]
+public abstract class StatusEffect : GameEntity, IDisplayWord, IEquatable<IDisplayWord>, INotifyActivating
+{
+	internal sealed class StatusEffectFormatWrapper : GameEntityFormatWrapper
+	{
+		private readonly StatusEffect _effect;
+
+		public StatusEffectFormatWrapper(StatusEffect effect)
+			: base(effect)
+		{
+			_effect = effect;
+		}
+
+		protected override object GetArgument(string key)
+		{
+			if (!(key == "OwnerName"))
+			{
+				return base.GetArgument(key);
+			}
+			return _effect.Owner?.GetName() ?? UnitNameTable.GetDefaultOwnerName();
+		}
+
+		protected override string FormatArgument(object arg, string format)
+		{
+			if (!(arg is DamageInfo damageInfo))
+			{
+				if (arg is ScryInfo { Count: var count })
+				{
+					BattleController battle = _effect.Battle;
+					if (battle == null)
+					{
+						return GameEntityFormatWrapper.WrappedFormatNumber(count, count, format);
+					}
+					int value = battle.CalculateScry(_effect, count);
+					return GameEntityFormatWrapper.WrappedFormatNumber(count, value, format);
+				}
+				return base.FormatArgument(arg, format);
+			}
+			int num = (int)damageInfo.Damage;
+			BattleController battle2 = _effect.Battle;
+			if (battle2 == null)
+			{
+				return GameEntityFormatWrapper.WrappedFormatNumber(num, num, format);
+			}
+			int value2 = battle2.CalculateDamage(_effect, battle2.Player, null, damageInfo);
+			return GameEntityFormatWrapper.WrappedFormatNumber(num, value2, format);
+		}
+	}
+
+	private class OpposeHandler
+	{
+		private readonly List<(Type otherType, Func<StatusEffect, StatusEffect, OpposeResult> handler)> _opposingTypes = new List<(Type, Func<StatusEffect, StatusEffect, OpposeResult>)>();
+
+		public OpposeHandler(Type type)
+		{
+			Type[] interfaces = type.GetInterfaces();
+			foreach (Type type2 in interfaces)
+			{
+				if (type2.IsGenericType && type2.GetGenericTypeDefinition() == typeof(IOpposing<>))
+				{
+					Type item = type2.GetGenericArguments()[0];
+					MethodInfo method = type2.GetMethod("Oppose");
+					_opposingTypes.Add((item, (StatusEffect self, StatusEffect other) => (OpposeResult)method.Invoke(self, new object[1] { other })));
+				}
+			}
+		}
+
+		public OpposeResult? Oppose(StatusEffect self, StatusEffect effect)
+		{
+			Type type = effect.GetType();
+			foreach (var (type2, func) in _opposingTypes)
+			{
+				if (type2.IsAssignableFrom(type))
+				{
+					return func(self, effect);
+				}
+			}
+			return null;
+		}
+	}
+
+	private static readonly Dictionary<Type, OpposeHandler> OpposeHandlerDict = new Dictionary<Type, OpposeHandler>();
+
+	private int _level;
+
+	private bool _showCount = true;
+
+	private int _count;
+
+	private int _limit;
+
+	private int _duration;
+
+	private readonly WeakReference<Unit> _owner = new WeakReference<Unit>(null);
+
+	private bool _highlight;
+
+	private readonly GameEventHandlerHolder _ownerHandlerHolder = new GameEventHandlerHolder();
+
+	public override string Name
+	{
+		get
+		{
+			try
+			{
+				return base.BaseName.RuntimeFormat(this);
+			}
+			catch (Exception exception)
+			{
+				Debug.LogException(exception);
+				return "<" + DebugName + " Error>";
+			}
+		}
+	}
+
+	public string Brief => LocalizeProperty("Brief", decorated: true, required: false);
+
+	string IDisplayWord.Description => Brief?.RuntimeFormat(base.FormatWrapper) ?? ("<" + GetType().Name + ".Brief>");
+
+	bool IDisplayWord.IsVerbose => false;
+
+	public virtual string IconName => base.Id;
+
+	public virtual string OverrideIconName => Config.ImageId;
+
+	public StatusEffectConfig Config { get; private set; }
+
+	internal override GameEventPriority DefaultEventPriority => (GameEventPriority)Config.Order;
+
+	public StatusEffectType Type => Config.Type;
+
+	public virtual bool ForceNotShowDownText { get; set; }
+
+	public bool HasLevel => Config.HasLevel;
+
+	public int Level
+	{
+		get
+		{
+			if (!HasLevel)
+			{
+				throw new InvalidOperationException("<" + DebugName + "> has no level");
+			}
+			return _level;
+		}
+		set
+		{
+			if (!HasLevel)
+			{
+				throw new InvalidOperationException("<" + DebugName + "> has no level");
+			}
+			if (value < 0)
+			{
+				throw new ArgumentException($"Negative level '{value}' for {DebugName}");
+			}
+			int num = Math.Min(value, 999);
+			if (_level != num)
+			{
+				_level = num;
+				NotifyChanged();
+			}
+		}
+	}
+
+	public bool ShowCount
+	{
+		get
+		{
+			return _showCount;
+		}
+		set
+		{
+			_showCount = value;
+			NotifyChanged();
+		}
+	}
+
+	public bool HasCount => Config.HasCount;
+
+	public int Count
+	{
+		get
+		{
+			if (!HasCount)
+			{
+				throw new InvalidOperationException("<" + DebugName + "> has no count");
+			}
+			return _count;
+		}
+		set
+		{
+			if (!HasCount)
+			{
+				throw new InvalidOperationException("<" + DebugName + "> has no count");
+			}
+			if (value < 0)
+			{
+				throw new ArgumentException($"Negative count '{value}' for {DebugName}");
+			}
+			int num = Math.Min(value, 999);
+			if (_count != num)
+			{
+				_count = num;
+				NotifyChanged();
+			}
+		}
+	}
+
+	public int Limit
+	{
+		get
+		{
+			return _limit;
+		}
+		set
+		{
+			_limit = value;
+			NotifyChanged();
+		}
+	}
+
+	public bool HasDuration => Config.HasDuration;
+
+	public int Duration
+	{
+		get
+		{
+			if (!HasDuration)
+			{
+				throw new InvalidOperationException("<" + DebugName + "> has no duration");
+			}
+			return _duration;
+		}
+		set
+		{
+			if (!HasDuration)
+			{
+				throw new InvalidOperationException("<" + DebugName + "> has no duration");
+			}
+			if (value < 0)
+			{
+				throw new ArgumentException($"Negative duration '{value}' for {DebugName}");
+			}
+			int num = Math.Min(value, 999);
+			if (_duration != num)
+			{
+				_duration = num;
+				NotifyChanged();
+			}
+		}
+	}
+
+	public bool IsStackable => Config.IsStackable;
+
+	[UsedImplicitly]
+	public int TriggerLevel => Config.StackActionTriggerLevel.GetValueOrDefault();
+
+	public bool ShowPlusByLimit => Config.ShowPlusByLimit;
+
+	public Unit Owner
+	{
+		get
+		{
+			if (!_owner.TryGetTarget(out var target))
+			{
+				return null;
+			}
+			return target;
+		}
+		internal set
+		{
+			_owner.SetTarget(value);
+		}
+	}
+
+	internal bool IsAutoDecreasing { get; set; }
+
+	public BattleController Battle => Owner?.Battle;
+
+	public Card SourceCard { get; set; }
+
+	public bool Highlight
+	{
+		get
+		{
+			return _highlight;
+		}
+		set
+		{
+			if (_highlight != value)
+			{
+				_highlight = value;
+				NotifyChanged();
+			}
+		}
+	}
+
+	protected virtual Keyword Keywords => Config.Keywords;
+
+	protected virtual IEnumerable<string> RelativeEffects => Config.RelativeEffects;
+
+	public virtual string PreventCardUsageMessage
+	{
+		get
+		{
+			throw new InvalidOperationException("Cannot get prevent card message key for " + DebugName);
+		}
+	}
+
+	public virtual string UnitEffectName => null;
+
+	[UsedImplicitly]
+	public string SourceCardName => UiUtils.WrapByColor(SourceCard.Name, GlobalConfig.EntityColor);
+
+	protected string ExtraDescription => LocalizeProperty("ExtraDescription", decorated: true);
+
+	protected string ExtraDescription2 => LocalizeProperty("ExtraDescription2", decorated: true);
+
+	public event Action Activating;
+
+	protected BattleAction BuffAction(Type type, int level = 0, int duration = 0, int limit = 0, int count = 0, float occupationTime = 0.2f)
+	{
+		return new ApplyStatusEffectAction(type, Battle.Player, level, duration, limit: limit, count: count, occupationTime: occupationTime);
+	}
+
+	protected BattleAction BuffAction<TEffect>(int level = 0, int duration = 0, int limit = 0, int count = 0, float occupationTime = 0.2f)
+	{
+		return BuffAction(typeof(TEffect), level, duration, limit, count, occupationTime);
+	}
+
+	protected BattleAction DebuffAction(Type type, Unit target, int level = 0, int duration = 0, int limit = 0, int count = 0, bool startAutoDecreasing = true, float occupationTime = 0.2f)
+	{
+		int? level2 = level;
+		int? duration2 = duration;
+		int? limit2 = limit;
+		int? count2 = count;
+		bool startAutoDecreasing2 = startAutoDecreasing;
+		return new ApplyStatusEffectAction(type, target, level2, duration2, count2, limit2, occupationTime, startAutoDecreasing2);
+	}
+
+	protected BattleAction DebuffAction<TEffect>(Unit target, int level = 0, int duration = 0, int limit = 0, int count = 0, bool startAutoDecreasing = true, float occupationTime = 0.2f)
+	{
+		return DebuffAction(typeof(TEffect), target, level, duration, limit, count, startAutoDecreasing, occupationTime);
+	}
+
+	protected IEnumerable<BattleAction> DebuffAction(Type type, IEnumerable<Unit> targets, int level = 0, int duration = 0, int limit = 0, int count = 0, bool startAutoDecreasing = true, float occupationTime = 0.2f)
+	{
+		List<Unit> list = targets.ToList();
+		foreach (Unit item in list)
+		{
+			int? level2 = level;
+			int? duration2 = duration;
+			int? num = limit;
+			yield return new ApplyStatusEffectAction(count: count, limit: num, startAutoDecreasing: startAutoDecreasing, type: type, target: item, level: level2, duration: duration2, occupationTime: (item == list.LastOrDefault()) ? occupationTime : 0f);
+		}
+	}
+
+	protected IEnumerable<BattleAction> DebuffAction<TEffect>(IEnumerable<Unit> targets, int level = 0, int duration = 0, int limit = 0, int count = 0, bool startAutoDecreasing = true, float occupationTime = 0.2f)
+	{
+		return DebuffAction(typeof(TEffect), targets, level, duration, limit, count, startAutoDecreasing, occupationTime);
+	}
+
+	protected BattleAction UpgradeAllHandsAction()
+	{
+		List<Card> list = Battle.HandZone.Where((Card card) => card.CanUpgradeAndPositive).ToList();
+		if (list.Count <= 0)
+		{
+			return null;
+		}
+		return new UpgradeCardsAction(list);
+	}
+
+	protected StatusEffect()
+	{
+		Type type = GetType();
+		if (!OpposeHandlerDict.ContainsKey(type))
+		{
+			OpposeHandlerDict.Add(type, new OpposeHandler(type));
+		}
+	}
+
+	protected override string LocalizeProperty(string key, bool decorated = false, bool required = true)
+	{
+		return TypeFactory<StatusEffect>.LocalizeProperty(base.Id, key, decorated, required);
+	}
+
+	protected virtual IReadOnlyList<string> LocalizeListProperty(string key, bool required = true)
+	{
+		return TypeFactory<StatusEffect>.LocalizeListProperty(base.Id, key, required);
+	}
+
+	internal void SetInitLevel(int level)
+	{
+		_level = level;
+	}
+
+	internal void SetInitCount(int count)
+	{
+		_count = count;
+	}
+
+	internal void SetInitDuration(int duration)
+	{
+		_duration = duration;
+	}
+
+	public virtual bool Stack(StatusEffect other)
+	{
+		if (!IsStackable)
+		{
+			return false;
+		}
+		int? stackActionTriggerLevel = Config.StackActionTriggerLevel;
+		if (stackActionTriggerLevel.HasValue)
+		{
+			int valueOrDefault = stackActionTriggerLevel.GetValueOrDefault();
+			_level += other._level;
+			if (_level >= valueOrDefault)
+			{
+				int targetLevel = _level / valueOrDefault;
+				_level %= valueOrDefault;
+				NotifyChanged();
+				NotifyActivating();
+				if (_level == 0)
+				{
+					React(new RemoveStatusEffectAction(this));
+				}
+				React(new Reactor(StackAction(Owner, targetLevel)));
+			}
+			else
+			{
+				NotifyChanged();
+			}
+			return true;
+		}
+		if (HasLevel)
+		{
+			_level = Config.LevelStackType switch
+			{
+				StackType.Add => Math.Min(Level + other.Level, 999), 
+				StackType.Max => Math.Max(Level, other.Level), 
+				StackType.Min => Math.Min(Level, other.Level), 
+				StackType.Keep => Level, 
+				StackType.Overwrite => other.Level, 
+				_ => throw new InvalidDataException($"Invalid stack type {Config.LevelStackType} for {DebugName}"), 
+			};
+		}
+		if (HasDuration)
+		{
+			_duration = Config.DurationStackType switch
+			{
+				StackType.Add => Math.Min(Duration + other.Duration, 999), 
+				StackType.Max => Math.Max(Duration, other.Duration), 
+				StackType.Min => Math.Max(Duration, other.Duration), 
+				StackType.Keep => Duration, 
+				StackType.Overwrite => other.Duration, 
+				_ => throw new InvalidDataException($"Invalid stack type {Config.DurationStackType} for {DebugName}"), 
+			};
+		}
+		if (HasCount)
+		{
+			_count = Config.CountStackType switch
+			{
+				StackType.Add => Math.Min(Count + other.Count, 999), 
+				StackType.Max => Math.Max(Count, other.Count), 
+				StackType.Min => Math.Min(Count, other.Count), 
+				StackType.Keep => Count, 
+				StackType.Overwrite => other.Count, 
+				_ => throw new InvalidDataException($"Invalid stack type {Config.CountStackType} for {DebugName}"), 
+			};
+		}
+		_limit = Config.LimitStackType switch
+		{
+			StackType.Add => Limit + other.Limit, 
+			StackType.Max => Math.Max(Limit, other.Limit), 
+			StackType.Min => Math.Min(Limit, other.Limit), 
+			StackType.Keep => Limit, 
+			StackType.Overwrite => other.Limit, 
+			_ => throw new InvalidDataException($"Invalid stack type {Config.CountStackType} for {DebugName}"), 
+		};
+		IsAutoDecreasing = IsAutoDecreasing || other.IsAutoDecreasing;
+		NotifyChanged();
+		return true;
+	}
+
+	internal void ClampMax()
+	{
+		if (HasLevel)
+		{
+			Level = Math.Min(Level, 999);
+		}
+		if (HasDuration)
+		{
+			Duration = Math.Min(Duration, 999);
+		}
+		if (HasCount)
+		{
+			Count = Math.Min(Count, 999);
+		}
+	}
+
+	public override void Initialize()
+	{
+		base.Initialize();
+		Config = StatusEffectConfig.FromId(base.Id);
+		if (Config == null)
+		{
+			throw new InvalidDataException("Cannot find status-effect config for " + base.Id);
+		}
+		if (IsStackable)
+		{
+			if (HasLevel && !Config.LevelStackType.HasValue)
+			{
+				throw new InvalidDataException(DebugName + " is stackable but LevelStackType is null");
+			}
+			if (HasDuration && !Config.DurationStackType.HasValue)
+			{
+				throw new InvalidDataException(DebugName + " is stackable but DurationStackType is null");
+			}
+			if (HasCount && !Config.CountStackType.HasValue)
+			{
+				throw new InvalidDataException(DebugName + " is stackable but CountStackType is null");
+			}
+		}
+		if (Config.StackActionTriggerLevel.HasValue)
+		{
+			if (!IsStackable)
+			{
+				throw new InvalidDataException(DebugName + " has 'StackActionTriggerLevel' but is not stackable");
+			}
+			if (!HasLevel)
+			{
+				throw new InvalidDataException(DebugName + " has 'StackActionTriggerLevel' but does not have level");
+			}
+			if (Config.LevelStackType.HasValue && Config.LevelStackType.Value != 0)
+			{
+				throw new InvalidDataException(string.Format("{0} has '{1}' but has '{2}' which is not 'Add'", DebugName, "StackActionTriggerLevel", Config.LevelStackType));
+			}
+			if (HasDuration)
+			{
+				throw new InvalidDataException(DebugName + " has 'StackActionTriggerLevel' but also has duration");
+			}
+			if (HasCount)
+			{
+				throw new InvalidDataException(DebugName + " has 'StackActionTriggerLevel' but also has count");
+			}
+		}
+	}
+
+	internal override GameEntityFormatWrapper CreateFormatWrapper()
+	{
+		return new StatusEffectFormatWrapper(this);
+	}
+
+	internal void TriggerAdding(Unit unit)
+	{
+		OnAdding(unit);
+	}
+
+	internal void TriggerAdded(Unit unit)
+	{
+		OnAdded(unit);
+	}
+
+	internal void TriggerRemoving(Unit unit)
+	{
+		OnRemoving(unit);
+	}
+
+	internal void TriggerRemoved(Unit unit)
+	{
+		OnRemoved(unit);
+		_ownerHandlerHolder.ClearEventHandlers();
+	}
+
+	protected virtual void OnAdding(Unit unit)
+	{
+	}
+
+	protected virtual void OnAdded(Unit unit)
+	{
+	}
+
+	protected virtual void OnRemoving(Unit unit)
+	{
+	}
+
+	protected virtual void OnRemoved(Unit unit)
+	{
+	}
+
+	public void NotifyActivating()
+	{
+		this.Activating?.Invoke();
+	}
+
+	public override void NotifyChanged()
+	{
+		base.NotifyChanged();
+		Battle?.TriggerGlobalStatusChanged();
+		StatusEffectEventArgs args = new StatusEffectEventArgs
+		{
+			Effect = this,
+			CanCancel = false
+		};
+		Owner?.StatusEffectChanged.Execute(args);
+	}
+
+	protected override void React(Reactor reactor)
+	{
+		if (Battle == null)
+		{
+			Debug.LogError("[StatusEffect: " + DebugName + "] Cannot react outside battle");
+		}
+		else
+		{
+			Battle.React(reactor, this, ActionCause.StatusEffect);
+		}
+	}
+
+	protected void HandleOwnerEvent<T>(GameEvent<T> @event, GameEventHandler<T> handler, GameEventPriority priority) where T : GameEventArgs
+	{
+		_ownerHandlerHolder.HandleEvent(@event, handler, priority);
+	}
+
+	protected void HandleOwnerEvent<T>(GameEvent<T> @event, GameEventHandler<T> handler) where T : GameEventArgs
+	{
+		HandleOwnerEvent(@event, handler, DefaultEventPriority);
+	}
+
+	protected void ReactOwnerEvent<TEventArgs>(GameEvent<TEventArgs> @event, EventSequencedReactor<TEventArgs> reactor, GameEventPriority priority) where TEventArgs : GameEventArgs
+	{
+		HandleOwnerEvent(@event, delegate(TEventArgs args)
+		{
+			React(reactor(args));
+		}, priority);
+	}
+
+	protected void ReactOwnerEvent<TEventArgs>(GameEvent<TEventArgs> @event, EventSequencedReactor<TEventArgs> reactor) where TEventArgs : GameEventArgs
+	{
+		ReactOwnerEvent(@event, reactor, DefaultEventPriority);
+	}
+
+	public virtual IEnumerable<BattleAction> StackAction(Unit targetOwner, int targetLevel)
+	{
+		throw new InvalidOperationException(DebugName + " has no stack action");
+	}
+
+	internal OpposeResult? Oppose(StatusEffect effect)
+	{
+		return OpposeHandlerDict[GetType()].Oppose(this, effect);
+	}
+
+	bool IEquatable<IDisplayWord>.Equals(IDisplayWord other)
+	{
+		if (other is StatusEffect statusEffect)
+		{
+			return GetType() == statusEffect.GetType();
+		}
+		return false;
+	}
+
+	public IEnumerable<IDisplayWord> EnumerateDisplayWords(bool verbose)
+	{
+		return Library.InternalEnumerateDisplayWords(base.GameRun, Keywords, RelativeEffects, verbose);
+	}
+
+	public virtual bool ShouldPreventCardUsage(Card card)
+	{
+		return false;
+	}
+
+	public int GetSeLevel(Type seType)
+	{
+		if (Battle == null || !Battle.Player.HasStatusEffect(seType))
+		{
+			return 0;
+		}
+		return Battle.Player.GetStatusEffect(seType).Level;
+	}
+
+	public int GetSeLevel<T>() where T : StatusEffect
+	{
+		return GetSeLevel(typeof(T));
+	}
+}
+

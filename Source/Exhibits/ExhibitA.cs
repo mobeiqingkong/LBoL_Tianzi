@@ -72,7 +72,7 @@ namespace TianziMod.Exhibits
                 yield break;
             base.NotifyActivating();
             yield return new DrawManyCardAction(1);
-            yield return new GainTurnManaAction(this.Mana2);
+            yield return new GainManaAction(this.Mana2);
         }
 
         private IEnumerable<BattleAction> OnPlayerDamageReceived(DamageEventArgs args)

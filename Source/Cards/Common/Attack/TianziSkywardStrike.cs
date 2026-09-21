@@ -31,7 +31,7 @@ namespace TianziMod.Cards
             config.Damage = 12;
             config.UpgradedDamage = 12;
 
-            config.Value1 = 2; // 每张防御牌提供的追加伤害
+            config.Value1 = 2;
             config.UpgradedValue1 = 3;
 
             config.Illustrator = "";
@@ -40,34 +40,62 @@ namespace TianziMod.Cards
         }
     }
 
-
     /// <summary>
-    /// 冲天一击：造成 {Damage} 点伤害。
-    /// 本回合每打出过一张防御牌，此牌伤害提高 {Value1} 点。
+    /// 天地之压：造成 {Damage} 点伤害。
+    /// 本回合每打出一张防御牌，伤害提高 {Value1} 点（加成会反映在卡面伤害上）。
     /// </summary>
     [EntityLogic(typeof(TianziSkywardStrikeDef))]
     public sealed class TianziSkywardStrike : TianziCard
     {
+        protected override int AdditionalDamage
+        {
+            get { return this.CountTurnPlayed(CardType.Defense) * base.Value1; }
+        }
+
+        protected override void OnEnterBattle(BattleController battle)
+        {
+            base.OnEnterBattle(battle);
+            this.HandleBattleEvent<CardUsingEventArgs>(
+                battle.CardUsed,
+                new GameEventHandler<CardUsingEventArgs>(this.OnCardUsed));
+            this.HandleBattleEvent<CardUsingEventArgs>(
+                battle.CardPlayed,
+                new GameEventHandler<CardUsingEventArgs>(this.OnCardUsed));
+            this.HandleBattleEvent<UnitEventArgs>(
+                battle.Player.TurnStarting,
+                new GameEventHandler<UnitEventArgs>(this.OnTurnStarted));
+            this.HandleBattleEvent<UnitEventArgs>(
+                battle.Player.TurnStarted,
+                new GameEventHandler<UnitEventArgs>(this.OnTurnStarted));
+        }
+
+        private void OnCardUsed(CardUsingEventArgs args)
+        {
+            if (args.Card != null && args.Card.CardType == CardType.Defense)
+                this.NotifyChanged();
+        }
+
+        private void OnTurnStarted(UnitEventArgs args)
+        {
+            this.NotifyChanged();
+        }
+
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector,
             ManaGroup consumingMana,
             Interaction precondition
         )
         {
-            int defenseCount = this.CountTurnPlayed(CardType.Defense);
-            float damage = base.Damage.Damage + defenseCount * base.Value1;
-
             foreach (Unit enemy in selector.GetUnits(base.Battle))
             {
                 yield return new DamageAction(
                     base.Battle.Player,
                     enemy,
-                    DamageInfo.Attack(damage, false),
+                    base.Damage,
                     base.GunName,
                     GunType.Single
                 );
             }
-            yield break;
         }
     }
 }

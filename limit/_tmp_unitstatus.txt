@@ -1,0 +1,490 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using DG.Tweening;
+using LBoL.Base.Extensions;
+using LBoL.Core;
+using LBoL.Core.StatusEffects;
+using LBoL.Core.Units;
+using LBoL.Presentation.InputSystemExtend;
+using LBoL.Presentation.UI.Panels;
+using LBoL.Presentation.Units;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace LBoL.Presentation.UI.Widgets;
+
+public class UnitStatusWidget : MonoBehaviour
+{
+	[SerializeField]
+	private GamepadButtonCursor unitCursor;
+
+	private readonly List<StatusEffectWidget> _statusEffectWidgets = new List<StatusEffectWidget>();
+
+	private ScenePositionTier _scenePositionTier;
+
+	private CanvasGroup _canvasGroup;
+
+	private Unit _unit;
+
+	[SerializeField]
+	private RectTransform rectTransform;
+
+	[SerializeField]
+	private HealthBar hpBar;
+
+	[SerializeField]
+	private StatusEffectWidget statusEffectTemplate;
+
+	[SerializeField]
+	private Transform statusEffectParent;
+
+	private const float MinBarLength = 240f;
+
+	private const float MaxBarLength = 640f;
+
+	private float _barLength;
+
+	private const float PlayerMinLength = 240f;
+
+	private const float PlayerMaxLength = 640f;
+
+	private const int PlayerMinLengthHp = 45;
+
+	private const int PlayerMaxLengthHp = 120;
+
+	public GamepadButtonCursor UnitCursor => unitCursor;
+
+	public UnitView UnitView { get; set; }
+
+	public bool ForceCursorVisible { get; set; }
+
+	public Unit Unit
+	{
+		get
+		{
+			return _unit;
+		}
+		set
+		{
+			_unit = value;
+			if (value != null)
+			{
+				SetHpBar();
+				SetStatusEffects();
+			}
+			else
+			{
+				ClearStatusEffects();
+			}
+			RefreshInspectableContent();
+		}
+	}
+
+	public Transform TargetTransform
+	{
+		get
+		{
+			return _scenePositionTier.TargetTransform;
+		}
+		set
+		{
+			if (_scenePositionTier == null)
+			{
+				Debug.LogError("Setting TargetTransform before Awake");
+				_scenePositionTier = GetComponent<ScenePositionTier>() ?? base.gameObject.AddComponent<ScenePositionTier>();
+			}
+			_scenePositionTier.TargetTransform = value;
+		}
+	}
+
+	public float Alpha
+	{
+		get
+		{
+			return _canvasGroup.alpha;
+		}
+		set
+		{
+			_canvasGroup.alpha = value;
+		}
+	}
+
+	public float BarLength
+	{
+		get
+		{
+			return _barLength;
+		}
+		set
+		{
+			_barLength = Mathf.Min(Mathf.Max(value, 240f), 640f);
+			rectTransform.sizeDelta = new Vector2(_barLength, rectTransform.sizeDelta.y);
+		}
+	}
+
+	private void OnEnable()
+	{
+		Singleton<InputDeviceManager>.Instance.onInputDeviceChanged.AddListener(OnInputDeviceChanged);
+		Singleton<GamepadNavigationManager>.Instance.OnPanelUpdate.AddListener(OnPanelUpdate);
+	}
+
+	private void OnDisable()
+	{
+		Singleton<InputDeviceManager>.Instance?.onInputDeviceChanged.RemoveListener(OnInputDeviceChanged);
+		Singleton<GamepadNavigationManager>.Instance?.OnPanelUpdate.RemoveListener(OnPanelUpdate);
+	}
+
+	private void RefreshInspectableContent()
+	{
+		if (unitCursor != null && unitCursor.isActiveAndEnabled)
+		{
+			unitCursor.HasInspectableContent = _statusEffectWidgets.Count > 0;
+		}
+	}
+
+	public void OnPanelUpdate()
+	{
+		RefreshInspectableContent();
+		if (ForceCursorVisible)
+		{
+			unitCursor.gameObject.SetActive(value: true);
+			return;
+		}
+		BackgroundPanel backgroundPanel = null;
+		RewardPanel rewardPanel = null;
+		ShopPanel shopPanel = null;
+		VnPanel vnPanel = null;
+		try
+		{
+			backgroundPanel = UiManager.GetPanel<BackgroundPanel>();
+		}
+		catch (InvalidOperationException)
+		{
+		}
+		try
+		{
+			rewardPanel = UiManager.GetPanel<RewardPanel>();
+		}
+		catch (InvalidOperationException)
+		{
+		}
+		try
+		{
+			shopPanel = UiManager.GetPanel<ShopPanel>();
+		}
+		catch (InvalidOperationException)
+		{
+		}
+		try
+		{
+			vnPanel = UiManager.GetPanel<VnPanel>();
+		}
+		catch (InvalidOperationException)
+		{
+		}
+		if ((bool)backgroundPanel && backgroundPanel.isActiveAndEnabled)
+		{
+			unitCursor.gameObject.SetActive(value: false);
+		}
+		else if ((bool)rewardPanel && rewardPanel.isActiveAndEnabled)
+		{
+			unitCursor.gameObject.SetActive(value: false);
+		}
+		else if ((bool)shopPanel && shopPanel.isActiveAndEnabled)
+		{
+			unitCursor.gameObject.SetActive(value: false);
+		}
+		else if ((bool)vnPanel && vnPanel.isActiveAndEnabled && Singleton<GamepadNavigationManager>.Instance.GetTopPanel() == "VnPanel")
+		{
+			unitCursor.gameObject.SetActive(value: false);
+		}
+		else
+		{
+			unitCursor.gameObject.SetActive(_canvasGroup.alpha > 0f);
+		}
+	}
+
+	public void SelectStatusEffectByGamepad()
+	{
+		if (_statusEffectWidgets.Count == 0)
+		{
+			unitCursor.HasInspectableContent = false;
+			return;
+		}
+		try
+		{
+			if (UiManager.GetPanel<PlayBoard>().IsTargetSelecting)
+			{
+				return;
+			}
+		}
+		catch (InvalidOperationException)
+		{
+		}
+		BuildStatusEffectNavigation();
+		unitCursor.HasInspectableContent = true;
+		unitCursor.IsInspecting = true;
+		GamepadNavigationManager.AsnycSelectGameObject(_statusEffectWidgets[0].gameObject);
+	}
+
+	private void BuildStatusEffectNavigation()
+	{
+		List<List<StatusEffectWidget>> list = new List<List<StatusEffectWidget>>();
+		for (int i = 0; i < _statusEffectWidgets.Count; i++)
+		{
+			StatusEffectWidget statusEffectWidget = _statusEffectWidgets[i];
+			float y = statusEffectWidget.GetComponent<RectTransform>().anchoredPosition.y;
+			List<StatusEffectWidget> list2 = null;
+			for (int j = 0; j < list.Count; j++)
+			{
+				if (Mathf.Abs(list[j][0].GetComponent<RectTransform>().anchoredPosition.y - y) < 0.5f)
+				{
+					list2 = list[j];
+					break;
+				}
+			}
+			if (list2 != null)
+			{
+				list2.Add(statusEffectWidget);
+				continue;
+			}
+			list.Add(new List<StatusEffectWidget> { statusEffectWidget });
+		}
+		for (int k = 0; k < list.Count; k++)
+		{
+			list[k].Sort((StatusEffectWidget a, StatusEffectWidget b) => a.GetComponent<RectTransform>().anchoredPosition.x.CompareTo(b.GetComponent<RectTransform>().anchoredPosition.x));
+		}
+		list.Sort((List<StatusEffectWidget> a, List<StatusEffectWidget> b) => b[0].GetComponent<RectTransform>().anchoredPosition.y.CompareTo(a[0].GetComponent<RectTransform>().anchoredPosition.y));
+		_statusEffectWidgets.Clear();
+		for (int l = 0; l < list.Count; l++)
+		{
+			_statusEffectWidgets.AddRange(list[l]);
+		}
+		for (int m = 0; m < list.Count; m++)
+		{
+			for (int n = 0; n < list[m].Count; n++)
+			{
+				Selectable component = list[m][n].GetComponent<Selectable>();
+				Navigation navigation = new Navigation
+				{
+					mode = Navigation.Mode.Explicit
+				};
+				navigation.selectOnUp = ((m > 0 && n < list[m - 1].Count) ? list[m - 1][n].GetComponent<Selectable>() : null);
+				navigation.selectOnDown = ((m + 1 < list.Count && n < list[m + 1].Count) ? list[m + 1][n].GetComponent<Selectable>() : null);
+				navigation.selectOnLeft = ((n > 0) ? list[m][n - 1].GetComponent<Selectable>() : null);
+				navigation.selectOnRight = ((n + 1 < list[m].Count) ? list[m][n + 1].GetComponent<Selectable>() : null);
+				component.navigation = navigation;
+			}
+		}
+	}
+
+	public void CancelStatusEffectSelection()
+	{
+		for (int i = 0; i < _statusEffectWidgets.Count; i++)
+		{
+			_statusEffectWidgets[i].GetComponent<Selectable>().navigation = new Navigation
+			{
+				mode = Navigation.Mode.None
+			};
+		}
+		unitCursor.IsInspecting = false;
+		GamepadNavigationManager.AsnycSelectGameObject(unitCursor.gameObject);
+	}
+
+	private void OnInputDeviceChanged(InputDeviceType deviceType)
+	{
+		if (deviceType != InputDeviceType.Gamepad)
+		{
+			for (int i = 0; i < _statusEffectWidgets.Count; i++)
+			{
+				_statusEffectWidgets[i].GetComponent<Selectable>().navigation = new Navigation
+				{
+					mode = Navigation.Mode.None
+				};
+			}
+			UnitView.HideName();
+		}
+	}
+
+	public void OnGamepadSelectionChanged(bool selected)
+	{
+		if (UnitView == null)
+		{
+			return;
+		}
+		if (selected)
+		{
+			UnitView.ShowName();
+			try
+			{
+				UiManager.GetPanel<PlayBoard>().SyncGamepadTarget(UnitView);
+				return;
+			}
+			catch (InvalidOperationException)
+			{
+				return;
+			}
+		}
+		UnitView.HideName();
+	}
+
+	private void Awake()
+	{
+		statusEffectTemplate.gameObject.SetActive(value: false);
+		_scenePositionTier = GetComponent<ScenePositionTier>() ?? base.gameObject.AddComponent<ScenePositionTier>();
+		_canvasGroup = GetComponent<CanvasGroup>() ?? base.gameObject.AddComponent<CanvasGroup>();
+		unitCursor.OnClick.AddListener(SelectStatusEffectByGamepad);
+	}
+
+	private void OnDestroy()
+	{
+		_canvasGroup.DOKill();
+	}
+
+	public void OnAddStatusEffect(StatusEffect effect, StatusEffectAddResult addResult)
+	{
+		switch (addResult)
+		{
+		case StatusEffectAddResult.Added:
+		{
+			StatusEffectWidget statusEffectWidget2 = CreateStatusEffectWidget(effect, setIndex: true);
+			statusEffectWidget2.ShowAdded();
+			_statusEffectWidgets.Add(statusEffectWidget2);
+			RefreshInspectableContent();
+			break;
+		}
+		case StatusEffectAddResult.Stacked:
+		{
+			StatusEffect statusEffect = _unit.GetStatusEffect(effect.GetType());
+			if (statusEffect != null)
+			{
+				StatusEffectWidget statusEffectWidget = FindStatusEffect(statusEffect);
+				if ((bool)statusEffectWidget)
+				{
+					statusEffectWidget.ShowAdded();
+				}
+			}
+			break;
+		}
+		default:
+			_ = 3;
+			break;
+		case StatusEffectAddResult.Opposed:
+			break;
+		}
+	}
+
+	public void OnRemoveStatusEffect(StatusEffect effect)
+	{
+		StatusEffectWidget statusEffectWidget = FindStatusEffect(effect);
+		if ((bool)statusEffectWidget)
+		{
+			_statusEffectWidgets.Remove(statusEffectWidget);
+			UnityEngine.Object.Destroy(statusEffectWidget.gameObject);
+			RefreshInspectableContent();
+		}
+	}
+
+	public void OnMaxHpChanged()
+	{
+		if (Unit is PlayerUnit playerUnit)
+		{
+			SetPlayerHpBarLength(playerUnit.MaxHp);
+		}
+		TweenHpBar();
+	}
+
+	public void OnDamageReceived(DamageInfo damageInfo)
+	{
+		TweenHpBar();
+	}
+
+	public void OnHealingReceived(int healAmount)
+	{
+		TweenHpBar();
+	}
+
+	public void OnBlockShieldChanged()
+	{
+		TweenHpBar();
+	}
+
+	public void OnForceKill()
+	{
+		TweenHpBar();
+	}
+
+	public void SetVisible(bool visible, bool instant = false)
+	{
+		_canvasGroup.DOKill();
+		if (instant)
+		{
+			_canvasGroup.alpha = (visible ? 1 : 0);
+		}
+		else
+		{
+			_canvasGroup.DOFade(visible ? 1 : 0, 0.2f);
+		}
+		unitCursor.gameObject.SetActive(visible);
+	}
+
+	private void SetHpBar()
+	{
+		hpBar.SetHp(_unit.Hp, _unit.MaxHp);
+		hpBar.SetShield(_unit.Shield, _unit.Block);
+		hpBar.TweenHp(_unit.Hp, _unit.MaxHp, _unit.Shield, _unit.Block, instant: true);
+	}
+
+	private void TweenHpBar()
+	{
+		hpBar.TweenHp(_unit.Hp, _unit.MaxHp, _unit.Shield, _unit.Block);
+	}
+
+	private StatusEffectWidget CreateStatusEffectWidget(StatusEffect effect, bool setIndex)
+	{
+		StatusEffectWidget statusEffectWidget = UnityEngine.Object.Instantiate(statusEffectTemplate, statusEffectParent);
+		statusEffectWidget.gameObject.name = "SE: " + effect.Id;
+		statusEffectWidget.gameObject.SetActive(value: true);
+		statusEffectWidget.StatusEffect = effect;
+		if (setIndex)
+		{
+			int siblingIndex = effect.Owner.StatusEffects.IndexOf(effect);
+			statusEffectWidget.transform.SetSiblingIndex(siblingIndex);
+		}
+		return statusEffectWidget;
+	}
+
+	public StatusEffectWidget FindStatusEffect(StatusEffect effect)
+	{
+		return _statusEffectWidgets.FirstOrDefault((StatusEffectWidget e) => e.StatusEffect == effect);
+	}
+
+	private void SetStatusEffects()
+	{
+		ClearStatusEffects();
+		foreach (StatusEffect statusEffect in _unit.StatusEffects)
+		{
+			_statusEffectWidgets.Add(CreateStatusEffectWidget(statusEffect, setIndex: false));
+		}
+	}
+
+	public void ClearStatusEffects()
+	{
+		foreach (StatusEffectWidget statusEffectWidget in _statusEffectWidgets)
+		{
+			if ((bool)statusEffectWidget)
+			{
+				UnityEngine.Object.Destroy(statusEffectWidget.gameObject);
+			}
+		}
+		_statusEffectWidgets.Clear();
+	}
+
+	public void SetPlayerHpBarLength(int maxHp)
+	{
+		float barLength = ((maxHp <= 45) ? 240f : ((maxHp < 120) ? ((float)(maxHp - 45) / 75f * 400f + 240f) : 640f));
+		BarLength = barLength;
+	}
+}
+

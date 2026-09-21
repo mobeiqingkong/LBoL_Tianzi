@@ -20,7 +20,7 @@ namespace TianziMod.Cards
             CardConfig config = GetDefaultCardConfig();
             config.Colors = new List<ManaColor>() { ManaColor.White };
             config.Cost = new ManaGroup() { White = 1 };
-            config.UpgradedCost = new ManaGroup() { Any = 0 };
+            config.UpgradedCost = ManaGroup.Empty;
             config.Rarity = Rarity.Uncommon;
             config.Type = CardType.Skill;
             config.TargetType = TargetType.Self;

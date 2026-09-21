@@ -26,7 +26,7 @@ namespace TianziMod.Cards
             config.HideMesuem = false;
             config.FindInBattle = true;
             config.Colors = new List<ManaColor>() { ManaColor.Blue };
-            config.Cost = new ManaGroup() { Any = 0 };
+            config.Cost = ManaGroup.Empty;
             config.Rarity = Rarity.Common;
             config.Type = CardType.Skill;
             config.TargetType = TargetType.Self;

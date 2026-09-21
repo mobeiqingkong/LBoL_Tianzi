@@ -22,11 +22,11 @@ TianziMushin:
   Name: 无念无想
   Description: |-
     获得 {Block} 点|格挡|。
-    从抽牌堆随机打出一张防御牌。
+    从抽牌堆随机一张防御牌，可选择打出或|放逐|。
 
 TianziBodyAsShield:
   Name: 以身为盾
-  Description: 获得 {Block} 点|格挡|和 {Value1} 点|临命|。
+  Description: 获得 {Block} 点|格挡|和 {Value1} 点|仙体|。
 
 TianziKeystoneMatrix:
   Name: 要石矩阵
@@ -38,15 +38,15 @@ TianziHeavenStepGuard:
   Name: 桃枝庇护
   Description: |-
     获得 {Block} 点|格挡|。
-    手牌张数为奇数时，获得 {Value1} 点|临命|。
+    手牌张数为奇数时，获得 {Value1} 点|仙体|。
     手牌张数为偶数时，抽 |e:1| 张牌。
   ExtraDescription1: |-
     获得 {Block} 点|格挡|。
-    手牌张数为奇数时，获得 {Value1} 点|临命|。
+    手牌张数为奇数时，获得 {Value1} 点|仙体|。
     |d:手牌张数为偶数时，抽 1 张牌。|
   ExtraDescription2: |-
     获得 {Block} 点|格挡|。
-    |d:手牌张数为奇数时，获得 {Value1} 点临命。|
+    |d:手牌张数为奇数时，获得 {Value1} 点仙体。|
     手牌张数为偶数时，抽 |e:1| 张牌。
 
 TianziWeatherWatch:
@@ -135,13 +135,13 @@ TianziPeachNectar:
   Name: 桃之甘露
   Description: |-
     恢复 {Value1} 点生命值。
-    获得 {Value2} 点|临命|。
+    获得 {Value2} 点|仙体|。
 
 TianziPeachReserve:
   Name: 仙桃储备
   Description: |-
-    |手牌中|：回合结束时获得 |e:2| 点|临命|。
-    上回合每减少 {Value1} 点|临命|，获得 {Value2} 点|格挡|并抽 |e:1| 张牌。
+    |手牌中|：回合结束时获得 |e:2| 点|仙体|。
+    上回合每减少 {Value1} 点|仙体|，获得 {Value2} 点|格挡|并抽 |e:1| 张牌。
     一回合最多生效 |e:2| 次。
   FlavorText: 她把仙桃掰成小块收进袖子里，说是路上万一饿了可以垫一垫。
 
@@ -162,7 +162,7 @@ TianziMeteorPlunge:
   Name: 坠入大气圈
   Description: |-
     对所有敌人造成 {Damage} 点伤害。
-    再对所有敌人造成一次{PlayerName}的|临命|的|e:2|倍的伤害。
+    再对所有敌人造成一次{PlayerName}的|仙体|的|e:2|倍的伤害。
 
 TianziQuakeWorld:
   Name: 一击震乾坤
@@ -215,19 +215,19 @@ TianziHeavenDescent:
   Name: 天穹崩落
   Description: |-
     造成 {Damage} 点伤害。
-    消耗所有|临命|，对目标造成消耗值的|e:2|倍的伤害。
+    消耗所有|仙体|，对目标造成消耗值的|e:2|倍的伤害。
     手牌张数为奇数时，此伤害额外增加 {Value1}。
-    手牌张数为偶数时，获得消耗的|临命|等量|护盾|。
+    手牌张数为偶数时，获得消耗的|仙体|等量|护盾|。
   ExtraDescription1: |-
     造成 {Damage} 点伤害。
-    消耗所有|临命|，对目标造成消耗值的|e:2|倍的伤害。
+    消耗所有|仙体|，对目标造成消耗值的|e:2|倍的伤害。
     手牌张数为奇数时，此伤害额外增加 {Value1}。
-    |d:手牌张数为偶数时，获得消耗的临命等量护盾。|
+    |d:手牌张数为偶数时，获得消耗的仙体等量护盾。|
   ExtraDescription2: |-
     造成 {Damage} 点伤害。
-    消耗所有|临命|，对目标造成消耗值的|e:2|倍的伤害。
+    消耗所有|仙体|，对目标造成消耗值的|e:2|倍的伤害。
     |d:手牌张数为奇数时，此伤害额外增加 {Value1}。|
-    手牌张数为偶数时，获得消耗的|临命|等量|护盾|。
+    手牌张数为偶数时，获得消耗的|仙体|等量|护盾|。
 
 TianziKeystoneArmor:
   Name: 要石覆体
@@ -301,12 +301,12 @@ TianziOddEvenQi:
 TianziPeachBoost:
   Name: 仙桃增幅
   Description: |-
-    获得|桃增|：获得|临命|时额外获得 |e:1| 点。
-    立即获得 {Value1} 点|临命|。
+    获得|桃增|：获得|仙体|时额外获得 |e:1| 点。
+    立即获得 {Value1} 点|仙体|。
 
 TianziPeachGarden:
   Name: 漫漫桃园
-  Description: 获得|桃园|：|临命|减少时，获得 |e:1| 点|临命|。
+  Description: 获得|桃园|：|仙体|减少时，获得 |e:1| 点|仙体|。
 
 TianziPureWish:
   Name: 清霖之愿
@@ -424,7 +424,7 @@ TianziHeavenMirror:
 TianziPeachTalisman:
   Name: 桃符「固若金汤的仙桃」
   Description: |-
-    获得 |e:1| 回合|天衣无缝|和 {Value1} 点|临命|。
+    获得 |e:1| 回合|天衣无缝|和 {Value1} 点|仙体|。
     获得|桃符|：每 |e:4| 个自然回合结束后，下回合开始时再次触发上述效果。
   FlavorText: 桃符贴在门框上，连天狗的团扇都敲不开。
 
@@ -436,14 +436,14 @@ TianziMortalJourney:
 TianziHeavenThrone:
   Name: 有顶天的恩宠
   Description: |-
-    获得|恩宠|：回合结束时将失去的|格挡|转化为|临命|。
+    获得|恩宠|：回合结束时将失去的|格挡|转化为|仙体|。
     每回合开始获得{Mana}。
 
 TianziPeachEternity:
   Name: “野生桃奶”
   Description: |-
-    获得|桃久|：|临命|上限提高 {Value1}。
-    {PlayerName}每回合开始时，获得 |e:2| 点|临命|。
+    获得|桃久|：|仙体|上限提高 {Value1}。
+    {PlayerName}每回合开始时，获得 |e:2| 点|仙体|。
 
 TianziParityOddChoice:
   Name: 奇数
@@ -528,7 +528,7 @@ TianziFeast:
 TianziPeachMake:
   Name: 仙桃制成
   Description: |-
-    失去 |e:3| 点|临命|。若没有|临命|则不生效。
+    失去 |e:3| 点|仙体|。若没有|仙体|则不生效。
     恢复 |e:2| 点生命值，获得 |e:2| 点<sprite="Point" name="Power">，获得{Mana}，抽 {Value1} 张牌。
 
 TianziDomainDuel:
@@ -538,6 +538,6 @@ TianziDomainDuel:
 TianziHeavenDoor:
   Name: 天界之扉
   Description: |-
-    选择一张手牌将其|升级|，获得 {Value1} 点|临命|。
+    选择一张手牌将其|升级|，获得 {Value1} 点|仙体|。
     根据|升级|的牌：攻击则将其复制加入手中，费用为 |e:0|，具有|放逐|、|虚无|；
     防御则获得 {Value2} 点|格挡|；技能则抽 |e:2| 张牌。

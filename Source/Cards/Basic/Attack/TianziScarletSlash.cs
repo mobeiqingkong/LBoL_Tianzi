@@ -21,7 +21,7 @@ namespace TianziMod.Cards
 
             config.Type = CardType.Attack;
             config.TargetType = TargetType.SingleEnemy;
-
+            config.IsPooled = false;
             config.Damage = 10;
             config.UpgradedDamage = 14;
             config.GunName = GunNameID.GetGunFromId(6162);

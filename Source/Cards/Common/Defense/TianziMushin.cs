@@ -9,6 +9,7 @@ using LBoL.Core.Cards;
 using LBoLEntitySideloader.Attributes;
 using TianziMod.Cards.Template;
 using TianziMod.Keywords;
+using TianziMod.Patches;
 using UnityEngine;
 
 namespace TianziMod.Cards
@@ -29,8 +30,8 @@ namespace TianziMod.Cards
             config.RelativeCards = new List<string>() { nameof(TianziPlayChoice), nameof(TianziExileChoice) };
             config.UpgradedRelativeCards = config.RelativeCards;
             config.Illustrator = "";
-            config.RelativeKeyword = Keyword.Block;
-            config.UpgradedRelativeKeyword = Keyword.Block;
+            config.RelativeKeyword = Keyword.Block | Keyword.Exile;
+            config.UpgradedRelativeKeyword = Keyword.Block | Keyword.Exile;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }
@@ -58,11 +59,10 @@ namespace TianziMod.Cards
 
             Card pick = defenses[Random.Range(0, defenses.Count)];
             MiniSelectCardInteraction choice = new MiniSelectCardInteraction(
-                new Card[]
-                {
+                TianziMiniSelectSkin.BindAll(
+                    this,
                     Library.CreateCard<TianziPlayChoice>(),
-                    Library.CreateCard<TianziExileChoice>(),
-                },
+                    Library.CreateCard<TianziExileChoice>()),
                 false, false, false)
             {
                 Source = this,

@@ -1,0 +1,3103 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using JetBrains.Annotations;
+using LBoL.Base;
+using LBoL.Base.Extensions;
+using LBoL.ConfigData;
+using LBoL.Core.Attributes;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.Battle.Interactions;
+using LBoL.Core.Helpers;
+using LBoL.Core.StatusEffects;
+using LBoL.Core.Units;
+using UnityEngine;
+
+namespace LBoL.Core.Cards;
+
+[Localizable]
+public abstract class Card : GameEntity, IVerifiable, INotifyActivating, IXCostFilter
+{
+	internal sealed class CardFormatWrapper : GameEntityFormatWrapper
+	{
+		private readonly Card _card;
+
+		public CardFormatWrapper(Card card)
+			: base(card)
+		{
+			_card = card;
+		}
+
+		protected override string FormatArgument(object arg, string format)
+		{
+			if (!(arg is DamageInfo damageInfo))
+			{
+				if (!(arg is BlockInfo { Block: var block }))
+				{
+					if (!(arg is ShieldInfo { Shield: var shield }))
+					{
+						if (!(arg is ScryInfo { Count: var count }))
+						{
+							if (arg is FriendCostInfo friendCostInfo)
+							{
+								return "<indent=0><size=34><sprite=\"" + friendCostInfo.CostType.ToString() + "\" name=\"" + friendCostInfo.Cost + "\"></size><indent=80>";
+							}
+							return base.FormatArgument(arg, format);
+						}
+						BattleController battle = _card.Battle;
+						if (battle == null)
+						{
+							return GameEntityFormatWrapper.WrappedFormatNumber(count, count, format);
+						}
+						int value = battle.CalculateScry(_card, count);
+						return GameEntityFormatWrapper.WrappedFormatNumber(count, value, format);
+					}
+					BattleController battle2 = _card.Battle;
+					if (battle2 == null)
+					{
+						return GameEntityFormatWrapper.WrappedFormatNumber(shield, shield, format);
+					}
+					int item = battle2.CalculateBlockShield(_card, 0f, shield).shield;
+					return GameEntityFormatWrapper.WrappedFormatNumber(shield, item, format);
+				}
+				BattleController battle3 = _card.Battle;
+				if (battle3 == null)
+				{
+					return GameEntityFormatWrapper.WrappedFormatNumber(block, block, format);
+				}
+				int item2 = battle3.CalculateBlockShield(_card, block, 0f).block;
+				return GameEntityFormatWrapper.WrappedFormatNumber(block, item2, format);
+			}
+			int num = (int)damageInfo.Damage;
+			BattleController battle4 = _card.Battle;
+			if (battle4 == null)
+			{
+				return GameEntityFormatWrapper.WrappedFormatNumber(num, num, format);
+			}
+			int value2 = battle4.CalculateDamage(_card, battle4.Player, _card.PendingTarget, damageInfo);
+			return GameEntityFormatWrapper.WrappedFormatNumber(num, value2, format);
+		}
+	}
+
+	protected enum PerformTargetType
+	{
+		Player,
+		ToTarget,
+		TargetSelf,
+		EachEnemy,
+		EachEnemySelf,
+		WorldSpace
+	}
+
+	private readonly GameEventHandlerHolder _handlerHolder = new GameEventHandlerHolder();
+
+	private int _deltaDamage;
+
+	private int _deltaBlock;
+
+	private int _deltaShield;
+
+	private int _deltaValue1;
+
+	private int _deltaValue2;
+
+	private int _deltaInt;
+
+	private ManaGroup _kickerDelta;
+
+	private ManaGroup _auraCost;
+
+	private ManaGroup _baseCost;
+
+	private ManaGroup _turnCostDelta;
+
+	private bool _debutCardPlayOnce;
+
+	private int _playCount;
+
+	private int? _deckCounter;
+
+	private int? _upgradeCounter;
+
+	private ManaGroup? _pendingManaUsage;
+
+	private Unit _pendingTarget;
+
+	private int _loyalty;
+
+	private readonly WeakReference<BattleController> _battle = new WeakReference<BattleController>(null);
+
+	public virtual bool OnDrawVisual => true;
+
+	public virtual bool OnDiscardVisual => true;
+
+	public virtual bool OnExileVisual => true;
+
+	public virtual bool OnMoveVisual => true;
+
+	public virtual bool OnRetainVisual => true;
+
+	public virtual bool RemoveFromBattleAfterPlay { get; set; }
+
+	public bool IsPlayTwiceToken { get; set; }
+
+	public Card PlayTwiceSourceCard { get; set; }
+
+	protected PerformAction SkillAnime => PerformAction.Animation(Battle.Player, "skill", 0.2f);
+
+	protected PerformAction SpellAnime => PerformAction.Animation(Battle.Player, "spell", 0.2f);
+
+	private bool UseBurstGun
+	{
+		get
+		{
+			if (!((double)(Damage.Amount + (float)Battle.Player.TotalFirepower) > (double)ConfigDamage * 1.5) && !IsUpgraded)
+			{
+				return Battle.Player.HasStatusEffect<Burst>();
+			}
+			return true;
+		}
+	}
+
+	public string GunName
+	{
+		get
+		{
+			if (!UseBurstGun)
+			{
+				return Config.GunName;
+			}
+			if (!Config.GunNameBurst.IsNullOrEmpty())
+			{
+				return Config.GunNameBurst;
+			}
+			return Config.GunName;
+		}
+	}
+
+	protected Guns CardGuns { get; set; }
+
+	private bool HasBlock
+	{
+		get
+		{
+			if (!Config.Block.HasValue)
+			{
+				return Config.UpgradedBlock.HasValue;
+			}
+			return true;
+		}
+	}
+
+	private bool HasShield
+	{
+		get
+		{
+			if (!Config.Shield.HasValue)
+			{
+				return Config.UpgradedShield.HasValue;
+			}
+			return true;
+		}
+	}
+
+	protected RandomGen BattleRng => base.GameRun.BattleRng;
+
+	public int InstanceId { get; internal set; }
+
+	public CardConfig Config { get; private set; }
+
+	[UsedImplicitly]
+	public virtual DamageInfo Damage => DamageInfo.Attack(RawDamage, IsAccuracy);
+
+	[UsedImplicitly]
+	public int RawDamage => BasicCardModify(ConfigDamage + AdditionalDamage + DeltaDamage, isDamage: true);
+
+	public int ConfigDamage
+	{
+		get
+		{
+			int? num = ((!IsUpgraded) ? Config.Damage : (Config.UpgradedDamage ?? Config.Damage));
+			if (num.HasValue)
+			{
+				return num.GetValueOrDefault();
+			}
+			throw new InvalidDataException("<" + DebugName + "> has empty damage config");
+		}
+	}
+
+	protected virtual int AdditionalDamage => 0;
+
+	public int DeltaDamage
+	{
+		get
+		{
+			return _deltaDamage;
+		}
+		set
+		{
+			if (_deltaDamage != value)
+			{
+				_deltaDamage = value;
+				NotifyChanged();
+			}
+		}
+	}
+
+	[UsedImplicitly]
+	public virtual BlockInfo Block => new BlockInfo(RawBlock);
+
+	[UsedImplicitly]
+	public virtual int RawBlock => BasicCardModify(ConfigBlock + AdditionalBlock + DeltaBlock);
+
+	public int ConfigBlock
+	{
+		get
+		{
+			int? num = ((!IsUpgraded) ? Config.Block : (Config.UpgradedBlock ?? Config.Block));
+			if (num.HasValue)
+			{
+				return num.GetValueOrDefault();
+			}
+			throw new InvalidDataException("<" + DebugName + "> has empty block config");
+		}
+	}
+
+	protected virtual int AdditionalBlock => 0;
+
+	public int DeltaBlock
+	{
+		get
+		{
+			return _deltaBlock;
+		}
+		set
+		{
+			if (_deltaBlock != value)
+			{
+				_deltaBlock = value;
+				NotifyChanged();
+			}
+		}
+	}
+
+	[UsedImplicitly]
+	public ShieldInfo Shield => new ShieldInfo(RawShield);
+
+	[UsedImplicitly]
+	public int RawShield => BasicCardModify(ConfigShield + AdditionalShield + DeltaShield);
+
+	public int ConfigShield
+	{
+		get
+		{
+			int? num = ((!IsUpgraded) ? Config.Shield : (Config.UpgradedShield ?? Config.Shield));
+			if (num.HasValue)
+			{
+				return num.GetValueOrDefault();
+			}
+			throw new InvalidDataException("<" + DebugName + "> has empty Shield config");
+		}
+	}
+
+	protected virtual int AdditionalShield => 0;
+
+	public int DeltaShield
+	{
+		get
+		{
+			return _deltaShield;
+		}
+		set
+		{
+			if (_deltaShield != value)
+			{
+				_deltaShield = value;
+				NotifyChanged();
+			}
+		}
+	}
+
+	public ScryInfo Scry
+	{
+		get
+		{
+			int count = ((!IsUpgraded) ? Config.Scry : (Config.UpgradedScry ?? Config.Scry)) ?? throw new InvalidOperationException("<" + DebugName + " has empty Scry config");
+			return new ScryInfo(count);
+		}
+	}
+
+	public int Value1 => BasicCardModify(ConfigValue1 + AdditionalValue1 + DeltaValue1);
+
+	public int ConfigValue1 => ((!IsUpgraded) ? Config.Value1 : (Config.UpgradedValue1 ?? Config.Value1)) ?? throw new InvalidDataException("<" + DebugName + "> has empty Value1 config");
+
+	protected virtual int AdditionalValue1 => 0;
+
+	public int DeltaValue1
+	{
+		get
+		{
+			return _deltaValue1;
+		}
+		set
+		{
+			if (_deltaValue1 != value)
+			{
+				_deltaValue1 = value;
+				NotifyChanged();
+			}
+		}
+	}
+
+	public int Value2 => BasicCardModify(ConfigValue2 + AdditionalValue2 + DeltaValue2);
+
+	public int ConfigValue2 => ((!IsUpgraded) ? Config.Value2 : (Config.UpgradedValue2 ?? Config.Value2)) ?? throw new InvalidDataException("<" + base.Id + "> has empty Value2 config");
+
+	protected virtual int AdditionalValue2 => 0;
+
+	public int DeltaValue2
+	{
+		get
+		{
+			return _deltaValue2;
+		}
+		set
+		{
+			if (_deltaValue2 != value)
+			{
+				_deltaValue2 = value;
+				NotifyChanged();
+			}
+		}
+	}
+
+	public int DeltaInt
+	{
+		get
+		{
+			return _deltaInt;
+		}
+		set
+		{
+			if (_deltaInt != value)
+			{
+				_deltaInt = value;
+				NotifyChanged();
+			}
+		}
+	}
+
+	public ManaGroup Mana => ((!IsUpgraded) ? Config.Mana : (Config.UpgradedMana ?? Config.Mana)) ?? throw new InvalidDataException("<" + base.Id + "> has empty Mana config");
+
+	public int ToolPlayableTimes => Config.ToolPlayableTimes ?? throw new InvalidDataException("<" + base.Id + "> has empty ToolPlayableTimes config");
+
+	internal override GameEventPriority DefaultEventPriority => (GameEventPriority)Config.Order;
+
+	private string UpgradedBaseDescription => LocalizeProperty("UpgradedDescription", decorated: true, required: false);
+
+	private string NonbattleBaseDescription => LocalizeProperty("NonbattleDescription", decorated: true, required: false);
+
+	private string UpgradedNonbattleBaseDescription => LocalizeProperty("UpgradedNonbattleDescription", decorated: true, required: false);
+
+	private string ExtraDescription1 => LocalizeProperty("ExtraDescription1", decorated: true, required: false);
+
+	private string UpgradedExtraDescription1 => LocalizeProperty("UpgradedExtraDescription1", decorated: true, required: false);
+
+	private string ExtraDescription2 => LocalizeProperty("ExtraDescription2", decorated: true, required: false);
+
+	private string UpgradedExtraDescription2 => LocalizeProperty("UpgradedExtraDescription2", decorated: true, required: false);
+
+	private string ExtraDescription3 => LocalizeProperty("ExtraDescription3", decorated: true, required: false);
+
+	private string UpgradedExtraDescription3 => LocalizeProperty("UpgradedExtraDescription3", decorated: true, required: false);
+
+	protected bool HasExtraDescription1 => !ExtraDescription1.IsNullOrEmpty();
+
+	protected string GetExtraDescription1 => FollowByDetailIcon(RawExtraDescription1);
+
+	protected string RawExtraDescription1
+	{
+		get
+		{
+			if (!IsUpgraded)
+			{
+				return ExtraDescription1;
+			}
+			return UpgradedExtraDescription1 ?? ExtraDescription1;
+		}
+	}
+
+	protected bool HasExtraDescription2 => !ExtraDescription2.IsNullOrEmpty();
+
+	protected string GetExtraDescription2 => FollowByDetailIcon(RawExtraDescription2);
+
+	protected string RawExtraDescription2
+	{
+		get
+		{
+			if (!IsUpgraded)
+			{
+				return ExtraDescription2;
+			}
+			return UpgradedExtraDescription2 ?? ExtraDescription2;
+		}
+	}
+
+	protected bool HasExtraDescription3 => !ExtraDescription3.IsNullOrEmpty();
+
+	protected string GetExtraDescription3 => FollowByDetailIcon(RawExtraDescription3);
+
+	protected string RawExtraDescription3
+	{
+		get
+		{
+			if (!IsUpgraded)
+			{
+				return ExtraDescription3;
+			}
+			return UpgradedExtraDescription3 ?? ExtraDescription3;
+		}
+	}
+
+	public int ChoiceCardIndicator { get; set; }
+
+	private string BaseFlavorText => LocalizeProperty("FlavorText", decorated: false, required: false);
+
+	public string FlavorText => BaseFlavorText?.RuntimeFormat(this);
+
+	private string BaseDetailText => LocalizeProperty("DetailText", decorated: true, required: false);
+
+	public string DetailText
+	{
+		get
+		{
+			if (BaseDetailText == null)
+			{
+				return null;
+			}
+			return "<sprite=\"TextIcon\" name=\"Info\"> " + BaseDetailText.RuntimeFormat(this);
+		}
+	}
+
+	public CardType CardType => Config.Type;
+
+	[UsedImplicitly]
+	public int MoneyCost => Config.MoneyCost ?? throw new InvalidDataException("<" + DebugName + "> has empty MoneyCost");
+
+	public bool IsXCost => Config.IsXCost;
+
+	public ManaGroup XCostRequiredMana => ConfigCost;
+
+	public bool HasKicker
+	{
+		get
+		{
+			if (!IsUpgraded)
+			{
+				return Config.Kicker.HasValue;
+			}
+			return Config.UpgradedKicker.HasValue;
+		}
+	}
+
+	public ManaGroup ConfigKicker => (IsUpgraded ? Config.UpgradedKicker : Config.Kicker) ?? throw new InvalidDataException("<" + DebugName + "> has empty Kicker config");
+
+	public ManaGroup KickerDelta
+	{
+		get
+		{
+			return _kickerDelta;
+		}
+		set
+		{
+			_kickerDelta = value;
+			NotifyChanged();
+		}
+	}
+
+	public ManaGroup KickerCost => (ConfigKicker + KickerDelta).Corrected;
+
+	public ManaGroup KickerTotalCost
+	{
+		get
+		{
+			if (!IsXCost)
+			{
+				return Cost + KickerCost;
+			}
+			return XCostRequiredMana + KickerCost;
+		}
+	}
+
+	public ManaGroup ConfigCost
+	{
+		get
+		{
+			if (!IsUpgraded)
+			{
+				return Config.Cost;
+			}
+			return Config.UpgradedCost ?? Config.Cost;
+		}
+	}
+
+	public bool FreeCost { get; set; }
+
+	public virtual bool IsForceCost => false;
+
+	public virtual ManaGroup ForceCost => ManaGroup.Empty;
+
+	public ManaGroup Cost
+	{
+		get
+		{
+			if (IsXCost)
+			{
+				return BaseCost;
+			}
+			if (FreeCost || Summoned)
+			{
+				return ManaGroup.Empty;
+			}
+			if (IsForceCost)
+			{
+				return ForceCost;
+			}
+			ManaGroup corrected = (TurnCost + AdditionalCost + AuraCost).Corrected;
+			corrected = (IsPurified ? corrected.Purified() : corrected);
+			BattleController battle = Battle;
+			if (battle != null && battle.ManaFreezeLevel > 0 && Zone == CardZone.Hand)
+			{
+				return corrected + ManaGroup.Anys(Battle.ManaFreezeLevel);
+			}
+			return corrected;
+		}
+	}
+
+	protected virtual ManaGroup AdditionalCost => ManaGroup.Empty;
+
+	public ManaGroup AuraCost
+	{
+		get
+		{
+			return _auraCost;
+		}
+		set
+		{
+			if (IsXCost)
+			{
+				Debug.LogWarning("Cannot set delta cost of " + DebugName + " because it is X-cost card");
+				return;
+			}
+			_auraCost = value;
+			NotifyChanged();
+		}
+	}
+
+	public ManaGroup BaseCost
+	{
+		get
+		{
+			return _baseCost;
+		}
+		private set
+		{
+			if (IsXCost)
+			{
+				Debug.LogWarning("Cannot set base cost of " + DebugName + " because it is X-cost card");
+				return;
+			}
+			_baseCost = value;
+			IsMorph = _baseCost != ConfigCost;
+			NotifyChanged();
+		}
+	}
+
+	public ManaGroup TurnCost => BaseCost + TurnCostDelta;
+
+	public ManaGroup TurnCostDelta
+	{
+		get
+		{
+			return _turnCostDelta;
+		}
+		private set
+		{
+			if (IsXCost)
+			{
+				Debug.LogWarning("Cannot set Turn cost of " + DebugName + " because it is X-cost card");
+				return;
+			}
+			_turnCostDelta = value;
+			IsTempMorph = _turnCostDelta != ManaGroup.Empty;
+			NotifyChanged();
+		}
+	}
+
+	public CardZone Zone { get; internal set; }
+
+	public int HandIndexWhenPlaying { get; internal set; }
+
+	public virtual bool Triggered
+	{
+		get
+		{
+			if (IsDebut && DebutActive)
+			{
+				return true;
+			}
+			if (IsInstinct && InstinctActive)
+			{
+				return true;
+			}
+			if (IsOverdrive && Overdrive(Value2))
+			{
+				return true;
+			}
+			if (CardType == CardType.Friend && Config.UltimateCost.HasValue && Loyalty >= -UltimateCost)
+			{
+				return true;
+			}
+			return false;
+		}
+	}
+
+	public bool PlayInTriggered { get; set; }
+
+	public bool TriggeredAnyhow
+	{
+		get
+		{
+			if (!Triggered)
+			{
+				return PlayInTriggered;
+			}
+			return true;
+		}
+	}
+
+	public bool DebutCardPlayedOnce
+	{
+		get
+		{
+			return _debutCardPlayOnce;
+		}
+		set
+		{
+			if (_debutCardPlayOnce != value)
+			{
+				_debutCardPlayOnce = value;
+				NotifyChanged();
+			}
+		}
+	}
+
+	public bool KickerPlaying { get; set; }
+
+	public bool DebutActive => !DebutCardPlayedOnce;
+
+	public int PlayCount
+	{
+		get
+		{
+			return _playCount;
+		}
+		set
+		{
+			if (_playCount != value)
+			{
+				_playCount = value;
+				NotifyChanged();
+			}
+		}
+	}
+
+	public int GrowCount
+	{
+		get
+		{
+			if (Battle != null)
+			{
+				return PlayCount + Battle.CardExtraGrowAmount;
+			}
+			return PlayCount;
+		}
+	}
+
+	public virtual ManaGroup? PlentifulMana => null;
+
+	public bool PlentifulHappenThisTurn { get; set; }
+
+	private bool InstinctActive
+	{
+		get
+		{
+			if (Battle == null || Zone != CardZone.Hand || Battle.HandZone.Count < 1)
+			{
+				return false;
+			}
+			if (this != Battle.HandZone.First())
+			{
+				return this == Battle.HandZone.Last();
+			}
+			return true;
+		}
+	}
+
+	public bool IsMostLeftHand
+	{
+		get
+		{
+			if (Battle == null || Zone != CardZone.Hand || Battle.HandZone.Count < 1)
+			{
+				return false;
+			}
+			return this == Battle.HandZone.First();
+		}
+	}
+
+	public bool IsMostRightHand
+	{
+		get
+		{
+			if (Battle == null || Zone != CardZone.Hand || Battle.HandZone.Count < 1)
+			{
+				return false;
+			}
+			return this == Battle.HandZone.Last();
+		}
+	}
+
+	public int? DeckCounter
+	{
+		get
+		{
+			return _deckCounter;
+		}
+		set
+		{
+			if (_deckCounter != value)
+			{
+				_deckCounter = value;
+				NotifyChanged();
+			}
+		}
+	}
+
+	public int? UpgradeCounter
+	{
+		get
+		{
+			return _upgradeCounter;
+		}
+		set
+		{
+			if (_upgradeCounter != value)
+			{
+				_upgradeCounter = value;
+				NotifyChanged();
+			}
+		}
+	}
+
+	public virtual bool CanUpgrade
+	{
+		get
+		{
+			if (Config.IsUpgradable)
+			{
+				return !IsUpgraded;
+			}
+			return false;
+		}
+	}
+
+	public bool CanUpgradeAndPositive
+	{
+		get
+		{
+			if (CanUpgrade)
+			{
+				return UpgradeIsPositive;
+			}
+			return false;
+		}
+	}
+
+	public virtual bool IsUpgraded { get; private set; }
+
+	public virtual bool DiscardCard => false;
+
+	public virtual bool ShuffleToBottom => false;
+
+	public virtual bool UpgradeIsPositive => Positive;
+
+	public bool Positive => !Negative;
+
+	public virtual bool Negative
+	{
+		get
+		{
+			CardType cardType = CardType;
+			return cardType == CardType.Status || cardType == CardType.Misfortune;
+		}
+	}
+
+	public bool IsPlayerCard
+	{
+		get
+		{
+			if (Config.Owner == null)
+			{
+				return false;
+			}
+			return Config.Owner == base.GameRun?.Player.Id;
+		}
+	}
+
+	public bool IsMultiColor => Config.Colors.Count >= 1;
+
+	public bool UseTransparentTexture
+	{
+		get
+		{
+			if (!IsCopy)
+			{
+				return IsAutoExile;
+			}
+			return true;
+		}
+	}
+
+	public Keyword Keywords { get; internal set; }
+
+	public bool IsGamerunInitial
+	{
+		get
+		{
+			return HasKeyword(Keyword.GamerunInitial);
+		}
+		set
+		{
+			SetKeyword(Keyword.GamerunInitial, value);
+		}
+	}
+
+	public bool IsBasic
+	{
+		get
+		{
+			return HasKeyword(Keyword.Basic);
+		}
+		set
+		{
+			SetKeyword(Keyword.Basic, value);
+		}
+	}
+
+	public bool Unremovable
+	{
+		get
+		{
+			return HasKeyword(Keyword.Unremovable);
+		}
+		set
+		{
+			SetKeyword(Keyword.Unremovable, value);
+		}
+	}
+
+	public bool IsCopy
+	{
+		get
+		{
+			return HasKeyword(Keyword.Copy);
+		}
+		set
+		{
+			SetKeyword(Keyword.Copy, value);
+		}
+	}
+
+	public bool IsAccuracy
+	{
+		get
+		{
+			return HasKeyword(Keyword.Accuracy);
+		}
+		set
+		{
+			SetKeyword(Keyword.Accuracy, value);
+		}
+	}
+
+	public bool IsForbidden
+	{
+		get
+		{
+			return HasKeyword(Keyword.Forbidden);
+		}
+		set
+		{
+			SetKeyword(Keyword.Forbidden, value);
+		}
+	}
+
+	public bool IsExile
+	{
+		get
+		{
+			return HasKeyword(Keyword.Exile);
+		}
+		set
+		{
+			if (CardType == CardType.Friend)
+			{
+				IsEthereal = value;
+			}
+			else
+			{
+				SetKeyword(Keyword.Exile, value);
+			}
+		}
+	}
+
+	public bool IsTempExile { get; set; }
+
+	public bool IsEcho
+	{
+		get
+		{
+			return HasKeyword(Keyword.Echo);
+		}
+		set
+		{
+			SetKeyword(Keyword.Echo, value);
+		}
+	}
+
+	public bool IsEternalEcho
+	{
+		get
+		{
+			return HasKeyword(Keyword.EternalEcho);
+		}
+		set
+		{
+			SetKeyword(Keyword.EternalEcho, value);
+		}
+	}
+
+	public bool IsEthereal
+	{
+		get
+		{
+			return HasKeyword(Keyword.Ethereal);
+		}
+		set
+		{
+			SetKeyword(Keyword.Ethereal, value);
+		}
+	}
+
+	public bool IsInitial
+	{
+		get
+		{
+			return HasKeyword(Keyword.Initial);
+		}
+		set
+		{
+			SetKeyword(Keyword.Initial, value);
+		}
+	}
+
+	public bool IsRetain
+	{
+		get
+		{
+			return HasKeyword(Keyword.Retain);
+		}
+		set
+		{
+			SetKeyword(Keyword.Retain, value);
+		}
+	}
+
+	public bool IsTempRetain
+	{
+		get
+		{
+			return HasKeyword(Keyword.TempRetain);
+		}
+		set
+		{
+			SetKeyword(Keyword.TempRetain, value);
+		}
+	}
+
+	public bool IsReplenish
+	{
+		get
+		{
+			return HasKeyword(Keyword.Replenish);
+		}
+		set
+		{
+			SetKeyword(Keyword.Replenish, value);
+		}
+	}
+
+	public bool IsPlentiful
+	{
+		get
+		{
+			return HasKeyword(Keyword.Plentiful);
+		}
+		set
+		{
+			SetKeyword(Keyword.Plentiful, value);
+		}
+	}
+
+	public bool IsPurified
+	{
+		get
+		{
+			return HasKeyword(Keyword.Purified);
+		}
+		set
+		{
+			SetKeyword(Keyword.Purified, value);
+		}
+	}
+
+	public bool IsAutoExile
+	{
+		get
+		{
+			return HasKeyword(Keyword.AutoExile);
+		}
+		set
+		{
+			SetKeyword(Keyword.AutoExile, value);
+		}
+	}
+
+	public bool IsFollowCard
+	{
+		get
+		{
+			return HasKeyword(Keyword.FollowCard);
+		}
+		set
+		{
+			SetKeyword(Keyword.FollowCard, value);
+		}
+	}
+
+	public bool IsDreamCard
+	{
+		get
+		{
+			return HasKeyword(Keyword.DreamCard);
+		}
+		set
+		{
+			SetKeyword(Keyword.DreamCard, value);
+		}
+	}
+
+	public bool IsDebut
+	{
+		get
+		{
+			return HasKeyword(Keyword.Debut);
+		}
+		set
+		{
+			SetKeyword(Keyword.Debut, value);
+		}
+	}
+
+	public bool IsInstinct
+	{
+		get
+		{
+			return HasKeyword(Keyword.Instinct);
+		}
+		set
+		{
+			SetKeyword(Keyword.Instinct, value);
+		}
+	}
+
+	public bool IsMorph
+	{
+		get
+		{
+			return HasKeyword(Keyword.Morph);
+		}
+		set
+		{
+			SetKeyword(Keyword.Morph, value);
+		}
+	}
+
+	public bool IsTempMorph
+	{
+		get
+		{
+			return HasKeyword(Keyword.TempMorph);
+		}
+		set
+		{
+			SetKeyword(Keyword.TempMorph, value);
+		}
+	}
+
+	public bool IsOverdrive
+	{
+		get
+		{
+			return HasKeyword(Keyword.Overdrive);
+		}
+		set
+		{
+			SetKeyword(Keyword.Overdrive, value);
+		}
+	}
+
+	public virtual bool CanUse => true;
+
+	public virtual string CantUseMessage => "ErrorChat.CardNotUsable".LocalizeWithChar(base.GameRun);
+
+	public virtual ChatType CantUseChatType => ChatType.PlayerThink;
+
+	public ManaGroup? PendingManaUsage
+	{
+		get
+		{
+			return _pendingManaUsage;
+		}
+		set
+		{
+			if (value != _pendingManaUsage)
+			{
+				_pendingManaUsage = value;
+				NotifyChanged();
+			}
+		}
+	}
+
+	public Unit PendingTarget
+	{
+		get
+		{
+			return _pendingTarget;
+		}
+		set
+		{
+			if (value != _pendingTarget)
+			{
+				_pendingTarget = value;
+				NotifyChanged();
+			}
+		}
+	}
+
+	public bool CanBeDuplicated
+	{
+		get
+		{
+			if (CardType == CardType.Tool)
+			{
+				return false;
+			}
+			if (IsCopy)
+			{
+				return false;
+			}
+			if (!Config.FindInBattle)
+			{
+				return false;
+			}
+			if (HasKeyword(Keyword.Disposable))
+			{
+				return false;
+			}
+			return true;
+		}
+	}
+
+	public int ConfigLoyalty => ((!IsUpgraded) ? Config.Loyalty : (Config.UpgradedLoyalty ?? Config.Loyalty)) ?? throw new InvalidDataException("<" + DebugName + "> has empty Loyalty config");
+
+	public int Loyalty
+	{
+		get
+		{
+			return _loyalty;
+		}
+		set
+		{
+			int num = Math.Min(value, 9);
+			if (_loyalty != num)
+			{
+				_loyalty = num;
+				NotifyChanged();
+			}
+		}
+	}
+
+	public int PassiveCost => ((!IsUpgraded) ? Config.PassiveCost : (Config.UpgradedPassiveCost ?? Config.PassiveCost)) ?? throw new InvalidDataException("<" + DebugName + "> has empty PassiveCost config");
+
+	public int ActiveCost => ((!IsUpgraded) ? Config.ActiveCost : (Config.UpgradedActiveCost ?? Config.ActiveCost)) ?? throw new InvalidDataException("<" + DebugName + "> has empty ActiveCost1 config");
+
+	public int ActiveCost2 => ((!IsUpgraded) ? Config.ActiveCost2 : (Config.UpgradedActiveCost2 ?? Config.ActiveCost2)) ?? throw new InvalidDataException("<" + DebugName + "> has empty ActiveCost2 config");
+
+	public int UltimateCost => ((!IsUpgraded) ? Config.UltimateCost : (Config.UpgradedUltimateCost ?? Config.UltimateCost)) ?? throw new InvalidDataException("<" + DebugName + "> has empty UltimateCost config");
+
+	private int MinActiveCost
+	{
+		get
+		{
+			if (!Config.ActiveCost.HasValue && !Config.ActiveCost2.HasValue && !Config.UltimateCost.HasValue)
+			{
+				Debug.LogError(DebugName + " has no loyalty cost.");
+				return -10;
+			}
+			int num = -9;
+			if (Config.ActiveCost.HasValue)
+			{
+				num = ActiveCost;
+			}
+			if (Config.ActiveCost2.HasValue)
+			{
+				num = Math.Max(num, ActiveCost2);
+			}
+			if (Config.UltimateCost.HasValue)
+			{
+				num = Math.Max(num, UltimateCost);
+			}
+			return num;
+		}
+	}
+
+	public int MinLoyaltyToUseSkill => -MinActiveCost;
+
+	private int MinSecondActiveCost
+	{
+		get
+		{
+			int num;
+			int num2 = (num = -10);
+			if (Config.ActiveCost.HasValue)
+			{
+				num = ActiveCost;
+			}
+			if (Config.ActiveCost2.HasValue)
+			{
+				if (ActiveCost2 > num)
+				{
+					num2 = num;
+					num = ActiveCost2;
+				}
+				else
+				{
+					num2 = ActiveCost2;
+				}
+			}
+			if (Config.UltimateCost.HasValue)
+			{
+				if (UltimateCost > num)
+				{
+					num2 = num;
+					num = UltimateCost;
+				}
+				else if (UltimateCost > num2)
+				{
+					num2 = UltimateCost;
+				}
+			}
+			return num2;
+		}
+	}
+
+	private int MinLoyaltyToChooseSkill => -MinSecondActiveCost;
+
+	[UsedImplicitly]
+	public string FriendS => "<indent=80>";
+
+	[UsedImplicitly]
+	public virtual FriendCostInfo FriendP => new FriendCostInfo(PassiveCost, FriendCostType.Passive);
+
+	[UsedImplicitly]
+	public virtual FriendCostInfo FriendA => new FriendCostInfo(ActiveCost, FriendCostType.Active);
+
+	[UsedImplicitly]
+	public virtual FriendCostInfo FriendA2 => new FriendCostInfo(ActiveCost2, FriendCostType.Active);
+
+	[UsedImplicitly]
+	public virtual FriendCostInfo FriendU => new FriendCostInfo(UltimateCost, FriendCostType.Ultimate);
+
+	public bool Summoning { get; internal set; }
+
+	public bool Summoned { get; set; }
+
+	public bool UltimateUsed { get; set; }
+
+	public FriendToken FriendToken { get; set; }
+
+	public BattleController Battle
+	{
+		get
+		{
+			if (!_battle.TryGetTarget(out var target))
+			{
+				return null;
+			}
+			return target;
+		}
+		private set
+		{
+			_battle.SetTarget(value);
+		}
+	}
+
+	[UsedImplicitly]
+	public override EntityName SelfName => GetName().WithColor();
+
+	public override string Description
+	{
+		get
+		{
+			string description = base.Description;
+			if (Keywords == Keyword.None)
+			{
+				return description;
+			}
+			string text = UiUtils.WrapByColor(" ".Join(EnumerateAutoAppendKeywordNames()), GlobalConfig.DefaultKeywordColor);
+			if (string.IsNullOrWhiteSpace(description))
+			{
+				return text;
+			}
+			return description + "\n" + text;
+		}
+	}
+
+	public Keyword ConfigRelativeKeywords
+	{
+		get
+		{
+			if (!IsUpgraded)
+			{
+				return Config.RelativeKeyword;
+			}
+			return Config.UpgradedRelativeKeyword;
+		}
+	}
+
+	public virtual string PreventCardUsageMessage
+	{
+		get
+		{
+			throw new InvalidOperationException("Cannot get prevent card message key for " + DebugName);
+		}
+	}
+
+	public virtual ChatType PreventCardUsageChatType => ChatType.PlayerThink;
+
+	public string EnchantmentStickerId { get; private set; }
+
+	public bool EnchantmentChanged { get; set; }
+
+	public event Action Activating;
+
+	public virtual IEnumerable<BattleAction> OnDraw()
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnDiscard(CardZone srcZone)
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnTurnStartedInHand()
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnTurnEndingInHand()
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnExile(CardZone srcZone)
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnMove(CardZone srcZone, CardZone dstZone)
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnRetain()
+	{
+		return null;
+	}
+
+	public virtual void OnRemove()
+	{
+	}
+
+	public virtual void OnLeaveHand()
+	{
+		if (!IsXCost)
+		{
+			TurnCostDelta = ManaGroup.Empty;
+		}
+		if (IsTempRetain)
+		{
+			IsTempRetain = false;
+		}
+	}
+
+	public virtual IEnumerable<BattleAction> AfterUseAction()
+	{
+		if (RemoveFromBattleAfterPlay)
+		{
+			yield return EchoCloneAction();
+			yield return new RemoveCardAction(this);
+			yield break;
+		}
+		switch (CardType)
+		{
+		case CardType.Tool:
+		{
+			if (!DeckCounter.HasValue)
+			{
+				Debug.LogError(DebugName + " is tool card but has no DeckCounter");
+				break;
+			}
+			Card deckCardByInstanceId = Battle.GameRun.GetDeckCardByInstanceId(InstanceId);
+			if (--DeckCounter == 0)
+			{
+				if (deckCardByInstanceId != null)
+				{
+					Battle.GameRun.RemoveDeckCard(deckCardByInstanceId, triggerVisual: false);
+				}
+				yield return new RemoveCardAction(this);
+				yield break;
+			}
+			if (deckCardByInstanceId != null)
+			{
+				deckCardByInstanceId.DeckCounter = DeckCounter;
+			}
+			break;
+		}
+		case CardType.Ability:
+			yield return EchoCloneAction();
+			yield return new RemoveCardAction(this);
+			yield break;
+		case CardType.Friend:
+			if (Summoning)
+			{
+				IsEthereal = false;
+				Battle.PlayerSummonAFriendThisTurn = true;
+				if (Zone == CardZone.PlayArea)
+				{
+					if (Battle.HandZone.Count < Battle.MaxHand)
+					{
+						yield return new MoveCardAction(this, CardZone.Hand);
+					}
+					else
+					{
+						yield return new MoveCardAction(this, CardZone.Discard);
+					}
+				}
+			}
+			else if (UltimateUsed || Loyalty == 0)
+			{
+				yield return EchoCloneAction();
+				yield return new RemoveCardAction(this);
+				yield break;
+			}
+			break;
+		}
+		yield return EchoCloneAction();
+		if (IsExile || IsTempExile)
+		{
+			IsTempExile = false;
+			yield return new ExileCardAction(this);
+		}
+		if (Zone == CardZone.PlayArea)
+		{
+			yield return new MoveCardAction(this, CardZone.Discard);
+		}
+		int playCount = PlayCount + 1;
+		PlayCount = playCount;
+		if (IsDebut)
+		{
+			DebutCardPlayedOnce = true;
+		}
+	}
+
+	public virtual IEnumerable<BattleAction> AfterFollowPlayAction()
+	{
+		if (IsPlayTwiceToken)
+		{
+			yield return new RemoveCardAction(this);
+			yield break;
+		}
+		if (RemoveFromBattleAfterPlay)
+		{
+			yield return EchoCloneAction();
+			yield return new RemoveCardAction(this);
+			yield break;
+		}
+		switch (CardType)
+		{
+		case CardType.Tool:
+		{
+			if (!DeckCounter.HasValue)
+			{
+				Debug.LogError(DebugName + " is tool card but has no DeckCounter");
+				break;
+			}
+			Card deckCardByInstanceId = Battle.GameRun.GetDeckCardByInstanceId(InstanceId);
+			if (--DeckCounter == 0)
+			{
+				if (deckCardByInstanceId != null)
+				{
+					Battle.GameRun.RemoveDeckCard(deckCardByInstanceId, triggerVisual: false);
+				}
+				yield return new RemoveCardAction(this);
+				yield break;
+			}
+			if (deckCardByInstanceId != null)
+			{
+				deckCardByInstanceId.DeckCounter = DeckCounter;
+			}
+			break;
+		}
+		case CardType.Ability:
+			yield return EchoCloneAction();
+			yield return new RemoveCardAction(this);
+			yield break;
+		case CardType.Friend:
+			if (Summoning)
+			{
+				IsEthereal = false;
+				Battle.PlayerSummonAFriendThisTurn = true;
+				CardZone zone = Zone;
+				if (zone == CardZone.PlayArea || zone == CardZone.FollowArea)
+				{
+					if (Battle.HandZone.Count < Battle.MaxHand)
+					{
+						yield return new MoveCardAction(this, CardZone.Hand);
+					}
+					else
+					{
+						yield return new MoveCardAction(this, CardZone.Discard);
+					}
+				}
+			}
+			else if (UltimateUsed || Loyalty == 0)
+			{
+				yield return EchoCloneAction();
+				yield return new RemoveCardAction(this);
+				yield break;
+			}
+			break;
+		}
+		yield return EchoCloneAction();
+		if (IsExile || IsTempExile)
+		{
+			IsTempExile = false;
+			yield return new ExileCardAction(this);
+		}
+		if (Zone == CardZone.FollowArea)
+		{
+			yield return new MoveCardAction(this, CardZone.Discard);
+		}
+		int playCount = PlayCount + 1;
+		PlayCount = playCount;
+		if (IsDebut)
+		{
+			DebutCardPlayedOnce = true;
+		}
+	}
+
+	protected BattleAction EchoCloneAction()
+	{
+		if (IsCopy)
+		{
+			return null;
+		}
+		if (IsEternalEcho)
+		{
+			Card card = CloneBattleCard();
+			card.IsEternalEcho = false;
+			card.IsExile = true;
+			return new AddCardsToHandAction(card);
+		}
+		if (IsEcho)
+		{
+			IsEcho = false;
+			Card card2 = CloneBattleCard();
+			card2.IsExile = true;
+			return new AddCardsToHandAction(card2);
+		}
+		return null;
+	}
+
+	public virtual void Upgrade()
+	{
+		if (!Config.IsUpgradable)
+		{
+			throw new InvalidOperationException(DebugName + " is not upgradable");
+		}
+		if (IsUpgraded)
+		{
+			throw new InvalidOperationException(DebugName + " already upgraded");
+		}
+		IsUpgraded = true;
+		ProcessKeywordUpgrade();
+		CostChangeInUpgrading();
+		if (Config.Loyalty.HasValue && Config.UpgradedLoyalty.HasValue)
+		{
+			Loyalty += Config.UpgradedLoyalty.Value - Config.Loyalty.Value;
+		}
+		NotifyChanged();
+	}
+
+	protected void ProcessKeywordUpgrade()
+	{
+		Keyword keyword = Keywords & ~Config.Keywords;
+		Keywords = Config.UpgradedKeywords | keyword;
+	}
+
+	protected void CostChangeInUpgrading()
+	{
+		if (IsXCost || !Config.UpgradedCost.HasValue || Config.UpgradedCost == Config.Cost)
+		{
+			return;
+		}
+		ManaGroup cost = Config.Cost;
+		ManaGroup value = Config.UpgradedCost.Value;
+		ManaGroup cost2 = cost - value;
+		DecreaseBaseCost(cost2);
+		if (cost2.Hybrid < 0)
+		{
+			List<ManaColor> getHybridColors = cost2.GetHybridColors;
+			foreach (ManaColor item in getHybridColors)
+			{
+				if (BaseCost.GetValue(item) < 0 && BaseCost.Hybrid > 0)
+				{
+					int num = Math.Min(-BaseCost.GetValue(item), BaseCost.Hybrid);
+					IncreaseBaseCost(ManaGroup.FromColor(item, num));
+					DecreaseBaseCost(ManaGroup.Hybrids(num, cost2.HybridColor));
+				}
+			}
+			foreach (ManaColor item2 in getHybridColors)
+			{
+				if (TurnCostDelta.GetValue(item2) < 0 && (TurnCostDelta.Hybrid > 0 || TurnCost.Hybrid > 0))
+				{
+					int num2 = Math.Min(-TurnCostDelta.GetValue(item2), BaseCost.Hybrid);
+					IncreaseTurnCost(ManaGroup.FromColor(item2, num2));
+					DecreaseTurnCost(ManaGroup.Hybrids(num2, cost2.HybridColor));
+				}
+			}
+		}
+		if (cost2.Any >= 0 && !BaseCost.IsInvalid && !TurnCost.IsInvalid)
+		{
+			return;
+		}
+		foreach (ManaColor item3 in ManaColors.SingleColorsWithHybrid)
+		{
+			if (BaseCost.GetValue(item3) < 0 && BaseCost.Any > 0)
+			{
+				int num3 = Math.Min(-BaseCost.GetValue(item3), BaseCost.Any);
+				IncreaseBaseCost(ManaGroup.FromColor(item3, num3));
+				DecreaseBaseCost(ManaGroup.Anys(num3));
+			}
+		}
+		foreach (ManaColor item4 in ManaColors.SingleColorsWithHybrid)
+		{
+			if (TurnCostDelta.GetValue(item4) < 0 && (TurnCostDelta.Any > 0 || TurnCost.Any > 0))
+			{
+				int num4 = Math.Min(-TurnCostDelta.GetValue(item4), BaseCost.Any);
+				IncreaseTurnCost(ManaGroup.FromColor(item4, num4));
+				DecreaseTurnCost(ManaGroup.Anys(num4));
+			}
+		}
+	}
+
+	public Card Clone(bool setGameRun = false)
+	{
+		Card card = TypeFactory<Card>.CreateInstance(GetType());
+		if (IsUpgraded)
+		{
+			card.Upgrade();
+		}
+		card.IsGamerunInitial = false;
+		card.DeckCounter = DeckCounter;
+		card.Loyalty = Loyalty;
+		card.UpgradeCounter = UpgradeCounter;
+		if (setGameRun)
+		{
+			card.GameRun = base.GameRun;
+		}
+		return card;
+	}
+
+	public IEnumerable<Card> Clone(int count, bool setGameRun = false)
+	{
+		List<Card> list = new List<Card>();
+		for (int i = 0; i < count; i++)
+		{
+			list.Add(Clone(setGameRun));
+		}
+		return list;
+	}
+
+	public Card CloneAndGiveTheSameInstanceId(bool setGameRun = false)
+	{
+		Card card = Clone(setGameRun);
+		card.InstanceId = InstanceId;
+		return card;
+	}
+
+	public Card CloneBattleCard()
+	{
+		Card card = TypeFactory<Card>.CreateInstance(GetType());
+		if (IsUpgraded)
+		{
+			card.Upgrade();
+		}
+		card.IsGamerunInitial = false;
+		card.DeckCounter = DeckCounter;
+		card.UpgradeCounter = UpgradeCounter;
+		card.Keywords = Keywords;
+		card.DeltaDamage = DeltaDamage;
+		card.DeltaBlock = DeltaBlock;
+		card.DeltaShield = DeltaShield;
+		card.DeltaValue1 = DeltaValue1;
+		card.DeltaValue2 = DeltaValue2;
+		card.DeltaInt = DeltaInt;
+		if (!IsXCost)
+		{
+			card.BaseCost = BaseCost;
+			card.TurnCostDelta = TurnCostDelta;
+		}
+		card.DebutCardPlayedOnce = DebutCardPlayedOnce;
+		card.PlayCount = PlayCount;
+		card.IsCopy = true;
+		card.FreeCost = FreeCost;
+		return card;
+	}
+
+	public Card CloneTwiceToken()
+	{
+		Card card = TypeFactory<Card>.CreateInstance(GetType());
+		if (IsUpgraded)
+		{
+			card.Upgrade();
+		}
+		card.IsGamerunInitial = false;
+		card.DeckCounter = DeckCounter;
+		card.UpgradeCounter = UpgradeCounter;
+		card.Keywords = Keywords;
+		card.DeltaDamage = DeltaDamage;
+		card.DeltaBlock = DeltaBlock;
+		card.DeltaShield = DeltaShield;
+		card.DeltaValue1 = DeltaValue1;
+		card.DeltaValue2 = DeltaValue2;
+		card.DeltaInt = DeltaInt;
+		if (!IsXCost)
+		{
+			card.BaseCost = BaseCost;
+			card.TurnCostDelta = TurnCostDelta;
+		}
+		card.DebutCardPlayedOnce = DebutCardPlayedOnce;
+		card.PlayCount = PlayCount;
+		card.IsCopy = IsCopy;
+		card.FreeCost = FreeCost;
+		card.Summoned = Summoned;
+		card.Loyalty = Loyalty;
+		return card;
+	}
+
+	internal void EnterBattle(BattleController battle)
+	{
+		if (Battle != null)
+		{
+			throw new InvalidOperationException("Cannot enter battle while already in battle");
+		}
+		Battle = battle;
+		if (CardType == CardType.Friend && base.GameRun.ExtraLoyalty > 0)
+		{
+			Loyalty += base.GameRun.ExtraLoyalty;
+		}
+		if (IsForbidden && base.GameRun.RemoveBadCardForbidden > 0)
+		{
+			CardType cardType = CardType;
+			if (cardType == CardType.Misfortune || cardType == CardType.Status)
+			{
+				IsForbidden = false;
+				IsExile = true;
+			}
+		}
+		OnEnterBattle(battle);
+	}
+
+	internal void LeaveBattle()
+	{
+		if (Battle == null)
+		{
+			throw new InvalidOperationException("Cannot leave battle while not in battle");
+		}
+		if (!IsXCost)
+		{
+			AuraCost = ManaGroup.Empty;
+		}
+		OnLeaveBattle();
+		_handlerHolder.ClearEventHandlers();
+		Battle = null;
+	}
+
+	protected virtual void OnEnterBattle(BattleController battle)
+	{
+	}
+
+	protected virtual void OnLeaveBattle()
+	{
+	}
+
+	protected void HandleBattleEvent<T>(GameEvent<T> @event, GameEventHandler<T> handler, GameEventPriority priority = (GameEventPriority)0) where T : GameEventArgs
+	{
+		_handlerHolder.HandleEvent(@event, handler, priority);
+	}
+
+	protected void ReactBattleEvent<TEventArgs>(GameEvent<TEventArgs> @event, EventSequencedReactor<TEventArgs> reactor, GameEventPriority priority) where TEventArgs : GameEventArgs
+	{
+		HandleBattleEvent(@event, delegate(TEventArgs args)
+		{
+			React(reactor(args));
+		}, priority);
+	}
+
+	protected void ReactBattleEvent<TEventArgs>(GameEvent<TEventArgs> @event, EventSequencedReactor<TEventArgs> reactor) where TEventArgs : GameEventArgs
+	{
+		HandleBattleEvent(@event, delegate(TEventArgs args)
+		{
+			React(reactor(args));
+		}, DefaultEventPriority);
+	}
+
+	protected override void React(Reactor reactor)
+	{
+		if (Battle == null)
+		{
+			Debug.LogError("[Card: " + DebugName + "] Cannot react outside battle");
+		}
+		else
+		{
+			Battle.React(reactor, this, ActionCause.Card);
+		}
+	}
+
+	public virtual Interaction Precondition()
+	{
+		if (CardType == CardType.Friend && Summoned && Loyalty >= MinLoyaltyToChooseSkill)
+		{
+			List<FriendToken> list = new List<FriendToken>();
+			if (Config.ActiveCost.HasValue && Loyalty >= -ActiveCost)
+			{
+				list.Add(FriendToken.Active);
+			}
+			if (Config.ActiveCost2.HasValue && Loyalty >= -ActiveCost2)
+			{
+				list.Add(FriendToken.Active2);
+			}
+			if (Config.UltimateCost.HasValue && Loyalty >= -UltimateCost)
+			{
+				list.Add(FriendToken.Ultimate);
+			}
+			List<Card> list2 = Clone(list.Count).ToList();
+			foreach (var (index, friendToken) in list.WithIndices())
+			{
+				list2[index].FriendToken = friendToken;
+			}
+			return new MiniSelectCardInteraction(list2);
+		}
+		return null;
+	}
+
+	protected virtual IEnumerable<BattleAction> PlayCardPerformAction()
+	{
+		bool overrideAnima = false;
+		if (Config.Perform.Length != 0)
+		{
+			if (Config.AutoPerform)
+			{
+				for (int i = 0; i < Config.Perform.Length; i++)
+				{
+					yield return CardPerformAction(i, PerformTargetType.Player);
+				}
+			}
+			string[][] perform = Config.Perform;
+			for (int j = 0; j < perform.Length; j++)
+			{
+				if (int.Parse(perform[j][0]) == 3)
+				{
+					overrideAnima = true;
+				}
+			}
+		}
+		if (!overrideAnima)
+		{
+			if (CardType == CardType.Skill)
+			{
+				yield return SkillAnime;
+			}
+			else if (CardType == CardType.Ability)
+			{
+				yield return SpellAnime;
+			}
+		}
+	}
+
+	internal IEnumerable<BattleAction> GetActions(UnitSelector selector, ManaGroup consumingMana, Interaction precondition, bool kicker, bool summoning, IList<DamageAction> damageActions)
+	{
+		foreach (BattleAction item4 in PlayCardPerformAction())
+		{
+			yield return item4;
+		}
+		PendingManaUsage = consumingMana;
+		if (selector.Type == TargetType.SingleEnemy)
+		{
+			PendingTarget = selector.SelectedEnemy;
+		}
+		if (kicker)
+		{
+			KickerPlaying = true;
+			foreach (BattleAction item5 in KickerActions(selector, consumingMana, precondition))
+			{
+				if (item5 is DamageAction item)
+				{
+					damageActions.Add(item);
+				}
+				yield return item5;
+			}
+		}
+		else
+		{
+			KickerPlaying = false;
+			if (summoning)
+			{
+				yield return SkillAnime;
+				foreach (BattleAction item6 in SummonActions(selector, consumingMana, precondition))
+				{
+					if (item6 is DamageAction item2)
+					{
+						damageActions.Add(item2);
+					}
+					yield return item6;
+				}
+			}
+			else
+			{
+				foreach (BattleAction item7 in Actions(selector, consumingMana, precondition))
+				{
+					if (item7 is DamageAction item3)
+					{
+						damageActions.Add(item3);
+					}
+					yield return item7;
+				}
+			}
+		}
+		PendingManaUsage = null;
+		PendingTarget = null;
+	}
+
+	protected virtual IEnumerable<BattleAction> Actions(UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
+	{
+		switch (CardType)
+		{
+		case CardType.Attack:
+			SetGuns();
+			if (CardGuns == null)
+			{
+				yield return AttackAction(selector);
+				break;
+			}
+			foreach (GunPair gunPair in CardGuns.GunPairs)
+			{
+				yield return AttackAction(selector, gunPair);
+			}
+			break;
+		case CardType.Defense:
+			yield return DefenseAction();
+			break;
+		}
+	}
+
+	protected virtual IEnumerable<BattleAction> KickerActions(UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
+	{
+		return Actions(selector, consumingMana, precondition);
+	}
+
+	protected virtual IEnumerable<BattleAction> SummonActions(UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
+	{
+		Summoned = true;
+		yield return PerformAction.SummonFriend(this);
+	}
+
+	protected BattleAction AttackAction(Unit target, DamageInfo damage, string gunName)
+	{
+		if (Battle.BattleShouldEnd)
+		{
+			return new EndShootAction(Battle.Player);
+		}
+		if (target != null && target.IsAlive)
+		{
+			return new DamageAction(Battle.Player, target, damage, gunName);
+		}
+		return new EndShootAction(Battle.Player);
+	}
+
+	protected BattleAction AttackAction(Unit target)
+	{
+		return AttackAction(target, Damage, GunName);
+	}
+
+	protected BattleAction AttackAction(IEnumerable<Unit> targets, string gunName, DamageInfo damage)
+	{
+		if (Battle.BattleShouldEnd)
+		{
+			return new EndShootAction(Battle.Player);
+		}
+		List<Unit> list = targets.Where((Unit u) => u.IsAlive).ToList();
+		if (list.Count > 0)
+		{
+			return new DamageAction(Battle.Player, list, damage, gunName);
+		}
+		return new EndShootAction(Battle.Player);
+	}
+
+	protected BattleAction AttackAction(IEnumerable<Unit> targets, string gunName)
+	{
+		return AttackAction(targets, gunName, Damage);
+	}
+
+	protected BattleAction AttackAction(IEnumerable<Unit> targets)
+	{
+		return AttackAction(targets, GunName, Damage);
+	}
+
+	protected BattleAction AttackAction(UnitSelector selector, DamageInfo damage, GunPair gunPair = null)
+	{
+		if (Battle.BattleShouldEnd)
+		{
+			return new EndShootAction(Battle.Player);
+		}
+		string gunName;
+		GunType gunType;
+		if (gunPair != null)
+		{
+			gunName = gunPair.GunName;
+			gunType = gunPair.GunType;
+		}
+		else
+		{
+			gunName = GunName;
+			gunType = GunType.Single;
+		}
+		switch (Config.TargetType)
+		{
+		case TargetType.SingleEnemy:
+		{
+			EnemyUnit enemy2 = selector.GetEnemy(Battle);
+			if (enemy2 != null && enemy2.IsAlive)
+			{
+				return new DamageAction(Battle.Player, enemy2, damage, gunName, gunType);
+			}
+			return new EndShootAction(Battle.Player);
+		}
+		case TargetType.RandomEnemy:
+		{
+			EnemyUnit enemy = selector.GetEnemy(Battle);
+			if (enemy != null && enemy.IsAlive)
+			{
+				return new DamageAction(Battle.Player, enemy, damage, gunName, gunType);
+			}
+			return new EndShootAction(Battle.Player);
+		}
+		case TargetType.AllEnemies:
+		{
+			EnemyUnit[] enemies = selector.GetEnemies(Battle);
+			if (enemies.Length != 0)
+			{
+				return new DamageAction(Battle.Player, enemies, damage, gunName, gunType);
+			}
+			return new EndShootAction(Battle.Player);
+		}
+		default:
+			throw new ArgumentException($"Invalid TargetType for {DebugName}: {Config.TargetType}");
+		}
+	}
+
+	protected BattleAction AttackAction(UnitSelector selector, GunPair gunPair = null)
+	{
+		return AttackAction(selector, Damage, gunPair);
+	}
+
+	protected BattleAction AttackAction(UnitSelector selector, string gunName)
+	{
+		return AttackAction(selector, Damage, new GunPair(gunName, GunType.Single));
+	}
+
+	protected BattleAction AttackAllAliveEnemyAction(GunPair gunPair = null)
+	{
+		if (Battle.BattleShouldEnd)
+		{
+			return new EndShootAction(Battle.Player);
+		}
+		string gunName;
+		GunType gunType;
+		if (gunPair != null)
+		{
+			gunName = gunPair.GunName;
+			gunType = gunPair.GunType;
+		}
+		else
+		{
+			gunName = GunName;
+			gunType = GunType.Single;
+		}
+		IEnumerable<EnemyUnit> allAliveEnemies = Battle.AllAliveEnemies;
+		return new DamageAction(Battle.Player, allAliveEnemies, Damage, gunName, gunType);
+	}
+
+	protected BattleAction AttackRandomAliveEnemyAction(GunPair gunPair = null)
+	{
+		if (Battle.BattleShouldEnd)
+		{
+			return new EndShootAction(Battle.Player);
+		}
+		string gunName;
+		GunType gunType;
+		if (gunPair != null)
+		{
+			gunName = gunPair.GunName;
+			gunType = gunPair.GunType;
+		}
+		else
+		{
+			gunName = GunName;
+			gunType = GunType.Single;
+		}
+		EnemyUnit randomAliveEnemy = Battle.RandomAliveEnemy;
+		if (randomAliveEnemy != null && randomAliveEnemy.IsAlive)
+		{
+			return new DamageAction(Battle.Player, randomAliveEnemy, Damage, gunName, gunType);
+		}
+		return new EndShootAction(Battle.Player);
+	}
+
+	protected virtual void SetGuns()
+	{
+	}
+
+	protected BattleAction DefenseAction(bool cast = true)
+	{
+		return new CastBlockShieldAction(Battle.Player, HasBlock ? Block.Block : 0, HasShield ? Shield.Shield : 0, BlockShieldType.Normal, cast);
+	}
+
+	protected BattleAction DefenseAction(int block, int shield, BlockShieldType type = BlockShieldType.Normal, bool cast = true)
+	{
+		return new CastBlockShieldAction(Battle.Player, block, shield, type, cast);
+	}
+
+	protected BattleAction BuffAction(Type type, int level = 0, int duration = 0, int limit = 0, int count = 0, float occupationTime = 0.2f)
+	{
+		return new ApplyStatusEffectAction(type, Battle.Player, level, duration, limit: limit, count: count, occupationTime: occupationTime)
+		{
+			Args = 
+			{
+				Effect = 
+				{
+					SourceCard = this
+				}
+			}
+		};
+	}
+
+	protected BattleAction BuffAction<TEffect>(int level = 0, int duration = 0, int limit = 0, int count = 0, float occupationTime = 0.2f)
+	{
+		return BuffAction(typeof(TEffect), level, duration, limit, count, occupationTime);
+	}
+
+	protected BattleAction DebuffAction(Type type, Unit target, int level = 0, int duration = 0, int limit = 0, int count = 0, bool startAutoDecreasing = true, float occupationTime = 0.2f)
+	{
+		int? level2 = level;
+		int? duration2 = duration;
+		int? limit2 = limit;
+		int? count2 = count;
+		bool startAutoDecreasing2 = startAutoDecreasing;
+		return new ApplyStatusEffectAction(type, target, level2, duration2, count2, limit2, occupationTime, startAutoDecreasing2)
+		{
+			Args = 
+			{
+				Effect = 
+				{
+					SourceCard = this
+				}
+			}
+		};
+	}
+
+	protected BattleAction DebuffAction<TEffect>(Unit target, int level = 0, int duration = 0, int limit = 0, int count = 0, bool startAutoDecreasing = true, float occupationTime = 0.2f)
+	{
+		return DebuffAction(typeof(TEffect), target, level, duration, limit, count, startAutoDecreasing, occupationTime);
+	}
+
+	protected IEnumerable<BattleAction> DebuffAction(Type type, IEnumerable<Unit> targets, int level = 0, int duration = 0, int limit = 0, int count = 0, bool startAutoDecreasing = true, float occupationTime = 0.2f)
+	{
+		List<Unit> list = targets.ToList();
+		foreach (Unit item in list)
+		{
+			if (!Battle.BattleShouldEnd)
+			{
+				int? level2 = level;
+				int? duration2 = duration;
+				int? num = limit;
+				ApplyStatusEffectAction applyStatusEffectAction = new ApplyStatusEffectAction(count: count, limit: num, startAutoDecreasing: startAutoDecreasing, type: type, target: item, level: level2, duration: duration2, occupationTime: (item == list.LastOrDefault()) ? occupationTime : 0f);
+				applyStatusEffectAction.Args.Effect.SourceCard = this;
+				yield return applyStatusEffectAction;
+				continue;
+			}
+			yield break;
+		}
+	}
+
+	protected IEnumerable<BattleAction> DebuffAction<TEffect>(IEnumerable<Unit> targets, int level = 0, int duration = 0, int limit = 0, int count = 0, bool startAutoDecreasing = true, float occupationTime = 0.2f)
+	{
+		return DebuffAction(typeof(TEffect), targets, level, duration, limit, count, startAutoDecreasing, occupationTime);
+	}
+
+	protected BattleAction SacrificeAction(int life)
+	{
+		return new DamageAction(Battle.Player, Battle.Player, DamageInfo.HpLose(life), "Sacrifice");
+	}
+
+	protected BattleAction LoseLifeAction(int life)
+	{
+		return new DamageAction(Battle.Player, Battle.Player, DamageInfo.HpLose(life));
+	}
+
+	protected BattleAction DamageSelfAction(int damage, string gun = "")
+	{
+		return new DamageAction(Battle.Player, Battle.Player, DamageInfo.Reaction(damage), gun);
+	}
+
+	protected BattleAction HealAction(int heal)
+	{
+		return new HealAction(Battle.Player, Battle.Player, heal);
+	}
+
+	protected BattleAction UpgradeAllHandsAction()
+	{
+		List<Card> list = Battle.HandZone.Where((Card card) => card.CanUpgradeAndPositive).ToList();
+		if (list.Count <= 0)
+		{
+			return null;
+		}
+		return new UpgradeCardsAction(list);
+	}
+
+	protected BattleAction UpgradeRandomHandAction(int amount = 1, CardType firstType = CardType.Unknown)
+	{
+		if (amount < 1)
+		{
+			return null;
+		}
+		List<Card> list = Battle.HandZone.Where((Card card) => card.CanUpgradeAndPositive).ToList();
+		if (firstType == CardType.Unknown)
+		{
+			if (list.Count != 0)
+			{
+				return new UpgradeCardsAction(list.SampleManyOrAll(amount, base.GameRun.BattleRng));
+			}
+			return null;
+		}
+		IEnumerable<Card> source = list.Where((Card card) => card.CardType == firstType);
+		IEnumerable<Card> source2 = list.Where((Card card) => card.CardType != firstType);
+		List<Card> list2 = source.SampleManyOrAll(amount, base.GameRun.BattleRng).ToList();
+		if (list2.Count < amount)
+		{
+			list2.AddRange(source2.SampleManyOrAll(amount - list2.Count, base.GameRun.BattleRng));
+		}
+		return new UpgradeCardsAction(list2);
+	}
+
+	protected BattleAction DiscardRandomHandAction(int amount = 1)
+	{
+		if (amount <= 0)
+		{
+			return null;
+		}
+		return new DiscardManyAction(Battle.HandZone.ToList().SampleManyOrAll(amount, base.GameRun.BattleRng));
+	}
+
+	protected bool Overdrive(int consume = 1)
+	{
+		if (consume <= 0)
+		{
+			throw new InvalidOperationException("Card: " + Name + " is trying to overdrive with consume blow zero.");
+		}
+		if (Battle.Player.GetStatusEffect<Concentration>() != null)
+		{
+			return true;
+		}
+		Charging statusEffect = Battle.Player.GetStatusEffect<Charging>();
+		if (statusEffect == null)
+		{
+			return false;
+		}
+		if (statusEffect.Level < consume)
+		{
+			return false;
+		}
+		return true;
+	}
+
+	protected BattleAction OverdriveAction(int consume = 1)
+	{
+		if (consume <= 0)
+		{
+			throw new InvalidOperationException("Card: " + Name + " is trying to overdrive action with consume blow zero.");
+		}
+		Concentration statusEffect = Battle.Player.GetStatusEffect<Concentration>();
+		if (statusEffect != null)
+		{
+			if (statusEffect.Level == 1)
+			{
+				return new RemoveStatusEffectAction(statusEffect);
+			}
+			int level = statusEffect.Level - 1;
+			statusEffect.Level = level;
+			return null;
+		}
+		Charging statusEffect2 = Battle.Player.GetStatusEffect<Charging>();
+		if (statusEffect2 == null)
+		{
+			throw new InvalidOperationException("Card: " + Name + " is trying overdrive action but there is no charging se.");
+		}
+		if (statusEffect2.Level < consume)
+		{
+			throw new InvalidOperationException("Card: " + Name + " is trying overdrive action but charging se level can't afford.");
+		}
+		if (statusEffect2.Level == consume)
+		{
+			return new RemoveStatusEffectAction(statusEffect2);
+		}
+		statusEffect2.Level -= consume;
+		return null;
+	}
+
+	public int GetSeLevel(Type seType)
+	{
+		if (Battle == null || !Battle.Player.HasStatusEffect(seType))
+		{
+			return 0;
+		}
+		return Battle.Player.GetStatusEffect(seType).Level;
+	}
+
+	public int GetSeLevel<T>() where T : StatusEffect
+	{
+		return GetSeLevel(typeof(T));
+	}
+
+	private static int CompareCost(ManaGroup a, ManaGroup b)
+	{
+		int num = a.Amount.CompareTo(b.Amount);
+		if (num == 0)
+		{
+			return b.Any.CompareTo(a.Any);
+		}
+		return num;
+	}
+
+	private int BasicCardModify(int original, bool isDamage = false)
+	{
+		int num = original;
+		if (IsBasic && base.GameRun != null)
+		{
+			if (isDamage && CardType == CardType.Attack)
+			{
+				num += ((Config.Cost.Amount > 1) ? base.GameRun.BasicAttackCardExtraDamage2 : base.GameRun.BasicAttackCardExtraDamage1);
+			}
+			if (base.GameRun.WanbaochuiFlag > 0 && PendingManaUsage.HasValue)
+			{
+				int colorless = PendingManaUsage.Value.Colorless;
+				if (colorless > 0)
+				{
+					num *= colorless + 1;
+				}
+			}
+			if (base.GameRun.BasicCardIncrease > 0)
+			{
+				num += base.GameRun.BasicCardIncrease;
+			}
+		}
+		return num;
+	}
+
+	protected PerformAction CardPerformAction(int id, PerformTargetType? performType = PerformTargetType.Player, [CanBeNull] Unit target = null)
+	{
+		string[][] perform = Config.Perform;
+		if (id > perform.Length || id < 0)
+		{
+			Debug.Log(this?.ToString() + "的CardPerformAction不存在第" + id + "项");
+			return null;
+		}
+		string[] array = perform[id];
+		float num = 0f;
+		if (array.Length > 2)
+		{
+			num = float.Parse(array[2]);
+		}
+		Unit unit = Battle.Player;
+		switch (performType)
+		{
+		case PerformTargetType.Player:
+			if (target == null)
+			{
+				target = Battle.Player;
+			}
+			break;
+		case PerformTargetType.TargetSelf:
+			unit = target;
+			break;
+		}
+		bool flag;
+		switch (int.Parse(array[0]))
+		{
+		case 1:
+			if (performType.HasValue)
+			{
+				PerformTargetType valueOrDefault = performType.GetValueOrDefault();
+				if ((uint)(valueOrDefault - 3) <= 1u)
+				{
+					flag = true;
+					goto IL_00f5;
+				}
+			}
+			flag = false;
+			goto IL_00f5;
+		case 2:
+			if (performType.HasValue)
+			{
+				PerformTargetType valueOrDefault = performType.GetValueOrDefault();
+				if ((uint)(valueOrDefault - 3) <= 1u)
+				{
+					flag = true;
+					goto IL_0191;
+				}
+			}
+			flag = false;
+			goto IL_0191;
+		case 3:
+			return PerformAction.Animation(Battle.Player, array[1], (array.Length > 2) ? num : 0.2f);
+		case 4:
+			return PerformAction.Sfx(array[1]);
+		default:
+			{
+				Debug.Log(this?.ToString() + "的CardPerformAction的类型不符合预期");
+				return null;
+			}
+			IL_00f5:
+			if (flag)
+			{
+				using IEnumerator<EnemyUnit> enumerator = Battle.EnemyGroup.Alives.GetEnumerator();
+				if (enumerator.MoveNext())
+				{
+					EnemyUnit current = enumerator.Current;
+					return PerformAction.Gun((performType == PerformTargetType.EachEnemySelf) ? current : unit, current, array[1], num);
+				}
+			}
+			return PerformAction.Gun(unit, target, array[1], num);
+			IL_0191:
+			if (flag)
+			{
+				string text = "All enemy names: ";
+				using IEnumerator<(int, EnemyUnit)> enumerator2 = Battle.EnemyGroup.Alives.WithIndices().GetEnumerator();
+				if (enumerator2.MoveNext())
+				{
+					var (num2, enemyUnit) = enumerator2.Current;
+					if (num2 == Battle.EnemyGroup.Alives.Count() - 1)
+					{
+						text += enemyUnit.Name;
+					}
+					else
+					{
+						text = text + enemyUnit.Name + ", ";
+					}
+					return PerformAction.Effect(enemyUnit, array[1]);
+				}
+			}
+			return PerformAction.Effect(target, array[1]);
+		}
+	}
+
+	protected override string LocalizeProperty(string key, bool decorated = false, bool required = true)
+	{
+		return TypeFactory<Card>.LocalizeProperty(base.Id, key, decorated, required);
+	}
+
+	protected virtual IReadOnlyList<string> LocalizeListProperty(string key, bool required = true)
+	{
+		return TypeFactory<Card>.LocalizeListProperty(base.Id, key, required);
+	}
+
+	protected override string GetBaseDescription()
+	{
+		if (Config.EmptyDescription)
+		{
+			return string.Empty;
+		}
+		string text = string.Empty;
+		if (CardType == CardType.Friend)
+		{
+			switch (FriendToken)
+			{
+			case FriendToken.None:
+				if (!Config.EmptyDescription)
+				{
+					text += (IsUpgraded ? (UpgradedBaseDescription ?? base.BaseDescription) : base.BaseDescription);
+				}
+				if (HasExtraDescription1)
+				{
+					text += "\n";
+					text += RawExtraDescription1;
+				}
+				if (HasExtraDescription2)
+				{
+					text += "\n";
+					text += RawExtraDescription2;
+				}
+				if (HasExtraDescription3)
+				{
+					text += "\n";
+					text += RawExtraDescription3;
+				}
+				break;
+			case FriendToken.Active:
+				text += RawExtraDescription1;
+				break;
+			case FriendToken.Active2:
+				text += RawExtraDescription2;
+				break;
+			case FriendToken.Ultimate:
+				text += RawExtraDescription3;
+				break;
+			default:
+				throw new ArgumentOutOfRangeException();
+			}
+		}
+		else
+		{
+			switch (ChoiceCardIndicator)
+			{
+			case 1:
+				text = RawExtraDescription1;
+				break;
+			case 2:
+				text = RawExtraDescription2;
+				break;
+			default:
+			{
+				if (Battle != null)
+				{
+					text = (IsUpgraded ? (UpgradedBaseDescription ?? base.BaseDescription) : base.BaseDescription);
+					break;
+				}
+				object obj;
+				if (!IsUpgraded)
+				{
+					obj = NonbattleBaseDescription ?? base.BaseDescription;
+				}
+				else
+				{
+					obj = UpgradedNonbattleBaseDescription ?? UpgradedBaseDescription;
+					if (obj == null)
+					{
+						obj = NonbattleBaseDescription ?? base.BaseDescription;
+					}
+				}
+				text = (string)obj;
+				break;
+			}
+			}
+		}
+		return FollowByDetailIcon(text);
+	}
+
+	private string FollowByDetailIcon(string des)
+	{
+		if (BaseDetailText != null)
+		{
+			des += "<sprite=\"TextIcon\" name=\"Info\">";
+		}
+		return des;
+	}
+
+	public virtual ManaGroup GetXCostFromPooled(ManaGroup pooledMana)
+	{
+		if (!IsXCost)
+		{
+			throw new InvalidOperationException("Cannot get X cost from non-x-cost card");
+		}
+		return pooledMana;
+	}
+
+	public ManaGroup CostToMana(bool baseCost)
+	{
+		if (!baseCost && !IsXCost)
+		{
+			return Cost.CostToMana();
+		}
+		return ConfigCost.CostToMana();
+	}
+
+	public void SetTurnCost(ManaGroup cost)
+	{
+		if (IsXCost)
+		{
+			Debug.LogWarning("Cannot set turn cost of " + DebugName + " because it is X-cost card");
+		}
+		else
+		{
+			TurnCostDelta = cost - BaseCost;
+		}
+	}
+
+	public void IncreaseTurnCost(ManaGroup cost)
+	{
+		if (IsXCost)
+		{
+			Debug.LogWarning("Cannot set turn cost of " + DebugName + " because it is X-cost card");
+		}
+		else
+		{
+			TurnCostDelta += cost;
+		}
+	}
+
+	public void DecreaseTurnCost(ManaGroup cost)
+	{
+		if (IsXCost)
+		{
+			Debug.LogWarning("Cannot set turn cost of " + DebugName + " because it is X-cost card");
+		}
+		else
+		{
+			TurnCostDelta -= cost;
+		}
+	}
+
+	public void SetBaseCost(ManaGroup cost)
+	{
+		if (IsXCost)
+		{
+			Debug.LogWarning("Cannot set base cost of " + DebugName + " because it is X-cost card");
+		}
+		else
+		{
+			BaseCost = cost;
+		}
+	}
+
+	public void IncreaseBaseCost(ManaGroup cost)
+	{
+		if (IsXCost)
+		{
+			Debug.LogWarning("Cannot set base cost of " + DebugName + " because it is X-cost card");
+		}
+		else
+		{
+			BaseCost += cost;
+		}
+	}
+
+	public void DecreaseBaseCost(ManaGroup cost)
+	{
+		if (IsXCost)
+		{
+			Debug.LogWarning("Cannot set base cost of " + DebugName + " because it is X-cost card");
+		}
+		else
+		{
+			BaseCost -= cost;
+		}
+	}
+
+	public bool HasKeyword(Keyword keyword)
+	{
+		return Keywords.HasFlag(keyword);
+	}
+
+	public void SetKeyword(Keyword keyword, bool value)
+	{
+		if (value != HasKeyword(keyword))
+		{
+			Keywords ^= keyword;
+			NotifyChanged();
+		}
+	}
+
+	public void Summon()
+	{
+		Summoning = true;
+		Summoned = true;
+	}
+
+	public virtual IEnumerable<BattleAction> GetPassiveActions()
+	{
+		return null;
+	}
+
+	public void SetBattle(BattleController battle)
+	{
+		Battle = battle;
+		base.GameRun = battle.GameRun;
+	}
+
+	public EntityName GetName()
+	{
+		return new EntityName("Card." + base.Id, Name);
+	}
+
+	public IEnumerable<Keyword> EnumerateCardKeywords()
+	{
+		return LBoL.Core.Keywords.EnumerateComponents(Keywords);
+	}
+
+	public IEnumerable<IDisplayWord> EnumerateDisplayWords(bool verbose)
+	{
+		CardConfig config = Config;
+		IReadOnlyList<string> initEffects = (IsUpgraded ? config.UpgradedRelativeEffects : config.RelativeEffects);
+		Keyword keyword = (IsUpgraded ? config.UpgradedRelativeKeyword : config.RelativeKeyword);
+		switch (CardType)
+		{
+		case CardType.Ability:
+			keyword |= Keyword.Ability;
+			break;
+		case CardType.Friend:
+			keyword |= (Summoned ? Keyword.FriendSummoned : Keyword.Friend);
+			keyword |= Keyword.Loyalty;
+			break;
+		case CardType.Tool:
+			keyword |= Keyword.Tool;
+			break;
+		case CardType.Misfortune:
+			keyword |= Keyword.Misfortune;
+			break;
+		}
+		if (IsXCost)
+		{
+			keyword |= Keyword.XCost;
+		}
+		if (HasKicker)
+		{
+			keyword |= Keyword.Kicker;
+		}
+		if (IsUpgraded)
+		{
+			if (config.UpgradedCost.HasValue || config.Cost.Hybrid <= 0)
+			{
+				ManaGroup? upgradedCost = config.UpgradedCost;
+				if (!upgradedCost.HasValue || upgradedCost.GetValueOrDefault().Hybrid <= 0)
+				{
+					goto IL_0171;
+				}
+			}
+			keyword |= Keyword.HybridCost;
+		}
+		else if (config.Cost.Hybrid > 0)
+		{
+			keyword |= Keyword.HybridCost;
+		}
+		goto IL_0171;
+		IL_0171:
+		foreach (IDisplayWord item in Library.InternalEnumerateDisplayWords(base.GameRun, keyword, initEffects, verbose, Keywords))
+		{
+			yield return item;
+		}
+	}
+
+	public virtual IEnumerable<Card> EnumerateRelativeCards()
+	{
+		CardConfig config = Config;
+		IReadOnlyList<string> readOnlyList = (IsUpgraded ? config.UpgradedRelativeCards : (config.RelativeCards ?? Array.Empty<string>()));
+		foreach (string item in readOnlyList)
+		{
+			Card card;
+			if (item.Last() == '+')
+			{
+				string text = item;
+				card = Library.CreateCard(text.Substring(0, text.Length - 1));
+				card.Upgrade();
+			}
+			else
+			{
+				card = Library.CreateCard(item);
+			}
+			card.GameRun = base.GameRun;
+			yield return card;
+		}
+	}
+
+	private IEnumerable<string> EnumerateAutoAppendKeywordNames()
+	{
+		foreach (Keyword item in LBoL.Core.Keywords.EnumerateComponents(Keywords))
+		{
+			KeywordDisplayWord displayWord = LBoL.Core.Keywords.GetDisplayWord(item);
+			if (displayWord != null)
+			{
+				if (displayWord.IsAutoAppend)
+				{
+					yield return displayWord.Name;
+				}
+			}
+			else
+			{
+				Debug.LogWarning($"Cannot find display-word for {item}, maybe not localized");
+				yield return "&lt;" + item.ToString() + "&gt;";
+			}
+		}
+	}
+
+	public override void Initialize()
+	{
+		base.Initialize();
+		Config = CardConfig.FromId(base.Id);
+		if (Config == null)
+		{
+			throw new InvalidDataException("Cannot find card config for <" + base.Id + ">");
+		}
+		Keywords = Config.Keywords;
+		if (!Config.IsXCost)
+		{
+			BaseCost = ConfigCost;
+			TurnCostDelta = ManaGroup.Empty;
+		}
+		if (CardType == CardType.Tool)
+		{
+			DeckCounter = ToolPlayableTimes;
+		}
+		if (CardType == CardType.Friend)
+		{
+			Loyalty = ConfigLoyalty;
+		}
+		if (PlentifulMana.HasValue)
+		{
+			IsPlentiful = true;
+		}
+	}
+
+	internal override GameEntityFormatWrapper CreateFormatWrapper()
+	{
+		return new CardFormatWrapper(this);
+	}
+
+	protected void HandleBattleCardsChangedEvents(GameEventHandler<GameEventArgs> handler, bool hand = false, bool draw = false, bool discard = false, bool exile = false)
+	{
+		HandleBattleEvent(Battle.CardExiled, handler);
+		HandleBattleEvent(Battle.CardRemoved, handler);
+		HandleBattleEvent(Battle.CardMoved, handler);
+		HandleBattleEvent(Battle.CardMovedToDrawZone, handler);
+		if (hand)
+		{
+			HandleBattleEvent(Battle.CardsAddedToHand, handler);
+		}
+		if (draw)
+		{
+			HandleBattleEvent(Battle.CardsAddedToDrawZone, handler);
+		}
+		if (discard)
+		{
+			HandleBattleEvent(Battle.CardsAddedToDiscard, handler);
+		}
+		if (hand)
+		{
+			HandleBattleEvent(Battle.CardUsed, handler);
+		}
+		if (hand && draw)
+		{
+			HandleBattleEvent(Battle.CardDrawn, handler);
+		}
+		if (hand && draw && discard)
+		{
+			HandleBattleEvent(Battle.CardDiscarded, handler);
+		}
+		if (draw && discard)
+		{
+			HandleBattleEvent(Battle.Reshuffled, handler);
+		}
+	}
+
+	public static int CompareCard(Card a, Card b)
+	{
+		int num = a.Config.Order.CompareTo(b.Config.Order);
+		if (num != 0)
+		{
+			return num;
+		}
+		return string.Compare(a.Id, b.Id, StringComparison.Ordinal);
+	}
+
+	public static int CompareMuseumCardColors(IReadOnlyList<ManaColor> colorsA, IReadOnlyList<ManaColor> colorsB)
+	{
+		int count = colorsA.Count;
+		int count2 = colorsB.Count;
+		if (count == 0 && count2 != 0)
+		{
+			return 1;
+		}
+		if (count2 == 0 && count != 0)
+		{
+			return -1;
+		}
+		if (count == 0 && count2 == 0)
+		{
+			return 0;
+		}
+		int num = count - count2;
+		if (num <= 0)
+		{
+			if (num < 0)
+			{
+				return -1;
+			}
+			for (int i = 0; i < count; i++)
+			{
+				int num2 = colorsA[i].CompareTo(colorsB[i]);
+				if (num2 != 0)
+				{
+					return num2;
+				}
+			}
+			return 0;
+		}
+		return 1;
+	}
+
+	protected int SynergyAmount(ManaGroup cost, ManaColor synergyColor, int synergyColorAmount = 1)
+	{
+		if (synergyColorAmount < 1)
+		{
+			throw new InvalidOperationException("can not get synergy with mana amount blew zero.");
+		}
+		int num = 0;
+		return synergyColor switch
+		{
+			ManaColor.Philosophy => cost.Philosophy, 
+			ManaColor.Any => cost.Amount, 
+			_ => cost.Philosophy + cost.GetValue(synergyColor), 
+		} / synergyColorAmount + base.GameRun.SynergyAdditionalCount;
+	}
+
+	protected int SynergyAmountComplexMana(ManaGroup cost, ManaGroup synergyMana)
+	{
+		int num = 0;
+		ManaGroup empty = ManaGroup.Empty;
+		while (cost.CanAfford(empty + synergyMana))
+		{
+			empty += synergyMana;
+			num++;
+		}
+		return num + base.GameRun.SynergyAdditionalCount;
+	}
+
+	public void Verify()
+	{
+		if (CardType == CardType.Defense && !HasBlock && !HasShield)
+		{
+			Debug.LogError("<" + base.Id + "> must set block or shield in config");
+		}
+		if (CardType != CardType.Attack && CardType != CardType.Tool && IsAccuracy)
+		{
+			Debug.LogError("<" + base.Id + "> should not be accuracy when it is not an attack card.");
+		}
+		if (!Config.UpgradedCost.HasValue)
+		{
+			return;
+		}
+		ManaGroup cost = Config.Cost;
+		ManaGroup value = Config.UpgradedCost.Value;
+		if (cost.Amount < value.Amount)
+		{
+			throw new InvalidOperationException(DebugName + ": upgraded cost is illegal, Amount increase.");
+		}
+		foreach (ManaColor item in ManaColors.WUBRGC)
+		{
+			if (cost.GetValue(item) < value.GetValue(item))
+			{
+				throw new InvalidOperationException(DebugName + ": upgraded cost is illegal, There is some single color's value increase.");
+			}
+		}
+	}
+
+	public void NotifyActivating()
+	{
+		this.Activating?.Invoke();
+	}
+
+	public virtual bool ShouldPreventOtherCardUsage(Card card)
+	{
+		return false;
+	}
+
+	public (Card card, Card upgradedCard) GetDetailInfoCard()
+	{
+		Card card = Library.CreateCard(base.Id);
+		card.GameRun = base.GameRun;
+		if (card.CanUpgrade)
+		{
+			Card card2 = Library.CreateCard(base.Id, upgraded: true, UpgradeCounter);
+			card2.GameRun = base.GameRun;
+			return (card: card, upgradedCard: card2);
+		}
+		return (card: card, upgradedCard: null);
+	}
+
+	public void SetEnchantmentId(string enchantmentId)
+	{
+		if (!(EnchantmentStickerId == enchantmentId))
+		{
+			EnchantmentStickerId = enchantmentId;
+			EnchantmentChanged = true;
+			NotifyChanged();
+		}
+	}
+
+	public void ClearEnchantmentStickerId()
+	{
+		if (EnchantmentStickerId != null)
+		{
+			EnchantmentStickerId = null;
+			EnchantmentChanged = true;
+			NotifyChanged();
+		}
+	}
+}
+

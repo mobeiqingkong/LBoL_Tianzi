@@ -98,65 +98,69 @@ namespace TianziMod.Cards.Template
 
         /// <summary>
         /// 本回合「上一张打出的牌」（不含自己）。
-        /// TurnCardPlayHistory 在牌进入结算时可能已经含自己，也可能还没含，
-        /// 所以统一从尾部倒着找第一张不是 this 的牌。
+        /// 手牌打出记在 TurnCardUsageHistory；强制打出记在 TurnCardPlayHistory。
         /// </summary>
         public Card PreviousPlayedCard
         {
             get
             {
                 if (base.Battle == null)
-                {
                     return null;
-                }
-                IReadOnlyList<Card> history = base.Battle.TurnCardPlayHistory;
-                for (int i = history.Count - 1; i >= 0; i--)
-                {
-                    Card c = history[i];
-                    if (c != null && c != this)
-                    {
-                        return c;
-                    }
-                }
-                return null;
+                Card fromUsage = this.FindPreviousIn(base.Battle.TurnCardUsageHistory);
+                if (fromUsage != null)
+                    return fromUsage;
+                return this.FindPreviousIn(base.Battle.TurnCardPlayHistory);
             }
         }
 
         /// <summary>本回合已打出的牌张数（不含自己）。</summary>
         public int TurnPlayedCountExceptSelf
         {
-            get
-            {
-                if (base.Battle == null)
-                {
-                    return 0;
-                }
-                int n = 0;
-                foreach (Card c in base.Battle.TurnCardPlayHistory)
-                {
-                    if (c != null && c != this)
-                    {
-                        n++;
-                    }
-                }
-                return n;
-            }
+            get { return this.CountTurnPlayed(null); }
+        }
+
+        /// <summary>本回合已打出的、指定类型的牌张数（不含自己）。type 为 null 时统计全部。</summary>
+        public int CountTurnPlayed(CardType? type)
+        {
+            if (base.Battle == null)
+                return 0;
+            int n = 0;
+            n += this.CountInHistory(base.Battle.TurnCardUsageHistory, type);
+            n += this.CountInHistory(base.Battle.TurnCardPlayHistory, type);
+            return n;
         }
 
         /// <summary>本回合已打出的、指定类型的牌张数（不含自己）。</summary>
         public int CountTurnPlayed(CardType type)
         {
-            if (base.Battle == null)
+            return this.CountTurnPlayed((CardType?)type);
+        }
+
+        private Card FindPreviousIn(IReadOnlyList<Card> history)
+        {
+            if (history == null)
+                return null;
+            for (int i = history.Count - 1; i >= 0; i--)
             {
-                return 0;
+                Card c = history[i];
+                if (c != null && c != this)
+                    return c;
             }
+            return null;
+        }
+
+        private int CountInHistory(IReadOnlyList<Card> history, CardType? type)
+        {
+            if (history == null)
+                return 0;
             int n = 0;
-            foreach (Card c in base.Battle.TurnCardPlayHistory)
+            foreach (Card c in history)
             {
-                if (c != null && c != this && c.CardType == type)
-                {
-                    n++;
-                }
+                if (c == null || c == this)
+                    continue;
+                if (type.HasValue && c.CardType != type.Value)
+                    continue;
+                n++;
             }
             return n;
         }

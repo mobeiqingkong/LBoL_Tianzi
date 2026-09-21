@@ -1,0 +1,137 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using LBoL.Base;
+using UnityEngine;
+
+namespace LBoL.ConfigData;
+
+public sealed class StatusEffectConfig
+{
+	private static StatusEffectConfig[] _data = Array.Empty<StatusEffectConfig>();
+
+	private static Dictionary<string, StatusEffectConfig> _IdTable = _data.ToDictionary((StatusEffectConfig elem) => elem.Id);
+
+	public int Index { get; private set; }
+
+	public string Id { get; private set; }
+
+	public int Order { get; private set; }
+
+	public StatusEffectType Type { get; private set; }
+
+	public bool IsVerbose { get; private set; }
+
+	public bool IsStackable { get; private set; }
+
+	public int? StackActionTriggerLevel { get; private set; }
+
+	public bool HasLevel { get; private set; }
+
+	public StackType? LevelStackType { get; private set; }
+
+	public bool HasDuration { get; private set; }
+
+	public StackType? DurationStackType { get; private set; }
+
+	public DurationDecreaseTiming DurationDecreaseTiming { get; private set; }
+
+	public bool HasCount { get; private set; }
+
+	public StackType? CountStackType { get; private set; }
+
+	public StackType? LimitStackType { get; private set; }
+
+	public bool ShowPlusByLimit { get; private set; }
+
+	public Keyword Keywords { get; private set; }
+
+	public IReadOnlyList<string> RelativeEffects { get; private set; }
+
+	public string ImageId { get; private set; }
+
+	public string VFX { get; private set; }
+
+	public string VFXloop { get; private set; }
+
+	public string SFX { get; private set; }
+
+	private StatusEffectConfig(int Index, string Id, int Order, StatusEffectType Type, bool IsVerbose, bool IsStackable, int? StackActionTriggerLevel, bool HasLevel, StackType? LevelStackType, bool HasDuration, StackType? DurationStackType, DurationDecreaseTiming DurationDecreaseTiming, bool HasCount, StackType? CountStackType, StackType? LimitStackType, bool ShowPlusByLimit, Keyword Keywords, IReadOnlyList<string> RelativeEffects, string ImageId, string VFX, string VFXloop, string SFX)
+	{
+		this.Index = Index;
+		this.Id = Id;
+		this.Order = Order;
+		this.Type = Type;
+		this.IsVerbose = IsVerbose;
+		this.IsStackable = IsStackable;
+		this.StackActionTriggerLevel = StackActionTriggerLevel;
+		this.HasLevel = HasLevel;
+		this.LevelStackType = LevelStackType;
+		this.HasDuration = HasDuration;
+		this.DurationStackType = DurationStackType;
+		this.DurationDecreaseTiming = DurationDecreaseTiming;
+		this.HasCount = HasCount;
+		this.CountStackType = CountStackType;
+		this.LimitStackType = LimitStackType;
+		this.ShowPlusByLimit = ShowPlusByLimit;
+		this.Keywords = Keywords;
+		this.RelativeEffects = RelativeEffects;
+		this.ImageId = ImageId;
+		this.VFX = VFX;
+		this.VFXloop = VFXloop;
+		this.SFX = SFX;
+	}
+
+	public static IReadOnlyList<StatusEffectConfig> AllConfig()
+	{
+		ConfigDataManager.Initialize();
+		return Array.AsReadOnly(_data);
+	}
+
+	public static StatusEffectConfig FromId(string Id)
+	{
+		ConfigDataManager.Initialize();
+		StatusEffectConfig value;
+		return (!_IdTable.TryGetValue(Id, out value)) ? null : value;
+	}
+
+	public override string ToString()
+	{
+		return "{StatusEffectConfig Index=" + ConfigDataManager.System_Int32.ToString(Index) + ", Id=" + ConfigDataManager.System_String.ToString(Id) + ", Order=" + ConfigDataManager.System_Int32.ToString(Order) + ", Type=" + Type.ToString() + ", IsVerbose=" + ConfigDataManager.System_Boolean.ToString(IsVerbose) + ", IsStackable=" + ConfigDataManager.System_Boolean.ToString(IsStackable) + ", StackActionTriggerLevel=" + ((!StackActionTriggerLevel.HasValue) ? "null" : ConfigDataManager.System_Int32.ToString(StackActionTriggerLevel.Value)) + ", HasLevel=" + ConfigDataManager.System_Boolean.ToString(HasLevel) + ", LevelStackType=" + ((!LevelStackType.HasValue) ? "null" : LevelStackType.Value.ToString()) + ", HasDuration=" + ConfigDataManager.System_Boolean.ToString(HasDuration) + ", DurationStackType=" + ((!DurationStackType.HasValue) ? "null" : DurationStackType.Value.ToString()) + ", DurationDecreaseTiming=" + DurationDecreaseTiming.ToString() + ", HasCount=" + ConfigDataManager.System_Boolean.ToString(HasCount) + ", CountStackType=" + ((!CountStackType.HasValue) ? "null" : CountStackType.Value.ToString()) + ", LimitStackType=" + ((!LimitStackType.HasValue) ? "null" : LimitStackType.Value.ToString()) + ", ShowPlusByLimit=" + ConfigDataManager.System_Boolean.ToString(ShowPlusByLimit) + ", Keywords=" + Keywords.ToString() + ", RelativeEffects=[" + string.Join(", ", RelativeEffects.Select((string v1) => ConfigDataManager.System_String.ToString(v1))) + "], ImageId=" + ConfigDataManager.System_String.ToString(ImageId) + ", VFX=" + ConfigDataManager.System_String.ToString(VFX) + ", VFXloop=" + ConfigDataManager.System_String.ToString(VFXloop) + ", SFX=" + ConfigDataManager.System_String.ToString(SFX) + "}";
+	}
+
+	private static void Load(byte[] bytes)
+	{
+		using BinaryReader binaryReader = new BinaryReader(new MemoryStream(bytes));
+		StatusEffectConfig[] array = new StatusEffectConfig[binaryReader.ReadInt32()];
+		for (int i = 0; i < array.Length; i++)
+		{
+			array[i] = new StatusEffectConfig(ConfigDataManager.System_Int32.ReadFrom(binaryReader), ConfigDataManager.System_String.ReadFrom(binaryReader), ConfigDataManager.System_Int32.ReadFrom(binaryReader), (StatusEffectType)binaryReader.ReadInt32(), ConfigDataManager.System_Boolean.ReadFrom(binaryReader), ConfigDataManager.System_Boolean.ReadFrom(binaryReader), (!binaryReader.ReadBoolean()) ? null : new int?(ConfigDataManager.System_Int32.ReadFrom(binaryReader)), ConfigDataManager.System_Boolean.ReadFrom(binaryReader), (!binaryReader.ReadBoolean()) ? null : new StackType?((StackType)binaryReader.ReadInt32()), ConfigDataManager.System_Boolean.ReadFrom(binaryReader), (!binaryReader.ReadBoolean()) ? null : new StackType?((StackType)binaryReader.ReadInt32()), (DurationDecreaseTiming)binaryReader.ReadInt32(), ConfigDataManager.System_Boolean.ReadFrom(binaryReader), (!binaryReader.ReadBoolean()) ? null : new StackType?((StackType)binaryReader.ReadInt32()), (!binaryReader.ReadBoolean()) ? null : new StackType?((StackType)binaryReader.ReadInt32()), ConfigDataManager.System_Boolean.ReadFrom(binaryReader), (Keyword)binaryReader.ReadInt64(), ConfigDataManager.ReadList(binaryReader, (BinaryReader r1) => ConfigDataManager.System_String.ReadFrom(r1)), ConfigDataManager.System_String.ReadFrom(binaryReader), ConfigDataManager.System_String.ReadFrom(binaryReader), ConfigDataManager.System_String.ReadFrom(binaryReader), ConfigDataManager.System_String.ReadFrom(binaryReader));
+		}
+		_data = array;
+		_IdTable = _data.ToDictionary((StatusEffectConfig elem) => elem.Id);
+	}
+
+	internal static void Reload()
+	{
+		TextAsset textAsset = Resources.Load<TextAsset>("ConfigData/StatusEffectConfig");
+		if (textAsset != null)
+		{
+			try
+			{
+				Load(textAsset.bytes);
+			}
+			catch (Exception ex)
+			{
+				Debug.LogError($"Failed to load StatusEffectConfig data: {ex.Message}, try reimport config data");
+			}
+			Resources.UnloadAsset(textAsset);
+		}
+		else
+		{
+			Debug.LogError("Cannot load config data of 'StatusEffectConfig', please reimport config data");
+		}
+	}
+}
+

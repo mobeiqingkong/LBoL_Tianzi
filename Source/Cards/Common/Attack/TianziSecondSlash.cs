@@ -24,12 +24,13 @@ namespace TianziMod.Cards
             config.GunNameBurst = GunNameID.GetGunFromId(6162);
 
             config.Colors = new List<ManaColor>() { ManaColor.Red };
-            config.Cost = new ManaGroup() { Red = 0 };
+            config.Cost = ManaGroup.Empty;
             config.Rarity = Rarity.Common;
 
             config.Type = CardType.Attack;
             config.TargetType = TargetType.SingleEnemy;
 
+            config.IsPooled = false;
             config.Damage = 6;
             config.UpgradedDamage = 9;
 
@@ -44,8 +45,8 @@ namespace TianziMod.Cards
 
 
     /// <summary>
-    /// 再斩（衍生牌）：造成 {Damage} 点伤害。
-    /// 若目标拥有格挡或护盾，则伤害翻倍。
+    /// 再斩（衍生牌）：造成 {Damage} 点伤害�?
+    /// 若目标拥有格挡或护盾，则伤害翻倍�?
     /// </summary>
     [EntityLogic(typeof(TianziSecondSlashDef))]
     public sealed class TianziSecondSlash : TianziCard

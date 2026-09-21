@@ -17,7 +17,7 @@ using TianziMod.StatusEffects;
 namespace TianziMod.Cards
 {
 
-    // ------------------------------------------------------------------ 天人的流仪
+    // ------------------------------------------------------------------ 天人的流�?
     public sealed class TianziHeavenlyRitualDef : TianziCardTemplate
     {
         public override CardConfig MakeConfig()
@@ -26,7 +26,7 @@ namespace TianziMod.Cards
 
             config.Colors = new List<ManaColor>() { ManaColor.White };
             config.Cost = new ManaGroup() { White = 1 };
-            config.UpgradedCost = new ManaGroup() { White = 0 };
+            config.UpgradedCost = ManaGroup.Empty;
             config.Rarity = Rarity.Uncommon;
 
             config.Type = CardType.Skill;
@@ -35,7 +35,7 @@ namespace TianziMod.Cards
             config.Scry = 5;
             config.UpgradedScry = 5;
 
-            config.Value1 = 2; // 按类型追加的抽牌数
+            config.Value1 = 2; // 按类型追加的抽牌�?
 
             config.RelativeEffects = new List<string>() { nameof(Firepower), nameof(Spirit), nameof(TianziKarmaKwSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
@@ -50,8 +50,8 @@ namespace TianziMod.Cards
 
 
     /// <summary>
-    /// 天人的流仪：占卜 {Scry}。抽 1 张牌。
-    /// 若抽到攻击牌获得 1 点火力；防御牌获得 1 点灵力；技能牌额外抽 {Value1} 张。
+    /// 天人的流仪：占卜 {Scry}。抽 1 张牌�?
+    /// 若抽到攻击牌获得 1 点火力；防御牌获�?1 点灵力；技能牌额外�?{Value1} 张�?
     /// </summary>
     [EntityLogic(typeof(TianziHeavenlyRitualDef))]
     public sealed class TianziHeavenlyRitual : TianziCard

@@ -1,0 +1,57 @@
+﻿using System;
+using LBoL.Core.Cards;
+using LBoL.Presentation.UI.Widgets;
+using UnityEngine;
+using UnityEngine.EventSystems;
+
+namespace LBoL.Presentation.UI.ExtraWidgets;
+
+[RequireComponent(typeof(CardWidget))]
+public class SelectCardWidget : MonoBehaviour, IPointerEnterHandler, IEventSystemHandler, IPointerExitHandler, IPointerClickHandler
+{
+	public CardWidget CardWidget { get; private set; }
+
+	public Card Card => CardWidget.Card;
+
+	public bool IsSelected { get; private set; }
+
+	public GameObject SelectParticle { get; set; }
+
+	public event EventHandler SelectedChanged;
+
+	private void Awake()
+	{
+		CardWidget = GetComponent<CardWidget>();
+	}
+
+	public void SetSelected(bool select, bool notify = true)
+	{
+		IsSelected = select;
+		SelectParticle.SetActive(IsSelected);
+		if (notify)
+		{
+			this.SelectedChanged?.Invoke(this, EventArgs.Empty);
+		}
+	}
+
+	public void OnPointerClick(PointerEventData eventData)
+	{
+		if (eventData.button == PointerEventData.InputButton.Left)
+		{
+			IsSelected = !IsSelected;
+			SelectParticle.SetActive(IsSelected);
+			this.SelectedChanged?.Invoke(this, EventArgs.Empty);
+		}
+	}
+
+	public void OnPointerEnter(PointerEventData eventData)
+	{
+		CardWidget.ShowTooltip();
+	}
+
+	public void OnPointerExit(PointerEventData eventData)
+	{
+		CardWidget.HideTooltip();
+	}
+}
+

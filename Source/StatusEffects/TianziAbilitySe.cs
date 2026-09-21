@@ -52,10 +52,18 @@ namespace TianziMod.StatusEffects
         /// <summary>天人之气生效中：奇偶分支交给玩家选。</summary>
         public static bool Forced { get { return ActiveCount > 0; } }
 
-        /// <summary>只按手牌奇偶判定。</summary>
+        /// <summary>当前手牌奇偶（卡还在手里时，用于描述预览）。</summary>
         public static bool IsOdd(BattleController battle)
         {
             return battle != null && battle.HandZone.Count % 2 == 1;
+        }
+
+        /// <summary>
+        /// 打出结算时的奇偶：卡已离手，按打出前张数判定（即当前手牌数 + 1）。
+        /// </summary>
+        public static bool IsOddAtPlay(BattleController battle)
+        {
+            return battle != null && (battle.HandZone.Count + 1) % 2 == 1;
         }
     }
 

@@ -6,6 +6,7 @@ using LBoL.Core.Battle.BattleActions;
 using LBoL.Core.Battle.Interactions;
 using LBoL.Core.Cards;
 using LBoLEntitySideloader.CustomKeywords;
+using TianziMod.Patches;
 using TianziMod.StatusEffects;
 
 namespace TianziMod.Keywords
@@ -59,11 +60,10 @@ namespace TianziMod.Keywords
             if (TianziParity.Forced)
             {
                 MiniSelectCardInteraction pick = new MiniSelectCardInteraction(
-                    new Card[]
-                    {
+                    TianziMiniSelectSkin.BindAll(
+                        source,
                         Library.CreateCard<TianziParityOddChoice>(),
-                        Library.CreateCard<TianziParityEvenChoice>(),
-                    },
+                        Library.CreateCard<TianziParityEvenChoice>()),
                     false,
                     false,
                     false)
@@ -75,7 +75,7 @@ namespace TianziMod.Keywords
             }
             else
             {
-                odd = TianziParity.IsOdd(source == null ? null : source.Battle);
+                odd = TianziParity.IsOddAtPlay(source == null ? null : source.Battle);
             }
 
             IEnumerable<BattleAction> chosen = odd ? oddActions : evenActions;
@@ -99,7 +99,7 @@ namespace TianziMod.Keywords
             config.Type = CardType.Skill;
             config.TargetType = TargetType.Nobody;
             config.Colors = new List<ManaColor>() { ManaColor.White };
-            config.Cost = new ManaGroup() { Any = 0 };
+            config.Cost = ManaGroup.Empty;
             config.Index = TianziMod.Cards.Template.CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }
@@ -121,7 +121,7 @@ namespace TianziMod.Keywords
             config.Type = CardType.Skill;
             config.TargetType = TargetType.Nobody;
             config.Colors = new List<ManaColor>() { ManaColor.Red };
-            config.Cost = new ManaGroup() { Any = 0 };
+            config.Cost = ManaGroup.Empty;
             config.Index = TianziMod.Cards.Template.CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }
@@ -144,14 +144,16 @@ namespace TianziMod.Keywords
             CardType chosen = actual;
             if (TianziMod.StatusEffects.TianziKarma.Forced)
             {
-                List<Card> options = new List<Card>
-                {
-                    Library.CreateCard<TianziKarmaAttackChoice>(),
-                    Library.CreateCard<TianziKarmaDefenseChoice>(),
-                    Library.CreateCard<TianziKarmaSkillChoice>(),
-                    Library.CreateCard<TianziKarmaAbilityChoice>(),
-                    Library.CreateCard<TianziKarmaCurseChoice>(),
-                };
+                List<Card> options = TianziMiniSelectSkin.BindAll(
+                    source,
+                    new List<Card>
+                    {
+                        Library.CreateCard<TianziKarmaAttackChoice>(),
+                        Library.CreateCard<TianziKarmaDefenseChoice>(),
+                        Library.CreateCard<TianziKarmaSkillChoice>(),
+                        Library.CreateCard<TianziKarmaAbilityChoice>(),
+                        Library.CreateCard<TianziKarmaCurseChoice>(),
+                    });
                 MiniSelectCardInteraction pick = new MiniSelectCardInteraction(options, false, false, false)
                 {
                     Source = source,

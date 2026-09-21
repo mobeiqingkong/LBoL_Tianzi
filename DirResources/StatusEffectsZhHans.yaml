@@ -1,5 +1,5 @@
 TianziTempHpSe:
-  Name: 临命
+  Name: 仙体
   Description: |-
     独立于生命值上限的额外战斗内生命值，上限 |e:15|。
     可连携触发任何与生命值相关的效果。
@@ -64,14 +64,14 @@ TianziWeatherCalm:
 TianziPeachBoostSe:
   Name: 桃增
   Description: |-
-    {OwnerName}获得|临命|时，额外获得 |e:1| 点|临命|。
-  Brief: "获得|临命|时额外增加 |e:1|。"
+    {OwnerName}获得|仙体|时，额外获得 |e:1| 点|仙体|。
+  Brief: "获得|仙体|时额外增加 |e:1|。"
 
 TianziPeachGardenSe:
   Name: 桃园
   Description: |-
-    {OwnerName}的|临命|减少时，获得 |e:1| 点|临命|。
-  Brief: "|临命|减少时获得 |e:1| 点|临命|。"
+    {OwnerName}的|仙体|减少时，获得 |e:1| 点|仙体|。
+  Brief: "|仙体|减少时获得 |e:1| 点|仙体|。"
 
 TianziScarletRadianceSe:
   Name: 威光
@@ -160,8 +160,8 @@ TianziPeachTalismanSe:
   Name: 桃符
   Description: |-
     每 |e:4| 个回合，{OwnerName}获得 |e:1| 回合|天衣无缝|，
-    并立即获得 {Level} 点|临命|。
-  Brief: "每 |e:4| 回合获得|天衣无缝|与|临命|。"
+    并立即获得 {Level} 点|仙体|。
+  Brief: "每 |e:4| 回合获得|天衣无缝|与|仙体|。"
 
 TianziHeavenlyTempoSe:
   Name: 天人
@@ -172,9 +172,9 @@ TianziHeavenlyTempoSe:
 TianziPeachEternitySe:
   Name: 桃久
   Description: |-
-    {OwnerName}的|临命|上限提高 {Level}；
-    每回合开始获得 |e:2| 点|临命|。
-  Brief: "|临命|上限增加 {Level}，每回合增加 |e:2|。"
+    {OwnerName}的|仙体|上限提高 {Level}；
+    每回合开始获得 |e:2| 点|仙体|。
+  Brief: "|仙体|上限增加 {Level}，每回合增加 |e:2|。"
 
 TianziScarletChargeSe:
   Name: 绯充
@@ -185,10 +185,10 @@ TianziScarletChargeSe:
 TianziPeachReserveSe:
   Name: 桃储
   Description: |-
-    {OwnerName}每回合结束时获得 |e:2| 点|临命|；
-    每当累计减少 {Level} 点|临命|，获得 {Count} 点|格挡|并抽 |e:1| 张牌。
+    {OwnerName}每回合结束时获得 |e:2| 点|仙体|；
+    每当累计减少 {Level} 点|仙体|，获得 {Count} 点|格挡|并抽 |e:1| 张牌。
     每回合最多触发 |e:2| 次。
-  Brief: 回合结束获得|临命|；|临命|减少时反哺|格挡|。
+  Brief: 回合结束获得|仙体|；|仙体|减少时反哺|格挡|。
 
 TianziNextTurnPhilSe:
   Name: 彩费
@@ -228,9 +228,9 @@ TianziReflectSe:
 TianziGraceSe:
   Name: 恩宠
   Description: |-
-    回合结束时将失去的|格挡|转化为|临命|。
+    回合结束时将失去的|格挡|转化为|仙体|。
     每回合开始获得{Mana}。
-  Brief: 失去的|格挡|转为|临命|。
+  Brief: 失去的|格挡|转为|仙体|。
 
 TianziLethalSe:
   Name: 致死

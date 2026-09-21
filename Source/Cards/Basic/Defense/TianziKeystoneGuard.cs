@@ -17,7 +17,7 @@ namespace TianziMod.Cards
             config.Cost = new ManaGroup() { Any = 1, Red = 1 };
             config.UpgradedCost = new ManaGroup() { Any = 1 };
             config.Rarity = Rarity.Common;
-
+            config.IsPooled = false;
             config.Type = CardType.Defense;
             config.TargetType = TargetType.Self;
 

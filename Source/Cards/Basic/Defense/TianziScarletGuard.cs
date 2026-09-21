@@ -23,7 +23,7 @@ namespace TianziMod.Cards
 
             config.Block = 10;
             config.UpgradedBlock = 13;
-
+            config.IsPooled = false;
             config.Keywords = Keyword.Basic;
             config.UpgradedKeywords = Keyword.Basic;
 
