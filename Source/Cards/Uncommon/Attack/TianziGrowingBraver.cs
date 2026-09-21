@@ -31,6 +31,8 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.SingleEnemy;
             config.Damage = 12;
             config.UpgradedDamage = 15;
+            config.Value1 = 1;
+            config.UpgradedValue1 = 1;
             config.RelativeEffects = new List<string>() { nameof(Firepower) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "";
@@ -53,7 +55,7 @@ namespace TianziMod.Cards
             foreach (KeyValuePair<Unit, int> pair in hp)
             {
                 if (pair.Key != null && pair.Key.IsAlive && pair.Key.Hp < pair.Value)
-                    yield return BuffAction<Firepower>(1, 0, 0, 0, 0.2f);
+                    yield return BuffAction<Firepower>(base.Value1, 0, 0, 0, 0.2f);
             }
         }
     }

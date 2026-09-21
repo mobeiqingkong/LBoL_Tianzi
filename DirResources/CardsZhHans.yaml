@@ -487,8 +487,8 @@ TianziSplash:
 
 TianziIkuFriend:
   Name: 龙宫使者衣玖
-  Description: '{FriendP}|f:占卜 {Scry}。直到自己的回合开始之前获得 {Value2} 层电击。|'
-  ExtraDescription1: '{FriendA}|a:获得 1 回合天衣无缝。|'
+  Description: "{PassiveCostIcon}|f:占卜 {Scry}。直到自己的回合开始之前获得 {Value2} 层电击。|"
+  ExtraDescription1: "{ActiveCostIcon}|a:获得 1 回合天衣无缝。|"
 
 TianziShrugIgnore:
   Name: 耸肩无视

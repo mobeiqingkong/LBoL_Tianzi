@@ -202,7 +202,7 @@ namespace TianziMod.Keywords
             config.HideMesuem = true;
             config.FindInBattle = false;
             config.IsUpgradable = false;
-            config.Type = CardType.Attack;
+            config.Type = CardType.Skill;
             config.TargetType = TargetType.Nobody;
             config.Colors = new List<ManaColor>() { ManaColor.Red };
             config.Index = TianziMod.Cards.Template.CardIndexGenerator.GetUniqueIndex(config);
@@ -222,7 +222,7 @@ namespace TianziMod.Keywords
             config.HideMesuem = true;
             config.FindInBattle = false;
             config.IsUpgradable = false;
-            config.Type = CardType.Defense;
+            config.Type = CardType.Skill;
             config.TargetType = TargetType.Nobody;
             config.Colors = new List<ManaColor>() { ManaColor.White };
             config.Index = TianziMod.Cards.Template.CardIndexGenerator.GetUniqueIndex(config);

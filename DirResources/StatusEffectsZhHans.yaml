@@ -35,7 +35,7 @@ TianziWeatherAzure:
   Name: 苍天
   Description: |-
     {OwnerName}获得 |e:7| 点<sprite="Point" name="Power">。
-  Brief: 获得 |e:7| 点<sprite="Point" name="Power">。
+  Brief: "获得 |e:7| 点<sprite=\"Point\" name=\"Power\">。"
 
 TianziWeatherHail:
   Name: 雹
