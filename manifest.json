@@ -1,0 +1,10 @@
+{
+  "name": "TianziMod",
+  "version_number": "0.1.0",
+  "website_url": "",
+  "description": "比那名居天子 —— Lost Branch of Legend 可游玩角色 Mod（要石 / 绯想之剑 / 天气 / 临时生命值）。",
+  "dependencies": [
+    "BepInEx-BepInExPack-5.4.2100",
+    "TeamNeo-Sideloader-0.9.7601"
+  ]
+}
