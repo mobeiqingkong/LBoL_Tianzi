@@ -22,21 +22,29 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziWeatherHailDef))]
     public sealed class TianziWeatherHail : TianziWeatherSeBase
     {
-        public override string WeatherName { get { return "雹"; } }
-
         protected override void RegisterHooks()
         {
-            base.HandleOwnerEvent<ManaEventArgs>(
-                base.Battle.TurnManaGaining,
-                new GameEventHandler<ManaEventArgs>(this.OnTurnManaGaining)
+            base.ReactOwnerEvent<UnitEventArgs>(
+                base.Battle.Player.TurnEnding,
+                new EventSequencedReactor<UnitEventArgs>(this.OnPlayerTurnEnding)
             );
         }
 
-        private void OnTurnManaGaining(ManaEventArgs args)
+        private bool _grantNext;
+
+        private IEnumerable<BattleAction> OnPlayerTurnEnding(UnitEventArgs args)
         {
+            this._grantNext = true;
+            yield break;
+        }
+
+        protected override IEnumerable<BattleAction> OnWeatherTurnStarted(UnitEventArgs args)
+        {
+            if (base.Battle.BattleShouldEnd || !this._grantNext)
+                yield break;
+            this._grantNext = false;
             base.NotifyActivating();
-            args.Value = args.Value * 2;
-            args.AddModifier(this);
+            yield return new GainManaAction(new ManaGroup() { White = 2, Red = 2 });
         }
 
         protected override IEnumerable<BattleAction> OnWeatherTurnStarting(UnitEventArgs args)
@@ -59,7 +67,6 @@ namespace TianziMod.StatusEffects
     {
         public const float HealRatio = 0.05f;
 
-        public override string WeatherName { get { return "浓雾"; } }
 
         protected override void RegisterHooks()
         {
@@ -101,8 +108,6 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziWeatherTyphoonDef))]
     public sealed class TianziWeatherTyphoon : TianziWeatherSeBase
     {
-        public override string WeatherName { get { return "台风"; } }
-
         private readonly List<EnemyUnit> _hooked = new List<EnemyUnit>();
 
         private void OnEnemyBlockShieldGaining(BlockShieldEventArgs args)
@@ -131,10 +136,33 @@ namespace TianziMod.StatusEffects
         protected override void RegisterHooks()
         {
             this.HookAllEnemies();
+            this.StripEnemyBlockShield();
+            base.ReactOwnerEvent<UnitEventArgs>(
+                base.Battle.EnemySpawned,
+                new EventSequencedReactor<UnitEventArgs>(this.OnEnemySpawned)
+            );
             base.ReactOwnerEvent<UnitEventArgs>(
                 base.Battle.Player.TurnStarted,
                 new EventSequencedReactor<UnitEventArgs>(this.OnPlayerTurnStarted)
             );
+        }
+
+        private IEnumerable<BattleAction> OnEnemySpawned(UnitEventArgs args)
+        {
+            this.HookAllEnemies();
+            this.StripEnemyBlockShield();
+            yield break;
+        }
+
+        private void StripEnemyBlockShield()
+        {
+            foreach (EnemyUnit enemy in base.Battle.AllAliveEnemies)
+            {
+                if (enemy == null)
+                    continue;
+                if (enemy.Block > 0 || enemy.Shield > 0)
+                    enemy.LoseBlockShield(enemy.Block, enemy.Shield);
+            }
         }
 
         private IEnumerable<BattleAction> OnPlayerTurnStarted(UnitEventArgs args)
@@ -162,8 +190,6 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziWeatherCalmDef))]
     public sealed class TianziWeatherCalm : TianziWeatherSeBase
     {
-        public override string WeatherName { get { return "无风"; } }
-
         private readonly List<EnemyUnit> _hooked = new List<EnemyUnit>();
         private Unit _holder;
 
@@ -240,6 +266,7 @@ namespace TianziMod.StatusEffects
             int amount = carried > 0 ? carried + 1 : 2;
             base.NotifyActivating();
             yield return new ApplyStatusEffectAction<TianziRegenSe>(gainer, amount, null, null, null, 0.1f);
+            yield return new HealAction(gainer, gainer, amount, HealType.Normal, 0.1f);
         }
 
         protected override IEnumerable<BattleAction> OnWeatherTurnStarting(UnitEventArgs args)

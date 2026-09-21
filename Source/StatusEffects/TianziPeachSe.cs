@@ -9,6 +9,7 @@ using LBoL.Core.Cards;
 using LBoL.Core.StatusEffects;
 using LBoL.Core.Units;
 using LBoLEntitySideloader.Attributes;
+using TianziMod.GunName;
 
 namespace TianziMod.StatusEffects
 {
@@ -121,8 +122,6 @@ namespace TianziMod.StatusEffects
         {
             if (base.Battle.BattleShouldEnd)
                 yield break;
-            if (args.Cause == ActionCause.AutoExile)
-                yield break;
             base.NotifyActivating();
             foreach (EnemyUnit enemy in base.Battle.AllAliveEnemies)
             {
@@ -130,7 +129,7 @@ namespace TianziMod.StatusEffects
                     base.Owner,
                     enemy,
                     DamageInfo.Attack(base.Level, false),
-                    GunName.GunNameID.RedAura,
+                    GunNameID.GetGunFromId(7070),
                     GunType.Single
                 );
             }
@@ -155,7 +154,7 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziScarletWaveSeDef))]
     public sealed class TianziScarletWaveSe : StatusEffect
     {
-        private bool _usedThisTurn;
+        private int _usedThisTurn;
 
         protected override void OnAdded(Unit unit)
         {
@@ -171,20 +170,21 @@ namespace TianziMod.StatusEffects
 
         private IEnumerable<BattleAction> OnTurnStarted(UnitEventArgs args)
         {
-            this._usedThisTurn = false;
+            this._usedThisTurn = 0;
             yield break;
         }
 
         private IEnumerable<BattleAction> OnPlayerDamageDealt(DamageEventArgs args)
         {
-            if (base.Battle.BattleShouldEnd || this._usedThisTurn)
+            int cap = base.Level > 0 ? base.Level : 1;
+            if (base.Battle.BattleShouldEnd || this._usedThisTurn >= cap)
                 yield break;
             if (args.DamageInfo.DamageType != DamageType.Attack)
                 yield break;
             int dealt = (int)Math.Round(args.DamageInfo.Amount, MidpointRounding.AwayFromZero);
             if (dealt <= 0)
                 yield break;
-            this._usedThisTurn = true;
+            this._usedThisTurn += 1;
             base.NotifyActivating();
             yield return new CastBlockShieldAction(
                 base.Battle.Player, base.Battle.Player, dealt, 0, BlockShieldType.Direct, false);
@@ -246,7 +246,6 @@ namespace TianziMod.StatusEffects
             config.HasLevel = false;
             config.HasCount = true;
             config.CountStackType = StackType.Add;
-            config.ImageId = nameof(TianziNextTurnManaSe);
             return config;
         }
     }
@@ -270,6 +269,42 @@ namespace TianziMod.StatusEffects
             // 用 Count 表示「本回合要补的法力总量」，颜色由外部约定为白色
             if (base.Count > 0)
                 yield return new GainTurnManaAction(new ManaGroup() { White = base.Count });
+            base.Count = 0;
+            yield return new RemoveStatusEffectAction(this, true, 0.1f);
+        }
+    }
+
+    public sealed class TianziNextTurnPhilSeDef : TianziStatusEffectTemplate
+    {
+        public override StatusEffectConfig MakeConfig()
+        {
+            StatusEffectConfig config = GetDefaultStatusEffectConfig();
+            config.Type = StatusEffectType.Positive;
+            config.HasLevel = false;
+            config.HasCount = true;
+            config.CountStackType = StackType.Add;
+            return config;
+        }
+    }
+
+    [EntityLogic(typeof(TianziNextTurnPhilSeDef))]
+    public sealed class TianziNextTurnPhilSe : StatusEffect
+    {
+        protected override void OnAdded(Unit unit)
+        {
+            base.ReactOwnerEvent<UnitEventArgs>(
+                base.Battle.Player.TurnStarting,
+                new EventSequencedReactor<UnitEventArgs>(this.OnPlayerTurnStarting)
+            );
+        }
+
+        private IEnumerable<BattleAction> OnPlayerTurnStarting(UnitEventArgs args)
+        {
+            if (base.Battle.BattleShouldEnd)
+                yield break;
+            base.NotifyActivating();
+            if (base.Count > 0)
+                yield return new GainTurnManaAction(new ManaGroup() { Philosophy = base.Count });
             base.Count = 0;
             yield return new RemoveStatusEffectAction(this, true, 0.1f);
         }

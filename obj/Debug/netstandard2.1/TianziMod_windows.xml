@@ -4,41 +4,32 @@
         <name>TianziMod_windows</name>
     </assembly>
     <members>
-        <member name="T:TianziMod.Cards.TianziKeystoneGuard">
-            <summary>要石护盾（初始牌）</summary>
-        </member>
         <member name="T:TianziMod.Cards.TianziKeystoneShot">
             <summary>要石射击（初始牌）</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziScarletGuard">
-            <summary>绯想剑格挡（初始牌 B 组）</summary>
         </member>
         <member name="T:TianziMod.Cards.TianziScarletSlash">
             <summary>绯想剑斩击（初始牌 B 组）</summary>
         </member>
+        <member name="T:TianziMod.Cards.TianziKeystoneGuard">
+            <summary>要石护盾（初始牌）</summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziScarletGuard">
+            <summary>绯想剑格挡（初始牌 B 组）</summary>
+        </member>
         <member name="T:TianziMod.Cards.TianziDoubleSlash">
             <summary>双斩：造成 {Damage} 点伤害 {Value1} 次。将「再斩」置入手中。</summary>
         </member>
-        <member name="T:TianziMod.Cards.TianziScarletCharge">
-            <summary>绯想之剑充能：下一张攻击牌的伤害增加 {Value1} 点。</summary>
+        <member name="T:TianziMod.Cards.TianziKeystoneTurret">
+            <summary>要石浮游炮：造成 {Damage} 点伤害 {Value1} 次。（精准）</summary>
         </member>
-        <member name="T:TianziMod.Cards.TianziScarletCross">
-            <summary>绯色十字：造成 {Damage} 点伤害。若目标处于易伤状态，抽 1 张牌。</summary>
+        <member name="T:TianziMod.Cards.TianziScarletCharge">
+            <summary>绯想之剑充能：造成 {Damage} 点伤害。下一张攻击牌伤害 +{Value1}。</summary>
         </member>
         <member name="T:TianziMod.Cards.TianziScarletFlameWheel">
-            <summary>
-            绯想焰轮：造成 {Damage} 点伤害 {Value1} 次。
-            结算后再随机对一名敌人造成一次等量伤害。
-            </summary>
+            <summary>绯焰射击：造成伤害后再对随机敌人造成同样伤害。</summary>
         </member>
         <member name="T:TianziMod.Cards.TianziScarletFlash">
-            <summary>绯想一闪：造成 {Damage} 点伤害。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziScarletSpark">
-            <summary>
-            绯色余烬：造成 {Damage} 点伤害。
-            若目标处于易伤状态，额外造成 {Value1} 点伤害。
-            </summary>
+            <summary>灼热气焰：奇数手牌时伤害提升；偶数获得 1 点红费。</summary>
         </member>
         <member name="T:TianziMod.Cards.TianziSecondSlash">
             <summary>
@@ -58,10 +49,90 @@
             本回合每打出过一张防御牌，此牌伤害提高 {Value1} 点。
             </summary>
         </member>
-        <member name="T:TianziMod.Cards.TianziTemperamentSword">
+        <member name="T:TianziMod.Cards.TianziBodyAsShield">
+            <summary>以身为盾：获得 {Block} 点格挡和 {Value1} 点临时生命值。</summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziKeystoneMatrix">
             <summary>
-            气质之剑：造成 {Damage} 点伤害。
-            根据上一张打出的牌的类型，施加 {Value1} 回合 易伤 / 脆弱 / 虚弱。
+            要石矩阵：获得 {Block} 点格挡。
+            接下来 {Value1} 回合内，回合开始时获得相同数量的格挡。
+            </summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziWorldRevolve">
+            <summary>
+            天地回转：手牌张数为奇数时，抽 {Value1} 张牌；
+            为偶数时，将弃牌堆的 {Value1} 张随机牌置入手中。
+            </summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziFinalJudgement">
+            <summary>
+            终焉审判：造成 {Damage} 点伤害。
+            本场战斗中每有一张牌被放逐，此牌伤害提高 {Value1} 点。
+            </summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziHeavenThrone">
+            <summary>天界玉座：立即获得 {Value1} 点格挡；此后每回合开始获得 {Value1} 点格挡。</summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziMortalJourney">
+            <summary>
+            凡间之游：本次战斗中，{PlayerName}每打出 {Value1} 张牌，
+            就获得 1 点白色法力并抽 1 张牌。
+            </summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziPeachEternity">
+            <summary>
+            仙桃长久：{PlayerName}的临时生命值上限提高 {Value1}；
+            每回合开始获得 {TianziPeachEternitySe:PerTurnTempHp} 点临时生命值。
+            </summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziPeachTalisman">
+            <summary>
+            桃符「固若金汤的仙桃」：每 4 个回合获得 1 回合天衣无缝，
+            并立即获得 {Value1} 点临时生命值。
+            </summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziFinalBlade">
+            <summary>
+            终绝的一剑：造成 {Damage} 点伤害。
+            目标每失去 5% 生命值，此牌伤害提高 {Value1}%。（放逐 / 保留）
+            </summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziHardshipFirst">
+            <summary>
+            先忧后乐之剑：造成 {Damage} 点伤害。
+            手牌张数为奇数时，打出后置于抽牌堆顶；
+            为偶数时，保留所有手牌一回合。
+            </summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziPureDawn">
+            <summary>
+            恒净之黎：造成 {Damage} 点伤害，移除{PlayerName}身上的所有负面效果，
+            并获得造成伤害减半的自愈。（放逐）
+            </summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziUnthinkableBlade">
+            <summary>
+            非想「非想非非想之剑」：造成 {Damage} 点伤害。
+            随机释放一种天气并持续 {Value1} 回合。
+            结束{PlayerName}的回合，进行一个额外的回合，并获得 1 点|时间有限|。
+            </summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziHeavenCreation">
+            <summary>
+            天界造物：从弃牌堆中选择一张牌，将它的 {Value1} 份复制置入手中。
+            若弃牌堆为空，则抽 {Value2} 张牌。
+            </summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziHeavenMirror">
+            <summary>
+            天界之镜：将本回合上一张打出的牌的一张复制置入手中，该复制费用为 0 且放逐。
+            若本回合尚未打出过其他牌，则抽 {Value1} 张牌。（放逐）
+            </summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziHeavenRoam">
+            <summary>
+            天界漫游：选择一张手牌。本次战斗中，{PlayerName}每打出 {Value1} 张牌，
+            那张牌就会从弃牌堆回到手中。
             </summary>
         </member>
         <member name="T:TianziMod.Cards.Template.TianziCard">
@@ -90,14 +161,32 @@
         <member name="P:TianziMod.Cards.Template.TianziCard.HandIsOdd">
             <summary>手牌张数为奇数（含自己结算完后的手牌）。</summary>
         </member>
-        <member name="T:TianziMod.Cards.TianziScarletRadiance">
-            <summary>绯想的威光：每当一张牌被放逐，对所有敌人造成 {Value1} 点攻击伤害。</summary>
+        <member name="T:TianziMod.Cards.TianziEndurance">
+            <summary>
+            天人的耐性：回合开始时只失去一半格挡；
+            受到不高于 5 点的未被格挡攻击伤害时，将伤害降低为 1。
+            </summary>
         </member>
-        <member name="T:TianziMod.Cards.TianziScarletWave">
-            <summary>绯想剑斩波：每回合首次造成攻击伤害时（含符卡），获得等量的格挡。</summary>
+        <member name="T:TianziMod.Cards.TianziHeavenlyTempo">
+            <summary>
+            天人合一：每回合开始时，手牌张数为奇数则获得 {Value1} 点火力；
+            为偶数则获得 {Value1} ×2 点格挡。
+            </summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziHeavenShield">
+            <summary>天界之庇护：每回合结束时获得 1 层庇护，下回合获得 1 点白色法力。</summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziMeditation">
+            <summary>冥想：每回合多抽一张牌；回合开始时，选择一张手牌与弃牌堆内的一张牌互换。（固有）</summary>
         </member>
         <member name="T:TianziMod.Cards.TianziOddEvenQi">
             <summary>天人之气：手牌数量的奇偶效果变为选择触发。</summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziPeachBlossom">
+            <summary>
+            桃华：每回合结束时，若{PlayerName}的临时生命值不少于 {Value1}，
+            抽 1 张牌并在下回合获得 1 点白色法力。
+            </summary>
         </member>
         <member name="T:TianziMod.Cards.TianziPeachBoost">
             <summary>仙桃增幅：获得临时生命值时额外获得 1 点；立即获得 {Value1} 点临时生命值。</summary>
@@ -108,91 +197,11 @@
         <member name="T:TianziMod.Cards.TianziPureWish">
             <summary>清霖之愿：每回合前 {Value1} 次抽到诅咒或状态牌时，将其放逐并抽 1 张牌。</summary>
         </member>
-        <member name="T:TianziMod.Cards.TianziHeavenShield">
-            <summary>天界之庇护：每回合结束时获得 1 层庇护，下回合获得 1 点白色法力。</summary>
+        <member name="T:TianziMod.Cards.TianziScarletRadiance">
+            <summary>绯想的威光：每当一张牌被放逐，对所有敌人造成 {Value1} 点攻击伤害。</summary>
         </member>
-        <member name="T:TianziMod.Cards.TianziMeditation">
-            <summary>冥想：每回合多抽一张牌；回合开始时，选择一张手牌与弃牌堆内的一张牌互换。（固有）</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziEndurance">
-            <summary>
-            天人的耐性：回合开始时只失去一半格挡；
-            受到不高于 5 点的未被格挡攻击伤害时，将伤害降低为 1。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziPeachBlossom">
-            <summary>
-            桃华：每回合结束时，若{PlayerName}的临时生命值不少于 {Value1}，
-            抽 1 张牌并在下回合获得 1 点白色法力。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziScarletDomain">
-            <summary>绯色领域：每当一张牌被放逐，{PlayerName}获得 {Value1} 点格挡。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziKeystoneWard">
-            <summary>要石镇守：每回合开始获得 {Value1} 点格挡；受到的攻击伤害减少 1 点。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziHeavenlyTempo">
-            <summary>
-            天人合一：每回合开始时，手牌张数为奇数则获得 {Value1} 点火力；
-            为偶数则获得 {Value1} ×2 点格挡。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziBlazingSword">
-            <summary>
-            气焰万丈之剑（X 费）：施加 {Value1} 回合易伤，造成 {Damage} 点伤害。
-            每额外支付 1 点任意费用，攻击段数 +1。（精准）
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziGrowingBraver">
-            <summary>越战越勇：若敌人意图为攻击，获得 {Value1} 点火力。造成 {Damage} 点伤害。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziMeteorPlunge">
-            <summary>
-            坠入大气圈：对所有敌人造成 {Damage} 点伤害。
-            再对所有敌人造成一次{PlayerName}临时生命值 ×2 的伤害。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziQuakeWorld">
-            <summary>
-            一击震乾坤：造成 {Damage} 点伤害，获得 1 点红色法力。
-            本回合每打出过一张其他攻击牌，此牌伤害提高 {Value1} 点。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziOverwhelming">
-            <summary>
-            摧枯拉朽：造成 {Damage} 点伤害。
-            若此伤害突破了目标的格挡或护盾，施加 {Value1} 回合易伤。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziDanceSword">
-            <summary>
-            环舞之剑：造成 {Damage} 点伤害，施加 {Value1} 回合虚弱。
-            下回合获得 {Value2} 点白色法力，抽 1 张牌。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziLandLiquefy">
-            <summary>
-            大地液化：对所有敌人造成 {Damage} 点伤害，并扣除其格挡和护盾各 {Value1} 点。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziKeystoneStorm">
-            <summary>
-            要石风暴：对所有敌人造成 {Damage} 点伤害。
-            若{PlayerName}的临时生命值不少于 {Value1}，再造成一次。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziScarletExecution">
-            <summary>绯想断罪：造成 {Damage} 点伤害。若此伤害击杀了敌人，获得 {Value1} 点 p点。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziHeavenDescent">
-            <summary>天人降临：获得 {Value1} 回合天衣无缝，造成 {Damage} 点伤害。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziKeystoneArmor">
-            <summary>
-            要石覆体：获得 {Block} 点格挡和 {Shield} 点护盾。
-            若本回合已打出过其他防御牌，护盾额外 +{Value1}。
-            </summary>
+        <member name="T:TianziMod.Cards.TianziScarletWave">
+            <summary>绯想剑斩波：每回合首次造成攻击伤害时（含符卡），获得等量的格挡。</summary>
         </member>
         <member name="T:TianziMod.Cards.TianziClearSky">
             <summary>
@@ -202,6 +211,18 @@
         </member>
         <member name="T:TianziMod.Cards.TianziHeavenCanopy">
             <summary>有顶天穹：获得 {Block} 点格挡。抽 {Value1} 张牌。</summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziKeystoneArmor">
+            <summary>
+            要石覆体：获得 {Block} 点格挡和 {Shield} 点护盾。
+            若本回合已打出过其他防御牌，护盾额外 +{Value1}。
+            </summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziWeatherMastery">
+            <summary>天候掌握：随机释放一种天气（持续 {Value1} 回合），获得 {Value2} 点格挡。</summary>
+        </member>
+        <member name="T:TianziMod.Cards.TianziWeatherWatch">
+            <summary>天气观测：获得格挡。下回合释放一种天气，持续 {Value1} 回合。</summary>
         </member>
         <member name="T:TianziMod.Cards.TianziHeavenlyFlight">
             <summary>天人的飞翔：获得 {Mana} 点彩色费用。抽 {Value1} 张牌。（放逐 / 填充）</summary>
@@ -218,6 +239,9 @@
             若抽到攻击牌获得 1 点火力；防御牌获得 1 点灵力；技能牌额外抽 {Value1} 张。
             </summary>
         </member>
+        <member name="T:TianziMod.Cards.TianziHeavenlyShower">
+            <summary>天界之洗礼：抽 {Value1} 张牌。恢复 {Value2} 点生命值。</summary>
+        </member>
         <member name="T:TianziMod.Cards.TianziHeavenlyWriting">
             <summary>
             天人落书：选择一张手牌放逐，抽 {Value1} 张牌。
@@ -225,182 +249,14 @@
             分别对应 易伤 / 脆弱 / 多抽 1 张 / {Value2} 层庇护 / 获得一张光芒。
             </summary>
         </member>
-        <member name="T:TianziMod.Cards.TianziWeatherMastery">
-            <summary>天候掌握：随机释放一种天气（持续 {Value1} 回合），获得 {Value2} 点格挡。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziBodyAsShield">
-            <summary>以身为盾：获得 {Block} 点格挡和 {Value1} 点临时生命值。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziCloudPillar">
-            <summary>
-            云柱：获得 {Block} 点格挡。
-            若手牌张数不少于 {Value1}，额外获得 {Value2} 点格挡。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziCloudVeil">
-            <summary>
-            云隐：获得 {Block} 点格挡。
-            若本回合尚未打出过攻击牌，额外获得 {Value1} 点格挡。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziHeavenlyFist">
-            <summary>天界之拳：造成 {Damage} 点伤害 {Value1} 次。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziHeavenlyShower">
-            <summary>天界之洗礼：抽 {Value1} 张牌。恢复 {Value2} 点生命值。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziHeavenPierce">
-            <summary>
-            天穿：造成 {Damage} 点伤害。
-            若目标拥有格挡或护盾，伤害提高 {Value1} 点。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziHeavenStepGuard">
-            <summary>天界步法：获得 {Block} 点格挡。抽 1 张牌。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziKeystoneBarrage">
-            <summary>要石弹幕：对随机敌人造成 {Damage} 点伤害 {Value1} 次。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziKeystoneImpact">
-            <summary>要石冲撞：造成 {Damage} 点伤害。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziKeystoneMatrix">
-            <summary>
-            要石矩阵：获得 {Block} 点格挡。
-            接下来 {Value1} 回合内，回合开始时获得相同数量的格挡。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziKeystonePillar">
-            <summary>
-            要石磐座：获得 {Block} 点格挡。
-            若本回合尚未打出过其他防御牌，额外获得 {Value1} 点格挡。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziKeystoneShelter">
-            <summary>要石庇护：获得 {Block} 点格挡和 {Value1} 点临时生命值。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziKeystoneTurret">
-            <summary>要石浮游炮：造成 {Damage} 点伤害 {Value1} 次。（精准）</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziMushin">
-            <summary>
-            无念无想：获得 {Block} 点格挡。
-            从抽牌堆随机打出一张防御牌。
-            </summary>
-        </member>
         <member name="T:TianziMod.Cards.TianziPeachNectar">
             <summary>桃之甘露：恢复 {Value1} 点生命值，并获得 {Value2} 点临时生命值。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziPeachReserve">
-            <summary>
-            仙桃储备（放逐 / 保留）
-            打出后获得「仙桃储备」：每回合结束时获得 {TianziPeachReserveSe:PerTurnTempHp} 点临时生命值；
-            每当累计减少 {Value3} 点临时生命值，获得 {Value2} 点格挡并抽 1 张牌（每回合最多 2 次）。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziStoneSkin">
-            <summary>石肤：获得 {Shield} 点护盾。（放逐）</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziStoneVolley">
-            <summary>飞石连投：造成 {Damage} 点伤害 {Value1} 次。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziWeatherWatch">
-            <summary>天气观测：随机释放一种天气（持续 {Value1} 回合）。抽 1 张牌。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziWorldRevolve">
-            <summary>
-            天地回转：手牌张数为奇数时，抽 {Value1} 张牌；
-            为偶数时，将弃牌堆的 {Value1} 张随机牌置入手中。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziFinalBlade">
-            <summary>
-            终绝的一剑：造成 {Damage} 点伤害。
-            目标每失去 5% 生命值，此牌伤害提高 {Value1}%。（放逐 / 保留）
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziHardshipFirst">
-            <summary>
-            先忧后乐之剑：造成 {Damage} 点伤害。
-            手牌张数为奇数时，打出后置于抽牌堆顶；
-            为偶数时，保留所有手牌一回合。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziUnthinkableBlade">
-            <summary>
-            非想「非想非非想之剑」：造成 {Damage} 点伤害。
-            随机释放一种天气并持续 {Value1} 回合。
-            结束{PlayerName}的回合，进行一个额外的回合，并获得 1 点|时间有限|。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziPureDawn">
-            <summary>
-            恒净之黎：造成 {Damage} 点伤害，移除{PlayerName}身上的所有负面效果，
-            并获得造成伤害减半的自愈。（放逐）
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziWorldCleaver">
-            <summary>天地开辟之剑：对所有敌人造成 {Damage} 点伤害。（放逐）</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziScarletApocalypse">
-            <summary>绯想天变：造成 {Damage} 点伤害，随机释放一种天气并持续 {Value1} 回合。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziFinalJudgement">
-            <summary>
-            终焉审判：造成 {Damage} 点伤害。
-            本场战斗中每有一张牌被放逐，此牌伤害提高 {Value1} 点。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziHeavenCreation">
-            <summary>
-            天界造物：从弃牌堆中选择一张牌，将它的 {Value1} 份复制置入手中。
-            若弃牌堆为空，则抽 {Value2} 张牌。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziHeavenRoam">
-            <summary>
-            天界漫游：选择一张手牌。本次战斗中，{PlayerName}每打出 {Value1} 张牌，
-            那张牌就会从弃牌堆回到手中。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziHeavenMirror">
-            <summary>
-            天界之镜：将本回合上一张打出的牌的一张复制置入手中，该复制费用为 0 且放逐。
-            若本回合尚未打出过其他牌，则抽 {Value1} 张牌。（放逐）
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziPeachTalisman">
-            <summary>
-            桃符「固若金汤的仙桃」：每 4 个回合获得 1 回合天衣无缝，
-            并立即获得 {Value1} 点临时生命值。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziMortalJourney">
-            <summary>
-            凡间之游：本次战斗中，{PlayerName}每打出 {Value1} 张牌，
-            就获得 1 点白色法力并抽 1 张牌。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziHeavenThrone">
-            <summary>天界玉座：立即获得 {Value1} 点格挡；此后每回合开始获得 {Value1} 点格挡。</summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziPeachEternity">
-            <summary>
-            仙桃长久：{PlayerName}的临时生命值上限提高 {Value1}；
-            每回合开始获得 {TianziPeachEternitySe:PerTurnTempHp} 点临时生命值。
-            </summary>
-        </member>
-        <member name="T:TianziMod.Cards.TianziKeystoneSingularity">
-            <summary>
-            要石奇点：每回合结束时，若{PlayerName}本回合未受到过伤害，
-            获得 {Value1} 点格挡，并在下回合获得 1 点白色法力。
-            </summary>
         </member>
         <member name="T:TianziMod.Exhibits.TianziExhibitA">
             <summary>
             仙桃（光耀）【A】
-            提供 1 点白色费用。
-            每次受到影响生命值的任意伤害时，恢复 1 点生命值并获得 1 点 p点。
+            提供 1 点白色费用。每场战斗第一回合开始时多抽 1 张牌，并额外获得 2 点白色法力。
+            每次受到影响生命值的任意伤害时恢复 2 点生命值并获得 2 点 p点，一场战斗最多 7 次。
             </summary>
         </member>
         <member name="T:TianziMod.Exhibits.TianziExhibitB">
@@ -459,6 +315,16 @@
         <member name="P:TianziMod.GunName.GunNameID.Heaven">
             <summary>高天原之光 / 符卡（天子专属 TenshiSpell1 511）</summary>
         </member>
+        <member name="T:TianziMod.Patches.TianziParityTintPatch">
+            <summary>
+            手中存在「奇偶数」牌时，没有该关键字的手牌变灰。
+            </summary>
+        </member>
+        <member name="T:TianziMod.Patches.TianziTempHpHud">
+            <summary>
+            把临时生命值画成格挡同款数字/条，颜色黄色，排在格挡前面。
+            </summary>
+        </member>
         <member name="T:TianziMod.StatusEffects.TianziParity">
             <summary>奇偶分支的统一判定入口。</summary>
         </member>
@@ -468,12 +334,9 @@
         <member name="M:TianziMod.StatusEffects.TianziParity.IsOdd(LBoL.Core.Battle.BattleController)">
             <summary>只按手牌奇偶判定。</summary>
         </member>
-        <member name="F:TianziMod.StatusEffects.TianziHeavenRoamSe.Target">
-            <summary>要被反复取回的那张牌。</summary>
-        </member>
         <member name="T:TianziMod.StatusEffects.TianziRegenSe">
             <summary>
-            自愈：每回合开始恢复 {Level} 点生命值，回合结束时层数 -1。
+            自愈：每回合结束时恢复 {Level} 点生命值，回合开始时层数 -1。
             </summary>
         </member>
         <member name="T:TianziMod.StatusEffects.TianziRegen">
@@ -502,6 +365,9 @@
         <member name="E:TianziMod.StatusEffects.TianziTempHp.Lost">
             <summary>“临时生命值减少时”的挂载点，参数为 (单位, 实际减少量)。</summary>
         </member>
+        <member name="E:TianziMod.StatusEffects.TianziTempHp.Changed">
+            <summary>层数变化时刷新黄色血条。</summary>
+        </member>
         <member name="M:TianziMod.StatusEffects.TianziTempHp.ExtraAmount(LBoL.Core.Units.Unit,System.Int32)">
             <summary>返回应该【追加】多少层（已含加成），已考虑上限。</summary>
         </member>
@@ -516,7 +382,7 @@
             </summary>
         </member>
         <member name="P:TianziMod.StatusEffects.TianziWeatherSeBase.WeatherName">
-            <summary>天气中文名（用于日志 / 提示）。</summary>
+            <summary>Localized display name from DirResources yaml (`Name`).</summary>
         </member>
         <member name="M:TianziMod.StatusEffects.TianziWeatherSeBase.RegisterHooks">
             <summary>子类在这里挂自己的事件监听。</summary>

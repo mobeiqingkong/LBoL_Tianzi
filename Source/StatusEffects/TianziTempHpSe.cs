@@ -49,6 +49,13 @@ namespace TianziMod.StatusEffects
                 base.Owner.DamageReceived,
                 new EventSequencedReactor<DamageEventArgs>(this.OnOwnerDamageReceived)
             );
+            if (unit == base.Battle.Player)
+            {
+                base.ReactOwnerEvent<UnitEventArgs>(
+                    base.Battle.Player.TurnStarting,
+                    new EventSequencedReactor<UnitEventArgs>(this.OnPlayerTurnStarting)
+                );
+            }
             int cap = TianziTempHp.MaxOf(base.Owner);
             if (base.Level > cap)
                 base.Level = cap;
@@ -83,6 +90,12 @@ namespace TianziMod.StatusEffects
             args.AddModifier(this);
         }
 
+        private IEnumerable<BattleAction> OnPlayerTurnStarting(UnitEventArgs args)
+        {
+            TianziTempHp.RotateTurnLoss();
+            yield break;
+        }
+
         private IEnumerable<BattleAction> OnOwnerDamageReceived(DamageEventArgs args)
         {
             if (this._pendingCost <= 0)
@@ -91,7 +104,9 @@ namespace TianziMod.StatusEffects
             int used = this._pendingCost;
             this._pendingCost = 0;
             base.Level -= used;
+            TianziTempHp.LostThisTurn += used;
             TianziTempHp.RaiseLost(base.Owner, used);
+            TianziTempHp.RaiseChanged(base.Owner);
 
             if (base.Level <= 0)
                 yield return new RemoveStatusEffectAction(this, true, 0.1f);
@@ -129,11 +144,22 @@ namespace TianziMod.StatusEffects
         /// <summary>“临时生命值减少时”的挂载点，参数为 (单位, 实际减少量)。</summary>
         public static event Action<Unit, int> Lost;
 
+        /// <summary>层数变化时刷新黄色血条。</summary>
+        public static event Action<Unit> Changed;
+
         internal static void RaiseLost(Unit unit, int amount)
         {
             Action<Unit, int> handler = Lost;
             if (handler != null && amount > 0)
                 handler(unit, amount);
+            RaiseChanged(unit);
+        }
+
+        internal static void RaiseChanged(Unit unit)
+        {
+            Action<Unit> handler = Changed;
+            if (handler != null)
+                handler(unit);
         }
 
         public static int ModifyGain(Unit unit, int amount)
@@ -161,6 +187,35 @@ namespace TianziMod.StatusEffects
             if (delta <= 0)
                 return null;
             return new ApplyStatusEffectAction<TianziTempHpSe>(unit, delta, null, null, null, wait);
+        }
+
+        public static int LostThisTurn;
+        public static int LostLastTurn;
+
+        public static void RotateTurnLoss()
+        {
+            LostLastTurn = LostThisTurn;
+            LostThisTurn = 0;
+        }
+
+        public static int ConsumeAll(Unit unit)
+        {
+            return Consume(unit, int.MaxValue);
+        }
+
+        public static int Consume(Unit unit, int amount)
+        {
+            int cur = Get(unit);
+            if (cur <= 0 || amount <= 0)
+                return 0;
+            int used = amount < cur ? amount : cur;
+            TianziTempHpSe se = unit.GetStatusEffect<TianziTempHpSe>();
+            if (se == null)
+                return 0;
+            se.Level -= used;
+            LostThisTurn += used;
+            RaiseLost(unit, used);
+            return used;
         }
     }
 }

@@ -17,8 +17,8 @@ namespace TianziMod.StatusEffects
     /// </summary>
     public abstract class TianziWeatherSeBase : StatusEffect
     {
-        /// <summary>天气中文名（用于日志 / 提示）。</summary>
-        public abstract string WeatherName { get; }
+        /// <summary>Localized display name from DirResources yaml (`Name`).</summary>
+        public string WeatherName { get { return this.Name; } }
 
         protected override void OnAdded(Unit unit)
         {
@@ -85,14 +85,14 @@ namespace TianziMod.StatusEffects
 
         public enum Kind
         {
-            Clear = 0,      // 快晴
-            Mist = 1,       // 雾雨
-            Cloud = 2,      // 云天
-            Azure = 3,      // 苍天
-            Hail = 4,       // 雹
-            Fog = 5,        // 浓雾
-            Typhoon = 6,    // 台风
-            Calm = 7,       // 无风
+            Clear = 0,
+            Mist = 1,
+            Cloud = 2,
+            Azure = 3,
+            Hail = 4,
+            Fog = 5,
+            Typhoon = 6,
+            Calm = 7,
         }
 
         /// <summary>移除当前所有天气，并随机施加一种新天气。</summary>

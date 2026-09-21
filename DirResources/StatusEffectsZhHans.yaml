@@ -1,15 +1,16 @@
 TianziTempHpSe:
   Name: 临命
   Description: |-
-    独立于生命值的战斗内生命池，上限与|桃久|的层数相关。
-    受到伤害时优先于|格挡|和|护盾|被扣减，扣减不视为失去生命值。
-  Brief: 独立生命池，受击时优先扣减。
+    独立于生命值上限的额外战斗内生命值，上限 15。
+    可连携触发任何与生命值相关的效果。
+    受到伤害时优先于|格挡|和|护盾|被扣减。
+  Brief: 黄色额外生命，受击时优先于格挡扣减。
 
 TianziRegenSe:
   Name: 自愈
   Description: |-
-    {OwnerName}的回合开始时恢复 {Level} 点生命值，回合结束时层数 -1。
-  Brief: 回合开始恢复 {Level} 点生命值。
+    {OwnerName}的回合结束时恢复 {Level} 点生命值，回合开始时层数 -1。
+  Brief: 回合结束恢复 {Level} 点生命值。
 
 TianziWeatherClear:
   Name: 快晴
@@ -33,14 +34,14 @@ TianziWeatherCloud:
 TianziWeatherAzure:
   Name: 苍天
   Description: |-
-    {OwnerName}的回合开始时获得 25 p点。
-  Brief: 回合开始获得 25 p点。
+    {OwnerName}获得 7 p点。
+  Brief: 获得 7 p点。
 
 TianziWeatherHail:
   Name: 雹
   Description: |-
-    {OwnerName}每回合获得的基础法力数量翻倍。
-  Brief: 基础法力获取翻倍。
+    {OwnerName}每回合结束时，下回合获得与基础法力等量的法力。
+  Brief: 下回合获得等量基础法力。
 
 TianziWeatherFog:
   Name: 浓雾
@@ -84,24 +85,11 @@ TianziScarletWaveSe:
     {OwnerName}每回合首次造成攻击伤害时，获得等量的|格挡|。
   Brief: 每回合首次攻击伤害转为等量|格挡|。
 
-TianziScarletDomainSe:
-  Name: 绯域
-  Description: |-
-    每当一张牌被放逐，{OwnerName}获得 {Level} 点|格挡|。
-  Brief: 放逐牌时获得 {Level} 点|格挡|。
-
 TianziKeystoneMatrixSe:
   Name: 石阵
   Description: |-
     接下来 {Duration} 回合内，{OwnerName}每回合开始获得 {Level} 点|格挡|。
   Brief: 回合开始获得 {Level} 点|格挡|。
-
-TianziKeystoneWardSe:
-  Name: 镇守
-  Description: |-
-    {OwnerName}每回合开始获得 {Level} 点|格挡|；
-    受到的攻击伤害减少 1 点。
-  Brief: 回合开始获得 {Level} 点|格挡|；攻击伤害 -1。
 
 TianziNextTurnManaSe:
   Name: 蓄力
@@ -109,26 +97,46 @@ TianziNextTurnManaSe:
     {OwnerName}下回合开始时获得 {Count} 点白色法力。
   Brief: 下回合获得 {Count} 点白色法力。
 
+TianziParityKwSe:
+  Name: 奇偶数
+  Description: |-
+    根据手牌张数的奇数 / 偶数触发不同效果。
+    手中存在带有此关键字的牌时，没有该效果的手牌会变色。
+  Brief: 按手牌张数的奇偶触发效果。
+
+TianziKarmaKwSe:
+  Name: 因果
+  Description: 根据卡牌种类（攻击 / 防御 / 技能 / 能力 / 诅咒与状态）触发不同效果。
+  Brief: 按卡牌种类触发效果。
+
+TianziKarmaSe:
+  Name: 因果选
+  Description: 带有|因果|关键字的牌打出时，因果效果改为自行选择触发。
+  Brief: 因果效果改为自行选择。
+
 TianziOddEvenSe:
   Name: 奇偶
   Description: |-
     手牌张数的「奇数 / 偶数」分支效果改为由{OwnerName}选择触发。
   Brief: 奇偶分支改为自行选择。
 
+TianziWeatherForecastSe:
+  Name: 观测
+  Description: 下回合开始时随机释放一种天气，持续 {Duration} 回合。
+  Brief: 下回合释放天气。
+
 TianziMeditationSe:
-  Name: 冥想
+  Name: 一念
   Description: |-
     {OwnerName}每回合多抽 1 张牌；
     回合开始时，可将一张手牌与弃牌堆内的一张牌互换。
   Brief: 每回合多抽 1 张；可互换手牌与弃牌堆。
-
 TianziEnduranceSe:
   Name: 耐性
   Description: |-
-    {OwnerName}回合开始时只失去一半|格挡|；
-    受到不高于 5 点的未被格挡攻击伤害时，将伤害降低为 1。
-  Brief: 只失去一半|格挡|；小伤害降为 1。
-
+    {OwnerName}回合开始时保留上回合至多 10 点|格挡|，
+    并获得 1 点|灵力|（最多累计 3 点）。
+  Brief: 保留格挡并获得|灵力|。
 TianziPureWishSe:
   Name: 清霖
   Description: |-
@@ -155,20 +163,12 @@ TianziPeachTalismanSe:
     并立即获得 {Level} 点|临命|。
   Brief: 每 4 回合获得|天衣无缝|与|临命|。
 
-TianziPeachBlossomSe:
-  Name: 桃华
-  Description: |-
-    {OwnerName}每回合结束时，若|临命|不少于 {Level}，
-    抽 1 张牌并在下回合获得 1 点白色法力。
-  Brief: "|临命|达标时抽牌并获得法力。"
-
 TianziHeavenlyTempoSe:
   Name: 天人
   Description: |-
-    {OwnerName}每回合开始时，手牌张数为奇数则获得 {Level} 点|火力|；
-    为偶数则获得 {Level} ×2 点|格挡|。
-  Brief: 奇数手牌得|火力|，偶数得|格挡|。
-
+    奇数回合开始时获得 1 点|火力|。
+    偶数回合开始时获得等同于当前火力（升级后 1.5 倍）的|格挡|。
+  Brief: 奇数火力，偶数格挡。
 TianziPeachEternitySe:
   Name: 桃久
   Description: |-
@@ -190,21 +190,49 @@ TianziPeachReserveSe:
     每回合最多触发 2 次。
   Brief: 回合结束获得|临命|；|临命|减少时反哺|格挡|。
 
-TianziHeavenRoamSe:
-  Name: 漫游
-  Description: |-
-    {OwnerName}每打出 {Level} 张牌，指定的那张牌就会从弃牌堆回到手中。
-  Brief: 每 {Level} 张牌取回指定的牌。
+TianziNextTurnPhilSe:
+  Name: 彩费
+  Description: {OwnerName}下回合开始时获得 {Count} 点彩色法力。
+  Brief: 下回合获得彩色法力。
 
-TianziKeystoneSingularitySe:
-  Name: 奇点
-  Description: |-
-    {OwnerName}每回合结束时，若本回合未受到过伤害，
-    获得 {Level} 点|格挡|，并在下回合获得 1 点白色法力。
-  Brief: 未受伤则获得|格挡|与法力。
+TianziDoubleAttackSe:
+  Name: 倍击
+  Description: 本回合下一张攻击牌造成的伤害翻倍。
+  Brief: 下一张攻击伤害翻倍。
 
-TianziHeavenThroneSe:
-  Name: 玉座
+TianziShrugSe:
+  Name: 耸肩
+  Description: {OwnerName}在自己的回合内受到伤害时，获得 {Level} 点|格挡|。
+  Brief: 回合内受伤获得|格挡|。
+
+TianziProbeSe:
+  Name: 探查
+  Description: {OwnerName}每打出一张|奇偶数|牌，抽 1 张牌。
+  Brief: 打出奇偶牌时抽牌。
+
+TianziEarthDelaySe:
+  Name: 镇石
+  Description: 持续 {Duration} 回合，每回合开始获得 {Level} 层|自愈|。
+  Brief: 持续获得|自愈|。
+
+TianziFeastSe:
+  Name: 庆功
+  Description: 每当一名敌人被打败，恢复 2 点生命值，获得 1 点彩色费用并抽 1 张牌。
+  Brief: 击杀回血、得费、抽牌。
+
+TianziReflectSe:
+  Name: 对决
+  Description: 完全抵挡下一次敌人攻击伤害并完整返还。
+  Brief: 抵挡并返还下一次攻击。
+
+TianziGraceSe:
+  Name: 恩宠
   Description: |-
-    {OwnerName}每回合开始获得 {Level} 点|格挡|。
-  Brief: 回合开始获得 {Level} 点|格挡|。
+    回合结束时将失去的|格挡|转化为|临命|。
+    每回合开始获得 1 点白色法力。
+  Brief: 失去的|格挡|转为|临命|。
+
+TianziLethalSe:
+  Name: 致死
+  Description: {OwnerName}在回合内获得无色或彩色法力时，对所有敌人造成其最大生命值 1% 的伤害。
+  Brief: 获得无色法力时百分比伤害。

@@ -44,7 +44,13 @@ namespace TianziMod
         public static bool modelIsFlipped = false;
         //The character's off-color.
         //Used to separate cards in the card collection and put the off-color cards at the end.
-        public static List<ManaColor> offColors = new List<ManaColor>() { ManaColor.Colorless };
+        public static List<ManaColor> offColors = new List<ManaColor>()
+        {
+            ManaColor.Colorless,
+            ManaColor.Blue,
+            ManaColor.Green,
+            ManaColor.Black,
+        };
 
         private static readonly Harmony harmony = TianziMod.PInfo.harmony;
 

@@ -1,0 +1,163 @@
+﻿using DG.Tweening;
+using LBoL.Base.Extensions;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace LBoL.Presentation.UI.Widgets;
+
+public class HealthBar : MonoBehaviour
+{
+	[SerializeField]
+	private Image healthImage;
+
+	[SerializeField]
+	private Image shieldImage;
+
+	[SerializeField]
+	private Image blockImage;
+
+	[SerializeField]
+	private TextMeshProUGUI healthTmp;
+
+	[SerializeField]
+	private TextMeshProUGUI shieldTmp;
+
+	[SerializeField]
+	private TextMeshProUGUI blockTmp;
+
+	[SerializeField]
+	private Transform shieldParent;
+
+	[SerializeField]
+	private Transform blockParent;
+
+	[SerializeField]
+	private CanvasGroup shieldCg;
+
+	[SerializeField]
+	private CanvasGroup blockCg;
+
+	private int _hp;
+
+	private int _maxHp;
+
+	private int _shield;
+
+	private int _block;
+
+	private const float TweenTime = 0.2f;
+
+	private const float MinPercentOfShieldAndBlock = 0.3f;
+
+	private const float MaxPercentOfShieldAndBlock = 0.6f;
+
+	private void Awake()
+	{
+		blockImage.fillAmount = 0f;
+		shieldImage.fillAmount = 0f;
+		healthImage.fillAmount = 1f;
+		shieldParent.gameObject.SetActive(value: false);
+		blockParent.gameObject.SetActive(value: false);
+	}
+
+	private void OnDestroy()
+	{
+		DOTween.Kill(this);
+	}
+
+	public void SetHp(int hp, int maxHp)
+	{
+		healthTmp.text = $"{hp}/{maxHp}";
+		_hp = hp;
+		_maxHp = maxHp;
+	}
+
+	public void SetShield(int shield, int block)
+	{
+		blockTmp.text = block.ToString();
+		shieldTmp.text = shield.ToString();
+		if (_shield == 0 && shield > 0)
+		{
+			shieldCg.DOKill(complete: true);
+			shieldParent.gameObject.SetActive(value: true);
+			shieldCg.DOFade(1f, 0.2f).SetUpdate(isIndependentUpdate: true);
+		}
+		else if (_shield > 0 && shield == 0)
+		{
+			shieldCg.DOKill(complete: true);
+			shieldCg.DOFade(0f, 0.2f).SetUpdate(isIndependentUpdate: true).OnComplete(delegate
+			{
+				shieldParent.gameObject.SetActive(value: false);
+			});
+		}
+		if (_block == 0 && block > 0)
+		{
+			blockCg.DOKill(complete: true);
+			blockParent.gameObject.SetActive(value: true);
+			blockCg.DOFade(1f, 0.2f).SetUpdate(isIndependentUpdate: true);
+		}
+		else if (_block > 0 && block == 0)
+		{
+			blockCg.DOKill(complete: true);
+			blockCg.DOFade(0f, 0.2f).SetUpdate(isIndependentUpdate: true).OnComplete(delegate
+			{
+				blockParent.gameObject.SetActive(value: false);
+			});
+		}
+		_shield = shield;
+		_block = block;
+	}
+
+	public void TweenHp(int hp, int maxHp, int shield, int block, bool instant = false)
+	{
+		int curHp = _hp;
+		float num = (float)hp / (float)maxHp;
+		float num2 = 0.3f;
+		if (1f - num > 0.3f)
+		{
+			num2 = 1f - num;
+		}
+		if (1f - num > 0.6f)
+		{
+			num2 = 0.6f;
+		}
+		float num3 = num;
+		float num4 = 0f;
+		float num5 = 0f;
+		if (shield + block != 0)
+		{
+			float num6 = num2 * (float)(shield + block) / ((float)(shield + block) + 20f);
+			float num7 = num6 * (float)shield / (float)(shield + block);
+			float num8 = num6 * (float)block / (float)(shield + block);
+			if (num6 > 1f - num)
+			{
+				num3 = 1f - num6;
+			}
+			num4 = num3 + num7;
+			num5 = num4 + num8;
+		}
+		this.DOKill(complete: true);
+		if (instant)
+		{
+			healthImage.fillAmount = num3;
+			shieldImage.fillAmount = num4;
+			blockImage.fillAmount = num5;
+			SetHp(hp, maxHp);
+			SetShield(shield, block);
+			return;
+		}
+		SetShield(shield, block);
+		float lerp = 0f;
+		DOTween.Sequence().Insert(0.1f, healthImage.DOFillAmount(num3, 0.2f)).Insert(0.05f, shieldImage.DOFillAmount(num4, 0.2f))
+			.Insert(0f, blockImage.DOFillAmount(num5, 0.2f))
+			.Insert(0f, DOTween.To(() => lerp, delegate(float v)
+			{
+				lerp = v;
+				SetHp(v.Lerp(curHp, hp).RoundToInt(), maxHp);
+			}, 1f, 0.5f))
+			.SetUpdate(isIndependentUpdate: true)
+			.SetTarget(this);
+	}
+}
+

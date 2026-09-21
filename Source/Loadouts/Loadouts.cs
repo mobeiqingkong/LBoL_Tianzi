@@ -76,8 +76,8 @@ namespace TianziMod
             ExhibitB: TianziLoadouts.ExhibitB,
             DeckA: TianziLoadouts.DeckA,
             DeckB: TianziLoadouts.DeckB,
-            DifficultyA: 1,
-            DifficultyB: 2
+            DifficultyA: 2,
+            DifficultyB: 1
         );
     }
 }

@@ -3,6 +3,8 @@ using LBoL.Base;
 using LBoL.Core.Battle;
 using LBoL.Core.Cards;
 using LBoL.Core.StatusEffects;
+using LBoLEntitySideloader.CustomKeywords;
+using TianziMod.Keywords;
 
 namespace TianziMod.Cards.Template
 {
@@ -167,6 +169,25 @@ namespace TianziMod.Cards.Template
         public bool HandIsOdd
         {
             get { return this.HandCount % 2 == 1; }
+        }
+
+        protected virtual bool HasParityKeyword
+        {
+            get { return false; }
+        }
+
+        protected virtual bool HasKarmaKeyword
+        {
+            get { return false; }
+        }
+
+        public override void Initialize()
+        {
+            base.Initialize();
+            if (this.HasParityKeyword && !this.HasCustomKeyword(TianziKeywords.ParityId))
+                this.AddCustomKeyword(TianziKeywords.Parity());
+            if (this.HasKarmaKeyword && !this.HasCustomKeyword(TianziKeywords.KarmaId))
+                this.AddCustomKeyword(TianziKeywords.Karma());
         }
     }
 }

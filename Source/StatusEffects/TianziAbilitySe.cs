@@ -142,6 +142,7 @@ namespace TianziMod.StatusEffects
             config.Type = StatusEffectType.Positive;
             config.HasLevel = false;
             config.IsStackable = false;
+            config.HasCount = true;
             return config;
         }
     }
@@ -149,7 +150,6 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziEnduranceSeDef))]
     public sealed class TianziEnduranceSe : StatusEffect
     {
-        public const int Threshold = 5;
 
         private int _blockBeforeTurn;
 
@@ -163,10 +163,7 @@ namespace TianziMod.StatusEffects
                 base.Battle.Player.TurnStarted,
                 new EventSequencedReactor<UnitEventArgs>(this.OnTurnStarted)
             );
-            base.HandleOwnerEvent<DamageEventArgs>(
-                base.Battle.Player.DamageTaking,
-                new GameEventHandler<DamageEventArgs>(this.OnDamageTaking)
-            );
+
         }
 
         private IEnumerable<BattleAction> OnTurnStarting(UnitEventArgs args)
@@ -177,7 +174,9 @@ namespace TianziMod.StatusEffects
 
         private IEnumerable<BattleAction> OnTurnStarted(UnitEventArgs args)
         {
-            int keep = this._blockBeforeTurn / 2;
+            int keep = this._blockBeforeTurn;
+            if (keep > 10)
+                keep = 10;
             int now = base.Battle.Player.Block;
             if (keep > 0 && now < keep)
             {
@@ -185,18 +184,11 @@ namespace TianziMod.StatusEffects
                 yield return new CastBlockShieldAction(
                     base.Battle.Player, base.Battle.Player, keep - now, 0, BlockShieldType.Direct, false);
             }
-        }
-
-        private void OnDamageTaking(DamageEventArgs args)
-        {
-            if (args.DamageInfo.DamageType != DamageType.Attack)
-                return;
-            int dmg = (int)Math.Round(args.DamageInfo.Damage, MidpointRounding.AwayFromZero);
-            if (dmg < 2 || dmg > Threshold)
-                return;
-            base.NotifyActivating();
-            args.DamageInfo = args.DamageInfo.ReduceActualDamageBy(dmg - 1);
-            args.AddModifier(this);
+            if (base.Count < 3)
+            {
+                base.Count += 1;
+                yield return new ApplyStatusEffectAction<Spirit>(base.Battle.Player, 1, null, null, null, 0.1f);
+            }
         }
     }
 
@@ -278,20 +270,30 @@ namespace TianziMod.StatusEffects
         protected override void OnAdded(Unit unit)
         {
             base.ReactOwnerEvent<UnitEventArgs>(
+                base.Battle.Player.TurnStarted,
+                new EventSequencedReactor<UnitEventArgs>(this.OnTurnStarted)
+            );
+            base.ReactOwnerEvent<UnitEventArgs>(
                 base.Battle.Player.TurnEnding,
                 new EventSequencedReactor<UnitEventArgs>(this.OnTurnEnding)
             );
         }
 
-        private IEnumerable<BattleAction> OnTurnEnding(UnitEventArgs args)
+        private IEnumerable<BattleAction> OnTurnStarted(UnitEventArgs args)
         {
             if (base.Battle.BattleShouldEnd)
                 yield break;
             base.NotifyActivating();
+            yield return new GainManaAction(new ManaGroup() { White = 1 });
+        }
+
+        private IEnumerable<BattleAction> OnTurnEnding(UnitEventArgs args)
+        {
+            if (base.Battle.BattleShouldEnd || base.Battle.Player.IsExtraTurn)
+                yield break;
+            base.NotifyActivating();
             yield return new ApplyStatusEffectAction<AmuletForCard>(
-                base.Battle.Player, base.Level, null, null, null, 0.1f);
-            yield return new ApplyStatusEffectAction<TianziNextTurnManaSe>(
-                base.Battle.Player, null, null, base.Level, null, 0.1f);
+                base.Battle.Player, 1, null, null, null, 0.1f);
         }
     }
 
@@ -366,16 +368,25 @@ namespace TianziMod.StatusEffects
         protected override void OnAdded(Unit unit)
         {
             base.ReactOwnerEvent<UnitEventArgs>(
+                base.Battle.Player.TurnEnding,
+                new EventSequencedReactor<UnitEventArgs>(this.OnPlayerTurnEnding)
+            );
+            base.ReactOwnerEvent<UnitEventArgs>(
                 base.Battle.Player.TurnStarting,
                 new EventSequencedReactor<UnitEventArgs>(this.OnPlayerTurnStarting)
             );
+        }
+
+        private IEnumerable<BattleAction> OnPlayerTurnEnding(UnitEventArgs args)
+        {
+            base.Count += 1;
+            yield break;
         }
 
         private IEnumerable<BattleAction> OnPlayerTurnStarting(UnitEventArgs args)
         {
             if (base.Battle.BattleShouldEnd)
                 yield break;
-            base.Count += 1;
             if (base.Count < Interval)
                 yield break;
             base.Count = 0;

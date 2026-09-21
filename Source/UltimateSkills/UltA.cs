@@ -7,7 +7,6 @@ using LBoL.Core.Battle.BattleActions;
 using LBoL.Core.StatusEffects;
 using LBoL.Core.Units;
 using LBoLEntitySideloader.Attributes;
-using TianziMod.StatusEffects;
 
 namespace TianziMod.TianziUlt
 {
@@ -23,12 +22,11 @@ namespace TianziMod.TianziUlt
             config.MaxPowerLevel = 3;
             config.Damage = 1;
             config.Value1 = 1; // 天衣无缝持续回合
-            config.Value2 = 5; // 临时生命值
+            config.Value2 = 5; // 生命值
             config.Keywords = Keyword.None;
             config.RelativeEffects = new List<string>()
             {
                 nameof(Invincible),
-                nameof(TianziTempHpSe),
             };
             return config;
         }
@@ -46,7 +44,7 @@ namespace TianziMod.TianziUlt
         protected override IEnumerable<BattleAction> Actions(UnitSelector selector)
         {
             // 气符「无念无想的境界」
-            // 获得 1 回合天衣无缝 + 5 点临时生命值，并移除主角身上所有负面状态。
+            // 获得 1 回合天衣无缝 + 5 点生命值，并移除主角身上所有负面状态。
             yield return new ApplyStatusEffectAction<Invincible>(
                 base.Battle.Player,
                 1,
@@ -56,10 +54,7 @@ namespace TianziMod.TianziUlt
                 0.2f
             );
 
-            BattleAction gainTemp = TianziTempHp.GainAction(base.Battle.Player, base.Value2);
-            if (gainTemp != null)
-                yield return gainTemp;
-
+            yield return new HealAction(base.Battle.Player, base.Battle.Player, base.Value2, HealType.Normal, 0.2f);
             yield return new RemoveAllNegativeStatusEffectAction(base.Battle.Player, 0.2f);
             yield break;
         }

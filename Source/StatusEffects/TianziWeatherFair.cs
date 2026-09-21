@@ -23,8 +23,6 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziWeatherClearDef))]
     public sealed class TianziWeatherClear : TianziWeatherSeBase
     {
-        public override string WeatherName { get { return "快晴"; } }
-
         private int _savedGraze;
 
         protected override IEnumerable<BattleAction> OnWeatherTurnStarting(UnitEventArgs args)
@@ -33,7 +31,7 @@ namespace TianziMod.StatusEffects
                 yield break;
             // 回合结算前先记下闪避，回合开始后再补回来（快晴：闪避不会消失）
             Graze graze = base.Owner.GetStatusEffect<Graze>();
-            this._savedGraze = graze == null ? 0 : graze.Level;
+            this._savedGraze = graze?.Level ?? 0;
             foreach (BattleAction action in this.TickDuration())
                 yield return action;
         }
@@ -59,9 +57,9 @@ namespace TianziMod.StatusEffects
             IReadOnlyList<Card> hand = base.Battle.HandZone;
             if (hand.Count > 0)
             {
-                // Card card = hand[Random.Range(0, hand.Count)];
-                // if (card != null && card.CostToMana(false).Total > 0)
-                //     card.DecreaseTurnCost(ManaGroup.Anys(1));
+                Card card = hand[Random.Range(0, hand.Count)];
+                if (card != null && card.CostToMana(false).Total > 0)
+                    card.DecreaseTurnCost(ManaGroup.Anys(1));
             }
         }
     }
@@ -77,8 +75,6 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziWeatherMistDef))]
     public sealed class TianziWeatherMist : TianziWeatherSeBase
     {
-        public override string WeatherName { get { return "雾雨"; } }
-
         protected override void RegisterHooks()
         {
             base.HandleOwnerEvent<DamageDealingEventArgs>(
@@ -116,8 +112,6 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziWeatherCloudDef))]
     public sealed class TianziWeatherCloud : TianziWeatherSeBase
     {
-        public override string WeatherName { get { return "云天"; } }
-
         protected override void RegisterHooks()
         {
             base.ReactOwnerEvent<CardsEventArgs>(
@@ -168,9 +162,7 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziWeatherAzureDef))]
     public sealed class TianziWeatherAzure : TianziWeatherSeBase
     {
-        public const int PowerGain = 25;
-
-        public override string WeatherName { get { return "苍天"; } }
+        public const int PowerGain = 7;
 
         protected override IEnumerable<BattleAction> OnWeatherTurnStarting(UnitEventArgs args)
         {
@@ -178,12 +170,9 @@ namespace TianziMod.StatusEffects
                 yield return action;
         }
 
-        protected override IEnumerable<BattleAction> OnWeatherTurnStarted(UnitEventArgs args)
+        protected override void RegisterHooks()
         {
-            if (base.Battle.BattleShouldEnd)
-                yield break;
-            base.NotifyActivating();
-            yield return new GainPowerAction(PowerGain);
+            this.React(new GainPowerAction(PowerGain));
         }
     }
 }

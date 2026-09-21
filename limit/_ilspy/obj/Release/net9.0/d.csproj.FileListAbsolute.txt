@@ -1,0 +1,6 @@
+D:\riderProject\Hinanawi-Tenshi\limit\_ilspy\obj\Release\net9.0\d.csproj.AssemblyReference.cache
+D:\riderProject\Hinanawi-Tenshi\limit\_ilspy\obj\Release\net9.0\d.GeneratedMSBuildEditorConfig.editorconfig
+D:\riderProject\Hinanawi-Tenshi\limit\_ilspy\obj\Release\net9.0\d.AssemblyInfoInputs.cache
+D:\riderProject\Hinanawi-Tenshi\limit\_ilspy\obj\Release\net9.0\d.AssemblyInfo.cs
+D:\riderProject\Hinanawi-Tenshi\limit\_ilspy\obj\Release\net9.0\d.csproj.CoreCompileInputs.cache
+D:\riderProject\Hinanawi-Tenshi\limit\_ilspy\obj\Release\net9.0\d.sourcelink.json

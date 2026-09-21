@@ -21,7 +21,7 @@ namespace TianziMod.TianziUlt
             config.PowerPerLevel = 100;
             config.MaxPowerLevel = 2;
             config.Damage = 45;
-            config.Value1 = 55; // 每场战斗首次释放时的伤害
+            config.Value1 = 10; // 每场战斗首次额外一段伤害
             config.Value2 = 3; // 天气持续回合
             config.Keywords = Keyword.Accuracy;
             config.RelativeEffects = new List<string>()
@@ -49,7 +49,7 @@ namespace TianziMod.TianziUlt
         public TianziUltB()
         {
             base.TargetType = TargetType.SingleEnemy;
-            base.GunName = TianziMod.GunName.GunNameID.RedAura;
+            base.GunName = TianziMod.GunName.GunNameID.GetGunFromId(511);
         }
 
         protected override IEnumerable<BattleAction> Actions(UnitSelector selector)
@@ -59,7 +59,7 @@ namespace TianziMod.TianziUlt
             foreach (BattleAction action in TianziWeather.ApplyRandom(base.Battle.Player, base.Value2))
                 yield return action;
 
-            int damage = this._usedInThisBattle ? base.Config.Damage : base.Value1;
+            int extra = this._usedInThisBattle ? 0 : base.Value1;
             this._usedInThisBattle = true;
 
             foreach (Unit enemy in selector.GetUnits(base.Battle))
@@ -67,10 +67,20 @@ namespace TianziMod.TianziUlt
                 yield return new DamageAction(
                     base.Owner,
                     enemy,
-                    DamageInfo.Attack(damage, true),
+                    DamageInfo.Attack(base.Config.Damage, true),
                     base.GunName,
                     GunType.Single
                 );
+                if (extra > 0)
+                {
+                    yield return new DamageAction(
+                        base.Owner,
+                        enemy,
+                        DamageInfo.Attack(extra, true),
+                        base.GunName,
+                        GunType.Single
+                    );
+                }
             }
             yield break;
         }

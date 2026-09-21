@@ -174,14 +174,14 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\riderProject\\hextech\\limit\\_ilspy\\dm.csproj",
-      "projectName": "dm",
-      "projectPath": "D:\\riderProject\\hextech\\limit\\_ilspy\\dm.csproj",
+      "projectUniqueName": "D:\\riderProject\\Hinanawi-Tenshi\\limit\\_ilspy\\d.csproj",
+      "projectName": "d",
+      "projectPath": "D:\\riderProject\\Hinanawi-Tenshi\\limit\\_ilspy\\d.csproj",
       "packagesPath": "C:\\Users\\taole\\.nuget\\packages\\",
-      "outputPath": "D:\\riderProject\\hextech\\limit\\_ilspy\\obj\\",
+      "outputPath": "D:\\riderProject\\Hinanawi-Tenshi\\limit\\_ilspy\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "D:\\riderProject\\hextech\\NuGet.Config",
+        "D:\\riderProject\\Hinanawi-Tenshi\\NuGet.Config",
         "C:\\Users\\taole\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [

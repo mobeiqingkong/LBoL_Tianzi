@@ -26,7 +26,7 @@ namespace TianziMod.StatusEffects
     }
 
     /// <summary>
-    /// 自愈：每回合开始恢复 {Level} 点生命值，回合结束时层数 -1。
+    /// 自愈：每回合结束时恢复 {Level} 点生命值，回合开始时层数 -1。
     /// </summary>
     [EntityLogic(typeof(TianziRegenSeDef))]
     public sealed class TianziRegenSe : StatusEffect
@@ -45,19 +45,19 @@ namespace TianziMod.StatusEffects
 
         private IEnumerable<BattleAction> OnOwnerTurnStarted(UnitEventArgs args)
         {
-            if (base.Battle.BattleShouldEnd || base.Level <= 0)
-                yield break;
-            base.NotifyActivating();
-            yield return new HealAction(base.Owner, base.Owner, base.Level, HealType.Normal, 0.2f);
-        }
-
-        private IEnumerable<BattleAction> OnOwnerTurnEnded(UnitEventArgs args)
-        {
             if (base.Battle.BattleShouldEnd)
                 yield break;
             base.Level -= 1;
             if (base.Level <= 0)
                 yield return new RemoveStatusEffectAction(this, true, 0.1f);
+        }
+
+        private IEnumerable<BattleAction> OnOwnerTurnEnded(UnitEventArgs args)
+        {
+            if (base.Battle.BattleShouldEnd || base.Level <= 0)
+                yield break;
+            base.NotifyActivating();
+            yield return new HealAction(base.Owner, base.Owner, base.Level, HealType.Normal, 0.2f);
         }
     }
 
