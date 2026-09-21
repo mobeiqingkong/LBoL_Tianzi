@@ -1,0 +1,56 @@
+﻿Basic | ZH=基础 | EN=Basic
+Yinyang | ZH=阴阳玉牌 | EN=Yin-Yang Orb Card
+Ability | ZH=能力 | EN=Ability
+Misfortune | ZH=厄运 | EN=Misfortune
+Unremovable | ZH=无法移除 | EN=Unremovable
+Tool | ZH=消耗品 X | EN=Limited X
+Gadgets | ZH=发明 | EN=Gadget
+Copy | ZH=复制品 | EN=Copy
+Accuracy | ZH=精准 | EN=Accurate
+Block | ZH=格挡 | EN=Block
+Shield | ZH=护盾 | EN=Barrier
+Philosophy | ZH=彩色<sprite="ManaSprite" name="P"> | EN=Philosopher's Mana <sprite="ManaSprite" name="P">
+HybridCost | ZH=混血费用 | EN=Hybrid Cost
+Upgrade | ZH=升级 | EN=Upgrade
+Power | ZH=能量<sprite="Point" name="Power"> | EN=Power <sprite="Point" name="Power">
+Forbidden | ZH=禁止 | EN=Unplayable
+Exile | ZH=放逐 | EN=Exile
+Echo | ZH=回响 | EN=Echo
+EternalEcho | ZH=持续回响 | EN=Permanent Echo
+Ethereal | ZH=虚无 | EN=Ethereal
+Initial | ZH=固有 | EN=Innate
+Retain | ZH=保留 | EN=Retain
+TempRetain | ZH=暂留 | EN=Temporary Retain
+Replenish | ZH=填充 | EN=Replenish
+Purified | ZH=已净化 | EN=Pure
+AutoExile | ZH=自动放逐 | EN=Auto Exile
+FollowCard | ZH=追击牌 | EN=Follow-Up Card
+DreamCard | ZH=梦境牌 | EN=Dream Card
+Debut | ZH=初见 | EN=Debut
+Instinct | ZH=直觉 | EN=Instinct
+XCost | ZH=费用 X | EN=X Cost
+Synergy | ZH=每支付 Y | EN=Synergy Y
+Scry | ZH=占卜 X | EN=Scry X
+Purify | ZH=纯化 X | EN=Purify X
+Expel | ZH=退治 | EN=Expel
+Morph | ZH=重塑 | EN=Cost Change
+TempMorph | ZH=暂塑 | EN=Temporary Cost Change
+Overdrive | ZH=超载 X | EN=Overdrive X
+Grow | ZH=成长 | EN=Growth
+Plentiful | ZH=充盈 | EN=Overflow
+Overdraft | ZH=透支 X | EN=Overdraft X
+CopyHint | ZH=复制品 | EN=Copy
+Battlefield | ZH=战场 | EN=Battlefield
+NaturalTurn | ZH=自然回合 | EN=Natural Turn
+FriendCard | ZH=同伴 | EN=Teammate
+Friend | ZH=同伴 | EN=Teammate
+FriendSummoned | ZH=同伴（已召唤） | EN=Teammate (Summoned)
+Loyalty | ZH=支援度 | EN=Unity
+Mood | ZH=心境 | EN=Mental State
+FollowAttack | ZH=追加攻击 | EN=Follow-Up Attack
+Dream | ZH=入梦 X | EN=Dream X
+Deploy | ZH=部署 | EN=Deploy
+Promote | ZH=晋升 | EN=Promote
+Kicker | ZH=增幅 X | EN=Kicker X
+Disposable | ZH=一次性 | EN=Vanish
+GamerunInitial | ZH=初始卡牌 | EN=Initial Cards

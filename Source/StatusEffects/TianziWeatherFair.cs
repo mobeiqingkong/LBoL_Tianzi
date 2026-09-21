@@ -59,9 +59,9 @@ namespace TianziMod.StatusEffects
             IReadOnlyList<Card> hand = base.Battle.HandZone;
             if (hand.Count > 0)
             {
-                Card card = hand[Random.Range(0, hand.Count)];
-                if (card != null && card.CostToMana(false).Total > 0)
-                    card.DecreaseTurnCost(ManaGroup.Anys(1));
+                // Card card = hand[Random.Range(0, hand.Count)];
+                // if (card != null && card.CostToMana(false).Total > 0)
+                //     card.DecreaseTurnCost(ManaGroup.Anys(1));
             }
         }
     }

@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "J1Fax7zXzZg=",
+  "success": true,
+  "projectFilePath": "D:\\riderProject\\hextech\\_tmp_lookup\\Lookup\\Lookup.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\taole\\.nuget\\packages\\icsharpcode.decompiler\\8.2.0.7535\\icsharpcode.decompiler.8.2.0.7535.nupkg.sha512",
+    "C:\\Users\\taole\\.nuget\\packages\\system.collections.immutable\\6.0.0\\system.collections.immutable.6.0.0.nupkg.sha512",
+    "C:\\Users\\taole\\.nuget\\packages\\system.reflection.metadata\\6.0.0\\system.reflection.metadata.6.0.0.nupkg.sha512",
+    "C:\\Users\\taole\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\6.0.0\\system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}

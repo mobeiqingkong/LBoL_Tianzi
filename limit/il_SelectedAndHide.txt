@@ -1,0 +1,6 @@
+IL_0000: ldarg.0
+IL_0001: ldc.i4.1
+IL_0002: stfld Boolean _selected
+IL_0007: ldarg.0
+IL_0008: call Void Hide()
+IL_000D: ret

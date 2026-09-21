@@ -1,0 +1,41 @@
+IL_0000: ldarg.0
+IL_0001: ldfld Int32 <>1__state
+IL_0006: stloc.0
+IL_0007: ldarg.0
+IL_0008: ldfld LBoL.Core.Exhibit <>4__this
+IL_000D: stloc.1
+IL_000E: ldloc.0
+IL_000F: brfalse.s IL_0017
+IL_0011: ldloc.0
+IL_0012: ldc.i4.1
+IL_0013: beq.s IL_003E
+IL_0015: ldc.i4.0
+IL_0016: ret
+IL_0017: ldarg.0
+IL_0018: ldc.i4.m1
+IL_0019: stfld Int32 <>1__state
+IL_001E: ldloc.1
+IL_001F: ldarg.0
+IL_0020: ldfld LBoL.Core.Units.PlayerUnit unit
+IL_0025: callvirt System.Collections.IEnumerator SpecialGain(LBoL.Core.Units.PlayerUnit)
+IL_002A: stloc.2
+IL_002B: ldloc.2
+IL_002C: brfalse.s IL_0047
+IL_002E: ldarg.0
+IL_002F: ldloc.2
+IL_0030: stfld System.Object <>2__current
+IL_0035: ldarg.0
+IL_0036: ldc.i4.1
+IL_0037: stfld Int32 <>1__state
+IL_003C: ldc.i4.1
+IL_003D: ret
+IL_003E: ldarg.0
+IL_003F: ldc.i4.m1
+IL_0040: stfld Int32 <>1__state
+IL_0045: br.s IL_0053
+IL_0047: ldloc.1
+IL_0048: ldarg.0
+IL_0049: ldfld LBoL.Core.Units.PlayerUnit unit
+IL_004E: callvirt Void OnGain(LBoL.Core.Units.PlayerUnit)
+IL_0053: ldc.i4.0
+IL_0054: ret

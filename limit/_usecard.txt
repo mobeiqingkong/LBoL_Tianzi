@@ -1,0 +1,196 @@
+﻿using System.Collections.Generic;
+using System.Linq;
+using LBoL.Base;
+using LBoL.Base.Extensions;
+using LBoL.Core.Cards;
+using LBoL.Core.Exhibits;
+
+namespace LBoL.Core.Battle.BattleActions;
+
+public sealed class UseCardAction : BattleAction
+{
+	private Interaction _precondition;
+
+	private Card _twiceTokenCard;
+
+	public CardUsingEventArgs Args { get; }
+
+	public override bool IsModified => Args.IsModified;
+
+	public override string[] Modifiers => Args.Modifiers;
+
+	public override CancelCause CancelCause => Args.CancelCause;
+
+	public override bool IsCanceled => Args.IsCanceled;
+
+	internal UseCardAction(Card card, UnitSelector selector, ManaGroup consumingMana, bool kicker)
+	{
+		Args = new CardUsingEventArgs
+		{
+			Card = card,
+			Selector = selector,
+			ConsumingMana = consumingMana,
+			Kicker = kicker
+		};
+	}
+
+	public override BattleAction SetCause(ActionCause cause)
+	{
+		base.SetCause(cause);
+		Args.Cause = cause;
+		return this;
+	}
+
+	public override BattleAction SetSource(GameEntity source)
+	{
+		base.SetSource(source);
+		Args.ActionSource = base.Source;
+		return this;
+	}
+
+	public override void ClearModifiers()
+	{
+		Args.ClearModifiers();
+	}
+
+	internal override IEnumerable<Phase> GetPhases()
+	{
+		base.Battle.PlayedCardInManaFreezeLevel = base.Battle.ManaFreezeLevel;
+		yield return CreateEventPhase("CardUsing", Args, base.Battle.CardUsing);
+		if (Args.PlayTwice)
+		{
+			_twiceTokenCard = Args.Card.CloneTwiceToken();
+			_twiceTokenCard.IsPlayTwiceToken = true;
+			_twiceTokenCard.PlayTwiceSourceCard = Args.Card;
+		}
+		yield return CreatePhase("Precondition", delegate
+		{
+			_precondition = Args.Card.Precondition();
+			if (_precondition != null)
+			{
+				_precondition.Source = Args.Card;
+				React(new InteractionAction(_precondition, canCancel: true));
+			}
+		});
+		yield return CreatePhase("CardUse/Canceled", delegate
+		{
+			Interaction precondition2 = _precondition;
+			if (precondition2 != null && precondition2.IsCanceled)
+			{
+				base.Battle.CardUsingCanceled.Execute(Args);
+				Args.ForceCancelBecause(CancelCause.UserCanceled);
+			}
+			else
+			{
+				Args.CanCancel = false;
+				Card card3 = Args.Card;
+				card3.PlayInTriggered = card3.Triggered;
+				base.Battle.MoveCardToPlayArea(card3);
+				int? moneyCost = card3.Config.MoneyCost;
+				if (moneyCost.HasValue)
+				{
+					int valueOrDefault = moneyCost.GetValueOrDefault();
+					base.Battle.React(new ConsumeMoneyAction(valueOrDefault), card3, ActionCause.CardUse);
+				}
+				base.Battle.React(new ConsumeManaAction(Args.ConsumingMana), card3, ActionCause.CardUse);
+			}
+		}, hasViewer: true);
+		List<DamageAction> damageActions = new List<DamageAction>();
+		yield return CreatePhase("CardAction", delegate
+		{
+			Interaction precondition = _precondition;
+			if (precondition == null || !precondition.IsCanceled)
+			{
+				Card card2 = Args.Card;
+				if (card2.CardType == CardType.Friend)
+				{
+					card2.Summoning = !card2.Summoned;
+				}
+				base.Battle.React(new Reactor(card2.GetActions(Args.Selector, Args.ConsumingMana, _precondition, Args.Kicker, card2.Summoning, damageActions)), card2, ActionCause.Card);
+			}
+		});
+		if (damageActions.Count > 0)
+		{
+			yield return CreatePhase("Statistics", delegate
+			{
+				base.Battle.React(new StatisticalTotalDamageAction(damageActions), Args.Card, ActionCause.Card);
+			});
+		}
+		yield return CreatePhase("AfterUse", delegate
+		{
+			IEnumerable<BattleAction> enumerable = Args.Card.AfterUseAction();
+			if (enumerable != null)
+			{
+				base.Battle.React(new Reactor(enumerable), Args.Card, ActionCause.CardUse);
+			}
+			if (base.Battle.PlayedCardInManaFreezeLevel > 0)
+			{
+				List<ManaFreezer> list = new List<ManaFreezer>();
+				foreach (Card item2 in base.Battle.HandZone)
+				{
+					if (item2 is ManaFreezer item)
+					{
+						list.Add(item);
+					}
+				}
+				if (list.Count > 0)
+				{
+					for (int num = base.Battle.PlayedCardInManaFreezeLevel; num > 0; num--)
+					{
+						int i = num;
+						ManaFreezer manaFreezer = list.FirstOrDefault((ManaFreezer card) => card.FreezeLevel == i);
+						if (manaFreezer != null)
+						{
+							manaFreezer.FreezeTimes--;
+							if (manaFreezer.FreezeTimes <= 0)
+							{
+								base.Battle.React(new ExileCardAction(manaFreezer), null, ActionCause.CardUse);
+							}
+							else
+							{
+								manaFreezer.NotifyActivating();
+							}
+							break;
+						}
+					}
+				}
+				base.Battle.CheckManaFreeze();
+				base.Battle.PlayedCardInManaFreezeLevel = 0;
+			}
+			if (base.Battle.DrawAfterDiscard > 0)
+			{
+				int drawAfterDiscard = base.Battle.DrawAfterDiscard;
+				base.Battle.DrawAfterDiscard = 0;
+				base.Battle.React(new DrawManyCardAction(drawAfterDiscard), null, ActionCause.CardUse);
+			}
+			if (base.Battle.Player.IsInTurn && base.Battle.GameRun.YichuiPiaoFlag > 0 && base.Battle.HandZone.Count == 0)
+			{
+				YichuiPiao exhibit = base.Battle.Player.GetExhibit<YichuiPiao>();
+				exhibit.NotifyActivating();
+				base.Battle.React(new DrawCardsToSpecificAction(), exhibit, ActionCause.Exhibit);
+			}
+			if (base.Battle.GameRun.IsAutoSeed && base.Battle.GameRun.JadeBoxes.Empty() && base.Battle.HandZoneAndPlayArea.Count((Card card) => card.Summoned) >= 9)
+			{
+				base.Battle.GameRun.AchievementHandler.UnlockAchievement(AchievementKey.Friend);
+			}
+		});
+		yield return CreatePhase("Record", delegate
+		{
+			base.Battle.RecordCardUsage(Args.Card);
+		});
+		if (Args.PlayTwice && _twiceTokenCard != null && !base.Battle.BattleShouldEnd)
+		{
+			yield return CreatePhase("PlayTwice", delegate
+			{
+				React(new PlayTwiceAction(_twiceTokenCard, Args));
+			});
+		}
+		yield return CreateEventPhase("CardUsed", Args, base.Battle.CardUsed);
+	}
+
+	public override string ExportDebugDetails()
+	{
+		return Args.ExportDebugDetails();
+	}
+}
+

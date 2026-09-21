@@ -1,0 +1,3 @@
+IL_0000: ldarg.0
+IL_0001: ldfld Boolean _selected
+IL_0006: ret

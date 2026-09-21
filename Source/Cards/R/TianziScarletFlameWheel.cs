@@ -63,14 +63,14 @@ namespace TianziMod.Cards
             List<EnemyUnit> alive = new List<EnemyUnit>(base.Battle.AllAliveEnemies);
             if (alive.Count > 0)
             {
-                EnemyUnit extra = alive[Random.Range(0, alive.Count)];
-                yield return new DamageAction(
-                    base.Battle.Player,
-                    extra,
-                    base.Damage,
-                    base.GunName,
-                    GunType.Single
-                );
+                // EnemyUnit extra = alive[Random.Range(0, alive.Count)];
+                // yield return new DamageAction(
+                //     base.Battle.Player,
+                //     extra,
+                //     base.Damage,
+                //     base.GunName,
+                //     GunType.Single
+                // );
             }
             yield break;
         }

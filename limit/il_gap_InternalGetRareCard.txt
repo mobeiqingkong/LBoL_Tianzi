@@ -1,0 +1,7 @@
+IL_0000: ldarg.0
+IL_0001: ldarg.0
+IL_0002: ldarg.1
+IL_0003: call System.Collections.IEnumerator GetRareCardRunner(LBoL.Core.GapOptions.GapOption)
+IL_0008: call UnityEngine.Coroutine StartCoroutine(System.Collections.IEnumerator)
+IL_000D: pop
+IL_000E: ret

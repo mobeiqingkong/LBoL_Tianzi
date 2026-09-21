@@ -1,0 +1,15 @@
+D:\riderProject\hextech\limit\_mana_inspect2\bin\Debug\net9.0\x.exe
+D:\riderProject\hextech\limit\_mana_inspect2\bin\Debug\net9.0\x.deps.json
+D:\riderProject\hextech\limit\_mana_inspect2\bin\Debug\net9.0\x.runtimeconfig.json
+D:\riderProject\hextech\limit\_mana_inspect2\bin\Debug\net9.0\x.dll
+D:\riderProject\hextech\limit\_mana_inspect2\bin\Debug\net9.0\x.pdb
+D:\riderProject\hextech\limit\_mana_inspect2\obj\Debug\net9.0\x.GeneratedMSBuildEditorConfig.editorconfig
+D:\riderProject\hextech\limit\_mana_inspect2\obj\Debug\net9.0\x.AssemblyInfoInputs.cache
+D:\riderProject\hextech\limit\_mana_inspect2\obj\Debug\net9.0\x.AssemblyInfo.cs
+D:\riderProject\hextech\limit\_mana_inspect2\obj\Debug\net9.0\x.csproj.CoreCompileInputs.cache
+D:\riderProject\hextech\limit\_mana_inspect2\obj\Debug\net9.0\x.sourcelink.json
+D:\riderProject\hextech\limit\_mana_inspect2\obj\Debug\net9.0\x.dll
+D:\riderProject\hextech\limit\_mana_inspect2\obj\Debug\net9.0\refint\x.dll
+D:\riderProject\hextech\limit\_mana_inspect2\obj\Debug\net9.0\x.pdb
+D:\riderProject\hextech\limit\_mana_inspect2\obj\Debug\net9.0\x.genruntimeconfig.cache
+D:\riderProject\hextech\limit\_mana_inspect2\obj\Debug\net9.0\ref\x.dll

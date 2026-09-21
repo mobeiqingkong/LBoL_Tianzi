@@ -1,0 +1,116 @@
+IL_0000: ldarg.0
+IL_0001: ldfld Int32 <>1__state
+IL_0006: stloc.0
+IL_0007: ldarg.0
+IL_0008: ldfld LBoL.Core.GameRunController <>4__this
+IL_000D: stloc.1
+IL_000E: ldloc.0
+IL_000F: switch switch(3)
+IL_0020: ldc.i4.0
+IL_0021: ret
+IL_0022: ldarg.0
+IL_0023: ldc.i4.m1
+IL_0024: stfld Int32 <>1__state
+IL_0029: ldarg.0
+IL_002A: ldfld LBoL.Core.Exhibit exhibit
+IL_002F: callvirt Boolean get_IsSentinel()
+IL_0034: brfalse.s IL_0052
+IL_0036: ldstr "Cannot gain sentinel exhibit "
+IL_003B: ldarg.0
+IL_003C: ldfld LBoL.Core.Exhibit exhibit
+IL_0041: callvirt System.String get_DebugName()
+IL_0046: call System.String Concat(System.String, System.String)
+IL_004B: call Void LogError(System.Object)
+IL_0050: ldc.i4.0
+IL_0051: ret
+IL_0052: ldloc.1
+IL_0053: call LBoL.Core.Units.PlayerUnit get_Player()
+IL_0058: ldarg.0
+IL_0059: ldfld LBoL.Core.Exhibit exhibit
+IL_005E: callvirt System.Type GetType()
+IL_0063: callvirt Boolean HasExhibit(System.Type)
+IL_0068: brfalse.s IL_007A
+IL_006A: ldstr "Cannot add duplicated Exhibit."
+IL_006F: ldstr "exhibit"
+IL_0074: newobj Void .ctor(System.String, System.String)
+IL_0079: throw
+IL_007A: ldarg.0
+IL_007B: ldfld LBoL.Core.Exhibit exhibit
+IL_0080: ldloc.1
+IL_0081: callvirt Void set_GameRun(LBoL.Core.GameRunController)
+IL_0086: ldloc.1
+IL_0087: call LBoL.Core.Units.PlayerUnit get_Player()
+IL_008C: ldarg.0
+IL_008D: ldfld LBoL.Core.Exhibit exhibit
+IL_0092: callvirt Void AddExhibit(LBoL.Core.Exhibit)
+IL_0097: ldloc.1
+IL_0098: call System.Collections.Generic.List`1[System.String] get_ExhibitRecord()
+IL_009D: ldarg.0
+IL_009E: ldfld LBoL.Core.Exhibit exhibit
+IL_00A3: callvirt System.String get_Id()
+IL_00A8: callvirt Void Add(System.String)
+IL_00AD: ldarg.0
+IL_00AE: ldloc.1
+IL_00AF: call LBoL.Core.IGameRunVisualTrigger get_VisualTrigger()
+IL_00B4: dup
+IL_00B5: brtrue.s IL_00BB
+IL_00B7: pop
+IL_00B8: ldnull
+IL_00B9: br.s IL_00D2
+IL_00BB: ldarg.0
+IL_00BC: ldfld LBoL.Core.Exhibit exhibit
+IL_00C1: ldarg.0
+IL_00C2: ldfld Boolean triggerVisual
+IL_00C7: ldarg.0
+IL_00C8: ldfld LBoL.Core.VisualSourceData exhibitSource
+IL_00CD: callvirt System.Collections.IEnumerator OnGainExhibit(LBoL.Core.Exhibit, Boolean, LBoL.Core.VisualSourceData)
+IL_00D2: stfld System.Object <>2__current
+IL_00D7: ldarg.0
+IL_00D8: ldc.i4.1
+IL_00D9: stfld Int32 <>1__state
+IL_00DE: ldc.i4.1
+IL_00DF: ret
+IL_00E0: ldarg.0
+IL_00E1: ldc.i4.m1
+IL_00E2: stfld Int32 <>1__state
+IL_00E7: ldarg.0
+IL_00E8: ldarg.0
+IL_00E9: ldfld LBoL.Core.Exhibit exhibit
+IL_00EE: ldloc.1
+IL_00EF: call LBoL.Core.Units.PlayerUnit get_Player()
+IL_00F4: callvirt System.Collections.IEnumerator TriggerGain(LBoL.Core.Units.PlayerUnit)
+IL_00F9: stfld System.Object <>2__current
+IL_00FE: ldarg.0
+IL_00FF: ldc.i4.2
+IL_0100: stfld Int32 <>1__state
+IL_0105: ldc.i4.1
+IL_0106: ret
+IL_0107: ldarg.0
+IL_0108: ldc.i4.m1
+IL_0109: stfld Int32 <>1__state
+IL_010E: ldloc.1
+IL_010F: ldfld System.Action`1[LBoL.Core.Exhibit] ExhibitRevealed
+IL_0114: dup
+IL_0115: brtrue.s IL_011A
+IL_0117: pop
+IL_0118: br.s IL_0125
+IL_011A: ldarg.0
+IL_011B: ldfld LBoL.Core.Exhibit exhibit
+IL_0120: callvirt Void Invoke(LBoL.Core.Exhibit)
+IL_0125: ldarg.0
+IL_0126: ldfld LBoL.Core.Exhibit exhibit
+IL_012B: callvirt LBoL.ConfigData.ExhibitConfig get_Config()
+IL_0130: callvirt LBoL.Base.Rarity get_Rarity()
+IL_0135: stloc.2
+IL_0136: ldloc.2
+IL_0137: ldc.i4.4
+IL_0138: beq.s IL_014A
+IL_013A: ldloc.2
+IL_013B: ldc.i4.3
+IL_013C: beq.s IL_014A
+IL_013E: ldloc.1
+IL_013F: call LBoL.Core.Stats.GameRunStats get_Stats()
+IL_0144: ldc.i4.0
+IL_0145: stfld Boolean NoExhibitFlag
+IL_014A: ldc.i4.0
+IL_014B: ret

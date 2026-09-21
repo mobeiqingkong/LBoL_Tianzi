@@ -1,0 +1,62 @@
+IL_0000: ldarg.0
+IL_0001: ldfld Int32 <>1__state
+IL_0006: stloc.0
+IL_0007: ldarg.0
+IL_0008: ldfld LBoL.Core.Stations.GapStation <>4__this
+IL_000D: stloc.1
+IL_000E: ldloc.0
+IL_000F: brfalse.s IL_0017
+IL_0011: ldloc.0
+IL_0012: ldc.i4.1
+IL_0013: beq.s IL_008B
+IL_0015: ldc.i4.0
+IL_0016: ret
+IL_0017: ldarg.0
+IL_0018: ldc.i4.m1
+IL_0019: stfld Int32 <>1__state
+IL_001E: ldloc.1
+IL_001F: call System.Collections.Generic.List`1[LBoL.Core.GapOptions.GapOption] get_GapOptions()
+IL_0024: ldsfld System.Predicate`1[LBoL.Core.GapOptions.GapOption] <>9__7_0
+IL_0029: dup
+IL_002A: brtrue.s IL_0043
+IL_002C: pop
+IL_002D: ldsfld <>c <>9
+IL_0032: ldftn Boolean <FindExhibitRunner>b__7_0(LBoL.Core.GapOptions.GapOption)
+IL_0038: newobj Void .ctor(System.Object, IntPtr)
+IL_003D: dup
+IL_003E: stsfld System.Predicate`1[LBoL.Core.GapOptions.GapOption] <>9__7_0
+IL_0043: callvirt Int32 FindIndex(System.Predicate`1[LBoL.Core.GapOptions.GapOption])
+IL_0048: stloc.2
+IL_0049: ldloc.2
+IL_004A: ldc.i4.0
+IL_004B: blt.s IL_0094
+IL_004D: ldarg.0
+IL_004E: ldloc.1
+IL_004F: call LBoL.Core.GameRunController get_GameRun()
+IL_0054: ldloc.1
+IL_0055: call LBoL.Core.GameRunController get_GameRun()
+IL_005A: callvirt LBoL.Core.Stage get_CurrentStage()
+IL_005F: callvirt LBoL.Core.Exhibit GetEliteEnemyExhibit()
+IL_0064: ldc.i4.1
+IL_0065: newobj Void .ctor()
+IL_006A: dup
+IL_006B: ldc.i4.4
+IL_006C: callvirt Void set_SourceType(LBoL.Core.VisualSourceType)
+IL_0071: dup
+IL_0072: ldloc.2
+IL_0073: callvirt Void set_Index(Int32)
+IL_0078: callvirt System.Collections.IEnumerator GainExhibitRunner(LBoL.Core.Exhibit, Boolean, LBoL.Core.VisualSourceData)
+IL_007D: stfld System.Object <>2__current
+IL_0082: ldarg.0
+IL_0083: ldc.i4.1
+IL_0084: stfld Int32 <>1__state
+IL_0089: ldc.i4.1
+IL_008A: ret
+IL_008B: ldarg.0
+IL_008C: ldc.i4.m1
+IL_008D: stfld Int32 <>1__state
+IL_0092: br.s IL_009E
+IL_0094: ldstr "[GapStation] Cannot FindExhibit without a FindExhibit gap option"
+IL_0099: call Void LogError(System.Object)
+IL_009E: ldc.i4.0
+IL_009F: ret

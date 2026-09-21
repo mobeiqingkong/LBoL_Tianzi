@@ -1,0 +1,22 @@
+IL_0000: ldarg.0
+IL_0001: ldfld LBoL.Core.Stations.GapStation _gapStation
+IL_0006: callvirt System.Collections.Generic.List`1[LBoL.Core.GapOptions.GapOption] get_GapOptions()
+IL_000B: call System.Collections.Generic.IEnumerable`1[LBoL.Core.GapOptions.GetMoney] OfType[GetMoney](System.Collections.IEnumerable)
+IL_0010: call LBoL.Core.GapOptions.GetMoney FirstOrDefault[GetMoney](System.Collections.Generic.IEnumerable`1[LBoL.Core.GapOptions.GetMoney])
+IL_0015: stloc.0
+IL_0016: ldloc.0
+IL_0017: brfalse.s IL_003C
+IL_0019: ldarg.0
+IL_001A: ldfld LBoL.Core.Stations.GapStation _gapStation
+IL_001F: callvirt LBoL.Core.GameRunController get_GameRun()
+IL_0024: ldloc.0
+IL_0025: callvirt Int32 get_Value()
+IL_002A: ldc.i4.1
+IL_002B: newobj Void .ctor()
+IL_0030: dup
+IL_0031: ldc.i4.4
+IL_0032: callvirt Void set_SourceType(LBoL.Core.VisualSourceType)
+IL_0037: callvirt Void GainMoney(Int32, Boolean, LBoL.Core.VisualSourceData)
+IL_003C: ldarg.0
+IL_003D: call Void SelectedAndHide()
+IL_0042: ret

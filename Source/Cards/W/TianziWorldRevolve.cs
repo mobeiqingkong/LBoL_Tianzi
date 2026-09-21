@@ -57,13 +57,13 @@ namespace TianziMod.Cards
                 yield break;
 
             // 洗牌后取前 Value1 张
-            for (int i = pool.Count - 1; i > 0; i--)
-            {
-                int j = Random.Range(0, i + 1);
-                Card tmp = pool[i];
-                pool[i] = pool[j];
-                pool[j] = tmp;
-            }
+            // for (int i = pool.Count - 1; i > 0; i--)
+            // {
+            //     int j = Random.Range(0, i + 1);
+            //     Card tmp = pool[i];
+            //     pool[i] = pool[j];
+            //     pool[j] = tmp;
+            // }
             int take = base.Value1 < pool.Count ? base.Value1 : pool.Count;
 
             // ⚠ 弃牌堆 -> 手牌 必须用 MoveCardAction。

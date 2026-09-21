@@ -1,0 +1,6 @@
+IL_0000: ldarg.0
+IL_0001: ldarg.0
+IL_0002: call System.Collections.IEnumerator RemoveCardRunner()
+IL_0007: call UnityEngine.Coroutine StartCoroutine(System.Collections.IEnumerator)
+IL_000C: pop
+IL_000D: ret

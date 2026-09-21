@@ -1,0 +1,36 @@
+IL_0000: ldarg.0
+IL_0001: ldfld Int32 <>1__state
+IL_0006: stloc.0
+IL_0007: ldarg.0
+IL_0008: ldfld LBoL.Presentation.UI.Panels.GapOptionsPanel <>4__this
+IL_000D: stloc.1
+IL_000E: ldloc.0
+IL_000F: brfalse.s IL_0017
+IL_0011: ldloc.0
+IL_0012: ldc.i4.1
+IL_0013: beq.s IL_003F
+IL_0015: ldc.i4.0
+IL_0016: ret
+IL_0017: ldarg.0
+IL_0018: ldc.i4.m1
+IL_0019: stfld Int32 <>1__state
+IL_001E: ldloc.1
+IL_001F: ldc.i4.0
+IL_0020: stfld Boolean _optionActive
+IL_0025: ldarg.0
+IL_0026: ldloc.1
+IL_0027: ldfld LBoL.Core.Stations.GapStation _gapStation
+IL_002C: callvirt System.Collections.IEnumerator FindExhibitRunner()
+IL_0031: stfld System.Object <>2__current
+IL_0036: ldarg.0
+IL_0037: ldc.i4.1
+IL_0038: stfld Int32 <>1__state
+IL_003D: ldc.i4.1
+IL_003E: ret
+IL_003F: ldarg.0
+IL_0040: ldc.i4.m1
+IL_0041: stfld Int32 <>1__state
+IL_0046: ldloc.1
+IL_0047: call Void SelectedAndHide()
+IL_004C: ldc.i4.0
+IL_004D: ret

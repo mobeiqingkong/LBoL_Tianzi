@@ -1,0 +1,63 @@
+IL_0000: ldarg.0
+IL_0001: ldc.i4.2
+IL_0002: call Void set_Status(LBoL.Core.Stations.StationStatus)
+IL_0007: call LBoL.Core.GapOptions.DrinkTea CreateGapOption[DrinkTea]()
+IL_000C: stloc.0
+IL_000D: ldloc.0
+IL_000E: ldarg.0
+IL_000F: call LBoL.Core.GameRunController get_GameRun()
+IL_0014: callvirt Int32 get_DrinkTeaHealRate()
+IL_0019: callvirt Void set_Rate(Int32)
+IL_001E: ldloc.0
+IL_001F: ldarg.0
+IL_0020: call LBoL.Core.GameRunController get_GameRun()
+IL_0025: callvirt Int32 get_DrinkTeaHealValue()
+IL_002A: callvirt Void set_Value(Int32)
+IL_002F: ldloc.0
+IL_0030: ldarg.0
+IL_0031: call LBoL.Core.GameRunController get_GameRun()
+IL_0036: callvirt Int32 get_DrinkTeaAdditionalHeal()
+IL_003B: callvirt Void set_AdditionalHeal(Int32)
+IL_0040: ldloc.0
+IL_0041: ldarg.0
+IL_0042: call LBoL.Core.GameRunController get_GameRun()
+IL_0047: callvirt Int32 get_DrinkTeaAdditionalEnergy()
+IL_004C: callvirt Void set_AdditionalPower(Int32)
+IL_0051: ldloc.0
+IL_0052: ldarg.0
+IL_0053: call LBoL.Core.GameRunController get_GameRun()
+IL_0058: callvirt Int32 get_DrinkTeaCardRewardFlag()
+IL_005D: callvirt Void set_AdditionalCardReward(Int32)
+IL_0062: ldarg.0
+IL_0063: call System.Collections.Generic.List`1[LBoL.Core.GapOptions.GapOption] get_GapOptions()
+IL_0068: ldloc.0
+IL_0069: callvirt Void Add(LBoL.Core.GapOptions.GapOption)
+IL_006E: call LBoL.Core.GapOptions.UpgradeCard CreateGapOption[UpgradeCard]()
+IL_0073: stloc.1
+IL_0074: ldarg.0
+IL_0075: call LBoL.Core.GameRunController get_GameRun()
+IL_007A: callvirt LBoL.Core.PuzzleFlag get_Puzzles()
+IL_007F: box LBoL.Core.PuzzleFlag
+IL_0084: ldc.i4.s 32
+IL_0086: box LBoL.Core.PuzzleFlag
+IL_008B: call Boolean HasFlag(System.Enum)
+IL_0090: brfalse.s IL_009A
+IL_0092: ldloc.1
+IL_0093: ldc.i4.s 25
+IL_0095: callvirt Void set_Price(Int32)
+IL_009A: ldarg.0
+IL_009B: call System.Collections.Generic.List`1[LBoL.Core.GapOptions.GapOption] get_GapOptions()
+IL_00A0: ldloc.1
+IL_00A1: callvirt Void Add(LBoL.Core.GapOptions.GapOption)
+IL_00A6: ldarg.0
+IL_00A7: call LBoL.Core.GameRunController get_GameRun()
+IL_00AC: callvirt LBoL.Core.GameEvent`1[LBoL.Core.StationEventArgs] get_GapOptionsGenerating()
+IL_00B1: newobj Void .ctor()
+IL_00B6: dup
+IL_00B7: ldarg.0
+IL_00B8: callvirt Void set_Station(LBoL.Core.Stations.Station)
+IL_00BD: dup
+IL_00BE: ldc.i4.0
+IL_00BF: callvirt Void set_CanCancel(Boolean)
+IL_00C4: callvirt Void Execute(LBoL.Core.StationEventArgs)
+IL_00C9: ret

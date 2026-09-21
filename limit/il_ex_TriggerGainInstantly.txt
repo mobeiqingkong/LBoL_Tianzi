@@ -1,0 +1,14 @@
+IL_0000: ldarg.0
+IL_0001: ldarg.1
+IL_0002: callvirt System.Collections.IEnumerator SpecialGain(LBoL.Core.Units.PlayerUnit)
+IL_0007: brfalse.s IL_0023
+IL_0009: ldstr "Cannot gain "
+IL_000E: ldarg.0
+IL_000F: callvirt System.String get_DebugName()
+IL_0014: ldstr " instantly (init-exhibit or debug-add) because it has special gain interaction, triggering OnGain() instead."
+IL_0019: call System.String Concat(System.String, System.String, System.String)
+IL_001E: call Void LogError(System.Object)
+IL_0023: ldarg.0
+IL_0024: ldarg.1
+IL_0025: callvirt Void OnGain(LBoL.Core.Units.PlayerUnit)
+IL_002A: ret

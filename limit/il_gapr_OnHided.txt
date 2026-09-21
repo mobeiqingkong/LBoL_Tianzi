@@ -1,0 +1,10 @@
+IL_0000: ldarg.0
+IL_0001: ldnull
+IL_0002: stfld LBoL.Core.Stations.GapStation _gapStation
+IL_0007: ldarg.0
+IL_0008: ldfld UnityEngine.Transform optionsLayout
+IL_000D: call Void DestroyChildren(UnityEngine.Transform)
+IL_0012: ldarg.0
+IL_0013: ldfld System.Collections.Generic.List`1[LBoL.Presentation.UI.Widgets.GapOptionWidget] _options
+IL_0018: callvirt Void Clear()
+IL_001D: ret

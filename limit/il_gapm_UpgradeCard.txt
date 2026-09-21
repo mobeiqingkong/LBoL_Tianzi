@@ -1,0 +1,8 @@
+IL_0000: ldarg.0
+IL_0001: ldarg.0
+IL_0002: ldarg.1
+IL_0003: castclass LBoL.Core.GapOptions.UpgradeCard
+IL_0008: call System.Collections.IEnumerator UpgradeCardRunner(LBoL.Core.GapOptions.UpgradeCard)
+IL_000D: call UnityEngine.Coroutine StartCoroutine(System.Collections.IEnumerator)
+IL_0012: pop
+IL_0013: ret

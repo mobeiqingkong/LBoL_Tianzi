@@ -1,0 +1,75 @@
+{
+  "format": 1,
+  "restore": {
+    "D:\\riderProject\\hextech\\limit\\_ilspy_method\\m.csproj": {}
+  },
+  "projects": {
+    "D:\\riderProject\\hextech\\limit\\_ilspy_method\\m.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "D:\\riderProject\\hextech\\limit\\_ilspy_method\\m.csproj",
+        "projectName": "m",
+        "projectPath": "D:\\riderProject\\hextech\\limit\\_ilspy_method\\m.csproj",
+        "packagesPath": "C:\\Users\\taole\\.nuget\\packages\\",
+        "outputPath": "D:\\riderProject\\hextech\\limit\\_ilspy_method\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "D:\\riderProject\\hextech\\NuGet.Config",
+          "C:\\Users\\taole\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net9.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {},
+          "https://nuget.bepinex.dev/v3/index.json": {}
+        },
+        "frameworks": {
+          "net9.0": {
+            "targetAlias": "net9.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "9.0.300"
+      },
+      "frameworks": {
+        "net9.0": {
+          "targetAlias": "net9.0",
+          "dependencies": {
+            "ICSharpCode.Decompiler": {
+              "target": "Package",
+              "version": "[9.1.0.7988, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Users\\taole\\.dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

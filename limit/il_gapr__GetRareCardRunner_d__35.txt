@@ -1,0 +1,127 @@
+IL_0000: ldarg.0
+IL_0001: ldfld Int32 <>1__state
+IL_0006: stloc.0
+IL_0007: ldarg.0
+IL_0008: ldfld LBoL.Presentation.UI.Panels.GapOptionsPanel <>4__this
+IL_000D: stloc.1
+IL_000E: ldloc.0
+IL_000F: brfalse.s IL_001A
+IL_0011: ldloc.0
+IL_0012: ldc.i4.1
+IL_0013: beq IL_0101
+IL_0018: ldc.i4.0
+IL_0019: ret
+IL_001A: ldarg.0
+IL_001B: ldc.i4.m1
+IL_001C: stfld Int32 <>1__state
+IL_0021: ldloc.1
+IL_0022: ldfld System.Collections.Generic.List`1[LBoL.Presentation.UI.Widgets.GapOptionWidget] _options
+IL_0027: callvirt Enumerator GetEnumerator()
+IL_002C: stloc.s 4
+IL_002E: br.s IL_003D
+IL_0030: ldloca.s 4
+IL_0032: call LBoL.Presentation.UI.Widgets.GapOptionWidget get_Current()
+IL_0037: ldc.i4.0
+IL_0038: callvirt Void set_Active(Boolean)
+IL_003D: ldloca.s 4
+IL_003F: call Boolean MoveNext()
+IL_0044: brtrue.s IL_0030
+IL_0046: leave.s IL_0056
+IL_0048: ldloca.s 4
+IL_004A: constrained. System.Collections.Generic.List`1+Enumerator[LBoL.Presentation.UI.Widgets.GapOptionWidget]
+IL_0050: callvirt Void Dispose()
+IL_0055: endfinally
+IL_0056: ldarg.0
+IL_0057: ldfld LBoL.Core.GapOptions.GapOption option
+IL_005C: castclass LBoL.Core.GapOptions.GetRareCard
+IL_0061: callvirt Int32 get_Value()
+IL_0066: stloc.2
+IL_0067: ldloc.1
+IL_0068: call LBoL.Core.GameRunController get_GameRun()
+IL_006D: ldloc.1
+IL_006E: call LBoL.Core.GameRunController get_GameRun()
+IL_0073: callvirt LBoL.Base.RandomGen get_AdventureRng()
+IL_0078: ldsfld LBoL.Core.Randoms.RarityWeightTable OnlyRare
+IL_007D: ldsfld LBoL.Core.Randoms.OwnerWeightTable Valid
+IL_0082: ldsfld LBoL.Core.Randoms.CardTypeWeightTable CanBeLoot
+IL_0087: ldc.i4.0
+IL_0088: newobj Void .ctor(LBoL.Core.Randoms.RarityWeightTable, LBoL.Core.Randoms.OwnerWeightTable, LBoL.Core.Randoms.CardTypeWeightTable, Boolean)
+IL_008D: ldloc.2
+IL_008E: ldc.i4.1
+IL_008F: ldc.i4.0
+IL_0090: ldnull
+IL_0091: callvirt LBoL.Core.Cards.Card[] RollCards(LBoL.Base.RandomGen, LBoL.Core.Randoms.CardWeightTable, Int32, Boolean, Boolean, System.Predicate`1[LBoL.ConfigData.CardConfig])
+IL_0096: stloc.3
+IL_0097: ldloc.1
+IL_0098: call LBoL.Core.GameRunController get_GameRun()
+IL_009D: ldloc.3
+IL_009E: callvirt Void UpgradeNewDeckCardOnFlags(System.Collections.Generic.IEnumerable`1[LBoL.Core.Cards.Card])
+IL_00A3: ldarg.0
+IL_00A4: call  tok
+IL_00A9: stfld  tok
+IL_00AE: ldarg.0
+IL_00AF: ldarg.0
+IL_00B0: ldfld  tok
+IL_00B5: newobj Void .ctor()
+IL_00BA: dup
+IL_00BB: ldarg.0
+IL_00BC: ldfld LBoL.Core.GapOptions.GapOption option
+IL_00C1: callvirt System.String get_Name()
+IL_00C6: callvirt Void set_Name(System.String)
+IL_00CB: dup
+IL_00CC: ldloc.3
+IL_00CD: callvirt Void set_Cards(System.Collections.Generic.IEnumerable`1[LBoL.Core.Cards.Card])
+IL_00D2: dup
+IL_00D3: ldc.i4.1
+IL_00D4: callvirt Void set_Min(Int32)
+IL_00D9: dup
+IL_00DA: ldc.i4.1
+IL_00DB: callvirt Void set_Max(Int32)
+IL_00E0: dup
+IL_00E1: ldc.i4.1
+IL_00E2: callvirt Void set_CanSkip(Boolean)
+IL_00E7: dup
+IL_00E8: ldc.i4.1
+IL_00E9: callvirt Void set_IsAddCardToDeck(Boolean)
+IL_00EE: callvirt  tok
+IL_00F3: stfld System.Object <>2__current
+IL_00F8: ldarg.0
+IL_00F9: ldc.i4.1
+IL_00FA: stfld Int32 <>1__state
+IL_00FF: ldc.i4.1
+IL_0100: ret
+IL_0101: ldarg.0
+IL_0102: ldc.i4.m1
+IL_0103: stfld Int32 <>1__state
+IL_0108: ldarg.0
+IL_0109: ldfld  tok
+IL_010E: callvirt  tok
+IL_0113: brtrue.s IL_0157
+IL_0115: ldarg.0
+IL_0116: ldfld  tok
+IL_011B: callvirt  tok
+IL_0120: dup
+IL_0121: brtrue.s IL_0127
+IL_0123: pop
+IL_0124: ldnull
+IL_0125: br.s IL_012C
+IL_0127: call LBoL.Core.Cards.Card FirstOrDefault[Card](System.Collections.Generic.IEnumerable`1[LBoL.Core.Cards.Card])
+IL_012C: stloc.s 5
+IL_012E: ldloc.s 5
+IL_0130: brfalse.s IL_0157
+IL_0132: ldloc.1
+IL_0133: call LBoL.Core.GameRunController get_GameRun()
+IL_0138: ldloc.s 5
+IL_013A: ldc.i4.1
+IL_013B: newobj Void .ctor()
+IL_0140: dup
+IL_0141: ldc.i4.8
+IL_0142: callvirt Void set_SourceType(LBoL.Core.VisualSourceType)
+IL_0147: callvirt Void AddDeckCard(LBoL.Core.Cards.Card, Boolean, LBoL.Core.VisualSourceData)
+IL_014C: ldstr "Faxiang"
+IL_0151: ldc.i4.0
+IL_0152: call Void PlayUi(System.String, Boolean)
+IL_0157: ldloc.1
+IL_0158: call Void SelectedAndHide()
+IL_015D: ldc.i4.0
+IL_015E: ret

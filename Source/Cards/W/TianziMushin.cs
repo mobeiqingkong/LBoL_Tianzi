@@ -62,8 +62,8 @@ namespace TianziMod.Cards
             if (defenses.Count == 0)
                 yield break;
 
-            Card pick = defenses[Random.Range(0, defenses.Count)];
-            yield return new PlayCardAction(pick);
+            // Card pick = defenses[Random.Range(0, defenses.Count)];
+            // yield return new PlayCardAction(pick);
             yield break;
         }
     }
