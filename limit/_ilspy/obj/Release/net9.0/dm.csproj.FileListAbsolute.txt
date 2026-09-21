@@ -1,6 +1,0 @@
-D:\riderProject\hextech\limit\_ilspy\obj\Release\net9.0\dm.csproj.AssemblyReference.cache
-D:\riderProject\hextech\limit\_ilspy\obj\Release\net9.0\dm.GeneratedMSBuildEditorConfig.editorconfig
-D:\riderProject\hextech\limit\_ilspy\obj\Release\net9.0\dm.AssemblyInfoInputs.cache
-D:\riderProject\hextech\limit\_ilspy\obj\Release\net9.0\dm.AssemblyInfo.cs
-D:\riderProject\hextech\limit\_ilspy\obj\Release\net9.0\dm.csproj.CoreCompileInputs.cache
-D:\riderProject\hextech\limit\_ilspy\obj\Release\net9.0\dm.sourcelink.json
