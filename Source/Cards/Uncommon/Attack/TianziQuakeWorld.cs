@@ -45,6 +45,7 @@ namespace TianziMod.Cards
     {
         protected override void OnEnterBattle(BattleController battle)
         {
+            base.OnEnterBattle(battle);
             base.HandleBattleEvent<CardUsingEventArgs>(
                 battle.CardUsed,
                 new GameEventHandler<CardUsingEventArgs>(this.OnCardUsed));

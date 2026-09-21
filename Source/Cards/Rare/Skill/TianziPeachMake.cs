@@ -30,6 +30,8 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.Value1 = 2;
             config.UpgradedValue1 = 3;
+            config.Mana = new ManaGroup() { Philosophy = 2 };
+            config.UpgradedMana = new ManaGroup() { Philosophy = 3 };
             config.Keywords = Keyword.Exile | Keyword.Replenish;
             config.UpgradedKeywords = Keyword.Exile | Keyword.Replenish;
             config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe) };

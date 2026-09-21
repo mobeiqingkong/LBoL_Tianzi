@@ -44,6 +44,7 @@ namespace TianziMod.Cards
 
         protected override void OnEnterBattle(BattleController battle)
         {
+            base.OnEnterBattle(battle);
             _handledStart = false;
             _handledEnd = false;
             base.HandleBattleEvent<UnitEventArgs>(

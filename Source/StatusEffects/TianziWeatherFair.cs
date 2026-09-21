@@ -23,44 +23,33 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziWeatherClearDef))]
     public sealed class TianziWeatherClear : TianziWeatherSeBase
     {
-        private int _savedGraze;
+        protected override void RegisterHooks()
+        {
+            this.CheatOneCardCost();
+        }
+
+        internal void KeepGraze()
+        {
+            base.NotifyActivating();
+        }
+
+        private void CheatOneCardCost()
+        {
+            IReadOnlyList<Card> hand = base.Battle.HandZone;
+            if (hand == null || hand.Count == 0)
+                return;
+            Card card = hand[Random.Range(0, hand.Count)];
+            if (card != null && card.CostToMana(false).Total > 0)
+            {
+                base.NotifyActivating();
+                card.DecreaseTurnCost(ManaGroup.Anys(1));
+            }
+        }
 
         protected override IEnumerable<BattleAction> OnWeatherTurnStarting(UnitEventArgs args)
         {
-            if (base.Battle.BattleShouldEnd)
-                yield break;
-            // 回合结算前先记下闪避，回合开始后再补回来（快晴：闪避不会消失）
-            Graze graze = base.Owner.GetStatusEffect<Graze>();
-            this._savedGraze = graze?.Level ?? 0;
             foreach (BattleAction action in this.TickDuration())
                 yield return action;
-        }
-
-        protected override IEnumerable<BattleAction> OnWeatherTurnStarted(UnitEventArgs args)
-        {
-            if (base.Battle.BattleShouldEnd)
-                yield break;
-
-            base.NotifyActivating();
-
-            // 闪避补给
-            if (this._savedGraze > 0)
-            {
-                Graze cur = base.Owner.GetStatusEffect<Graze>();
-                int have = cur == null ? 0 : cur.Level;
-                if (have < this._savedGraze)
-                    yield return new ApplyStatusEffectAction<Graze>(
-                        base.Owner, this._savedGraze - have, null, null, null, 0.1f);
-            }
-
-            // 随机一张手牌费用 -1（仅本回合）
-            IReadOnlyList<Card> hand = base.Battle.HandZone;
-            if (hand.Count > 0)
-            {
-                Card card = hand[Random.Range(0, hand.Count)];
-                if (card != null && card.CostToMana(false).Total > 0)
-                    card.DecreaseTurnCost(ManaGroup.Anys(1));
-            }
         }
     }
 

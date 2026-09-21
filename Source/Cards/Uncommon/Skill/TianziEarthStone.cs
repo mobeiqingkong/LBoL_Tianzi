@@ -50,6 +50,7 @@ namespace TianziMod.Cards
 
         protected override void OnEnterBattle(BattleController battle)
         {
+            base.OnEnterBattle(battle);
             base.HandleBattleEvent<CardsEventArgs>(
                 battle.CardsAddedToHand,
                 new GameEventHandler<CardsEventArgs>(this.OnAdded));

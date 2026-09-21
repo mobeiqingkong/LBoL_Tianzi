@@ -38,8 +38,9 @@ namespace TianziMod.Cards
             config.Damage = 18;
             config.UpgradedDamage = 24;
 
-            config.Value1 = 2; // 天气持续回合
+            config.Value1 = 2;
             config.UpgradedValue1 = 3;
+            config.Mana = new ManaGroup() { Any = 1 };
 
             config.RelativeEffects = new List<string>()
             {

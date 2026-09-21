@@ -1,10 +1,12 @@
 using System.Collections.Generic;
 using LBoL.Base;
+using LBoL.Core;
 using LBoL.Core.Battle;
 using LBoL.Core.Cards;
 using LBoL.Core.StatusEffects;
 using LBoLEntitySideloader.CustomKeywords;
 using TianziMod.Keywords;
+using TianziMod.StatusEffects;
 
 namespace TianziMod.Cards.Template
 {
@@ -188,6 +190,63 @@ namespace TianziMod.Cards.Template
                 this.AddCustomKeyword(TianziKeywords.Parity());
             if (this.HasKarmaKeyword && !this.HasCustomKeyword(TianziKeywords.KarmaId))
                 this.AddCustomKeyword(TianziKeywords.Karma());
+        }
+
+        protected override void OnEnterBattle(BattleController battle)
+        {
+            base.OnEnterBattle(battle);
+            if (!this.HasParityKeyword)
+                return;
+            this.HandleBattleEvent<CardsEventArgs>(
+                battle.CardsAddedToHand,
+                new GameEventHandler<CardsEventArgs>(this.OnParityHandChanged));
+            this.HandleBattleEvent<CardMovingEventArgs>(
+                battle.CardMoved,
+                new GameEventHandler<CardMovingEventArgs>(this.OnParityCardMoved));
+            this.HandleBattleEvent<StatusEffectApplyEventArgs>(
+                battle.Player.StatusEffectAdded,
+                new GameEventHandler<StatusEffectApplyEventArgs>(this.OnParitySeChanged));
+            this.HandleBattleEvent<StatusEffectEventArgs>(
+                battle.Player.StatusEffectRemoved,
+                new GameEventHandler<StatusEffectEventArgs>(this.OnParitySeRemoved));
+        }
+
+        private void OnParityHandChanged(CardsEventArgs args)
+        {
+            this.NotifyChanged();
+        }
+
+        private void OnParityCardMoved(CardMovingEventArgs args)
+        {
+            this.NotifyChanged();
+        }
+
+        private void OnParitySeChanged(StatusEffectApplyEventArgs args)
+        {
+            if (args.Effect is TianziOddEvenSe)
+                this.NotifyChanged();
+        }
+
+        private void OnParitySeRemoved(StatusEffectEventArgs args)
+        {
+            if (args.Effect is TianziOddEvenSe)
+                this.NotifyChanged();
+        }
+
+        protected override string GetBaseDescription()
+        {
+            if (!this.HasParityKeyword || this.Battle == null || TianziParity.Forced)
+                return base.GetBaseDescription();
+            if (TianziParity.IsOdd(this.Battle))
+            {
+                if (this.HasExtraDescription1)
+                    return this.GetExtraDescription1;
+            }
+            else if (this.HasExtraDescription2)
+            {
+                return this.GetExtraDescription2;
+            }
+            return base.GetBaseDescription();
         }
     }
 }

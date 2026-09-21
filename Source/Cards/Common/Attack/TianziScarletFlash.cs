@@ -32,6 +32,7 @@ namespace TianziMod.Cards
             config.UpgradedDamage = 10;
             config.Value1 = 12;
             config.UpgradedValue1 = 16;
+            config.Mana = new ManaGroup() { Red = 1 };
 
             config.RelativeEffects = new List<string>() { nameof(TianziParityKwSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
