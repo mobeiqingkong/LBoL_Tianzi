@@ -16,14 +16,14 @@ namespace TianziMod.Cards
 
             config.Colors = new List<ManaColor>() { ManaColor.White };
             config.Cost = new ManaGroup() { Any = 1, White = 1 };
-            config.UpgradedCost = new ManaGroup() { White = 1 };
+            config.UpgradedCost = new ManaGroup() { Any = 2 };
             config.Rarity = Rarity.Common;
 
             config.Type = CardType.Attack;
             config.TargetType = TargetType.SingleEnemy;
 
-            config.Damage = 5;
-            config.UpgradedDamage = 7;
+            config.Damage = 10;
+            config.UpgradedDamage = 14;
             config.GunName = GunNameID.GetGunFromId(1100);
             config.GunNameBurst = GunNameID.GetGunFromId(1100);
 

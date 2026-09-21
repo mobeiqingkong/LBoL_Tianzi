@@ -15,14 +15,14 @@ namespace TianziMod.Cards
 
             config.Colors = new List<ManaColor>() { ManaColor.Red };
             config.Cost = new ManaGroup() { Any = 1, Red = 1 };
-            config.UpgradedCost = new ManaGroup() { Red = 1 };
+            config.UpgradedCost = new ManaGroup() { Any = 1 };
             config.Rarity = Rarity.Common;
 
             config.Type = CardType.Defense;
             config.TargetType = TargetType.Self;
 
-            config.Block = 5;
-            config.UpgradedBlock = 7;
+            config.Block = 10;
+            config.UpgradedBlock = 13;
 
             config.Keywords = Keyword.Basic;
             config.UpgradedKeywords = Keyword.Basic;
