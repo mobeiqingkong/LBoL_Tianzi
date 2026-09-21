@@ -7,6 +7,7 @@ using LBoL.Core.Battle;
 using LBoL.Core.Battle.BattleActions;
 using LBoL.Core.Cards;
 using LBoL.Core.StatusEffects;
+using LBoL.EntityLib.StatusEffects.Basic;
 using LBoL.Core.Units;
 using LBoLEntitySideloader.Attributes;
 using TianziMod.Cards.Template;
@@ -36,6 +37,8 @@ namespace TianziMod.Cards
             config.RelativeEffects = new List<string>() { nameof(Vulnerable) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "";
+            config.RelativeKeyword = Keyword.Block | Keyword.Shield;
+            config.UpgradedRelativeKeyword = Keyword.Block | Keyword.Shield;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

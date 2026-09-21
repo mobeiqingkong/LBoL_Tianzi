@@ -34,7 +34,8 @@ namespace TianziMod.Cards
 
             config.Type = CardType.Ability;
             config.TargetType = TargetType.Self;
-
+            config.Mana = new ManaGroup() { Colorless = 1 };
+            config.UpgradedMana = new ManaGroup() { Colorless = 1 };
             config.RelativeEffects = new List<string>() { nameof(TianziLethalSe) };
 
             config.Illustrator = "";
@@ -51,6 +52,11 @@ namespace TianziMod.Cards
     [EntityLogic(typeof(TianziFinalJudgementDef))]
     public sealed class TianziFinalJudgement : TianziCard
     {
+        public ManaGroup Mana2
+        {
+            get { return new ManaGroup() { Philosophy = 1 }; }
+        }
+
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector,
             ManaGroup consumingMana,

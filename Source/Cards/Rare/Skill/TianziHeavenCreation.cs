@@ -38,6 +38,8 @@ namespace TianziMod.Cards
             config.UpgradedValue1 = 5;
 
             config.Illustrator = "";
+            config.RelativeKeyword = Keyword.Exile | Keyword.Ethereal;
+            config.UpgradedRelativeKeyword = Keyword.Exile | Keyword.Ethereal;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

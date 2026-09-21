@@ -7,6 +7,7 @@ using LBoL.Core.Battle;
 using LBoL.Core.Battle.BattleActions;
 using LBoL.Core.Cards;
 using LBoL.Core.StatusEffects;
+using LBoL.EntityLib.StatusEffects.Basic;
 using LBoL.Core.Units;
 using LBoL.EntityLib.StatusEffects.ExtraTurn;
 using LBoLEntitySideloader.Attributes;
@@ -32,6 +33,10 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.Keywords = Keyword.Exile;
             config.UpgradedKeywords = Keyword.Exile | Keyword.Echo;
+            config.Mana = new ManaGroup() { Philosophy = 2 };
+            config.UpgradedMana = new ManaGroup() { Philosophy = 2 };
+            config.RelativeKeyword = Keyword.Exile;
+            config.UpgradedRelativeKeyword = Keyword.Exile | Keyword.Echo;
             config.RelativeEffects = new List<string>() { nameof(Firepower), nameof(Spirit) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "";

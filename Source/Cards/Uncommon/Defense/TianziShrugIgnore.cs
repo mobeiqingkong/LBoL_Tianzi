@@ -33,6 +33,8 @@ namespace TianziMod.Cards
             config.UpgradedBlock = 12;
             config.RelativeEffects = new List<string>() { nameof(TianziShrugSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
+            config.RelativeKeyword = Keyword.Block;
+            config.UpgradedRelativeKeyword = Keyword.Block;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

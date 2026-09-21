@@ -39,6 +39,8 @@ namespace TianziMod.Cards
 
             config.RelativeEffects = new List<string>() { nameof(Firepower), nameof(Spirit), nameof(TianziKarmaKwSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
+            config.RelativeKeyword = Keyword.Scry;
+            config.UpgradedRelativeKeyword = Keyword.Scry;
 
             config.Illustrator = "";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

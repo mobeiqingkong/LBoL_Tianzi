@@ -28,6 +28,8 @@ namespace TianziMod.Cards
             config.UpgradedKeywords = Keyword.Basic;
 
             config.Illustrator = "";
+            config.RelativeKeyword = Keyword.Block;
+            config.UpgradedRelativeKeyword = Keyword.Block;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

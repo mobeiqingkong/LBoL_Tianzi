@@ -267,6 +267,11 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziHeavenShieldSeDef))]
     public sealed class TianziHeavenShieldSe : StatusEffect
     {
+        public ManaGroup Mana
+        {
+            get { return new ManaGroup() { White = 1 }; }
+        }
+
         protected override void OnAdded(Unit unit)
         {
             base.ReactOwnerEvent<UnitEventArgs>(
@@ -316,6 +321,11 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziMortalJourneySeDef))]
     public sealed class TianziMortalJourneySe : StatusEffect
     {
+        public ManaGroup Mana
+        {
+            get { return new ManaGroup() { White = 1 }; }
+        }
+
         private int _counter;
 
         protected override void OnAdded(Unit unit)

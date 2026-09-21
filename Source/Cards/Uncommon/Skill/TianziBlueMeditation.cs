@@ -34,6 +34,8 @@ namespace TianziMod.Cards
             config.UpgradedRelativeCards = config.RelativeCards;
             config.RelativeEffects = new List<string>() { nameof(TianziParityKwSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
+            config.RelativeKeyword = Keyword.Exile;
+            config.UpgradedRelativeKeyword = Keyword.Exile;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

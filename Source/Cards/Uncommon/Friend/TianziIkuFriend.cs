@@ -43,6 +43,8 @@ namespace TianziMod.Cards
             config.UpgradedScry = 4;
             config.RelativeEffects = new List<string>() { nameof(TempElectric), nameof(Invincible) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
+            config.RelativeKeyword = Keyword.Scry;
+            config.UpgradedRelativeKeyword = Keyword.Scry;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

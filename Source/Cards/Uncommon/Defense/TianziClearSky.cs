@@ -44,6 +44,8 @@ namespace TianziMod.Cards
             config.UpgradedKeywords = Keyword.Exile | Keyword.Echo;
 
             config.Illustrator = "";
+            config.RelativeKeyword = Keyword.Shield | Keyword.Exile;
+            config.UpgradedRelativeKeyword = Keyword.Shield | Keyword.Exile;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

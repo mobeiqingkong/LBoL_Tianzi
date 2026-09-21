@@ -6,6 +6,7 @@ using LBoL.Core.Battle;
 using LBoL.Core.Cards;
 using LBoL.Core.StatusEffects;
 using LBoL.Core.Units;
+using LBoL.EntityLib.StatusEffects.Basic;
 using LBoLEntitySideloader.Attributes;
 using TianziMod.Cards.Template;
 using TianziMod.GunName;

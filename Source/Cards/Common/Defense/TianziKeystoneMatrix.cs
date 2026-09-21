@@ -34,6 +34,8 @@ namespace TianziMod.Cards
             config.UpgradedRelativeEffects = new List<string>() { nameof(TianziKeystoneMatrixSe) };
 
             config.Illustrator = "";
+            config.RelativeKeyword = Keyword.Block;
+            config.UpgradedRelativeKeyword = Keyword.Block;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

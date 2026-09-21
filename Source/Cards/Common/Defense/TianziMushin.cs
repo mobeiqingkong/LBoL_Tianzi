@@ -29,6 +29,8 @@ namespace TianziMod.Cards
             config.RelativeCards = new List<string>() { nameof(TianziPlayChoice), nameof(TianziExileChoice) };
             config.UpgradedRelativeCards = config.RelativeCards;
             config.Illustrator = "";
+            config.RelativeKeyword = Keyword.Block;
+            config.UpgradedRelativeKeyword = Keyword.Block;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

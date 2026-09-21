@@ -253,6 +253,11 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziNextTurnManaSeDef))]
     public sealed class TianziNextTurnManaSe : StatusEffect
     {
+        public ManaGroup Mana
+        {
+            get { return new ManaGroup() { White = base.Count }; }
+        }
+
         protected override void OnAdded(Unit unit)
         {
             base.ReactOwnerEvent<UnitEventArgs>(
@@ -290,6 +295,11 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziNextTurnPhilSeDef))]
     public sealed class TianziNextTurnPhilSe : StatusEffect
     {
+        public ManaGroup Mana
+        {
+            get { return new ManaGroup() { Philosophy = base.Count }; }
+        }
+
         protected override void OnAdded(Unit unit)
         {
             base.ReactOwnerEvent<UnitEventArgs>(

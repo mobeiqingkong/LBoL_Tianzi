@@ -34,6 +34,8 @@ namespace TianziMod.Cards
             config.UpgradedKeywords = Keyword.Replenish;
             config.RelativeEffects = new List<string>() { nameof(TianziRegenSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
+            config.RelativeKeyword = Keyword.Exile;
+            config.UpgradedRelativeKeyword = Keyword.Exile;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

@@ -29,7 +29,10 @@ namespace TianziMod.Cards
 
             config.Type = CardType.Ability;
             config.TargetType = TargetType.Self;
-
+            config.Mana = new ManaGroup() { White = 1 };
+            config.UpgradedMana = new ManaGroup() { White = 1 };
+            config.RelativeKeyword = Keyword.Block;
+            config.UpgradedRelativeKeyword = Keyword.Block;
             config.RelativeEffects = new List<string>() { nameof(TianziGraceSe), nameof(TianziTempHpSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
 

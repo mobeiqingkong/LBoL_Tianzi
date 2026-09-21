@@ -127,6 +127,11 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziFeastSeDef))]
     public sealed class TianziFeastSe : StatusEffect
     {
+        public ManaGroup Mana
+        {
+            get { return new ManaGroup() { Philosophy = 1 }; }
+        }
+
         protected override void OnAdded(Unit unit)
         {
             base.ReactOwnerEvent<DieEventArgs>(
@@ -210,6 +215,11 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziGraceSeDef))]
     public sealed class TianziGraceSe : StatusEffect
     {
+        public ManaGroup Mana
+        {
+            get { return new ManaGroup() { White = 1 }; }
+        }
+
         private int _blockAtStart;
 
         protected override void OnAdded(Unit unit)
@@ -256,6 +266,16 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziLethalSeDef))]
     public sealed class TianziLethalSe : StatusEffect
     {
+        public ManaGroup Mana
+        {
+            get { return new ManaGroup() { Colorless = 1 }; }
+        }
+
+        public ManaGroup Mana2
+        {
+            get { return new ManaGroup() { Philosophy = 1 }; }
+        }
+
         protected override void OnAdded(Unit unit)
         {
             base.ReactOwnerEvent<ManaEventArgs>(

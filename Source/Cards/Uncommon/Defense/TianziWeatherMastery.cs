@@ -32,7 +32,10 @@ namespace TianziMod.Cards
             config.Block = 8;
             config.UpgradedBlock = 12;
             config.Value1 = 4;
-
+            config.Mana = new ManaGroup() { White = 1 };
+            config.UpgradedMana = new ManaGroup() { White = 1 };
+            config.RelativeKeyword = Keyword.Block;
+            config.UpgradedRelativeKeyword = Keyword.Block;
             config.RelativeEffects = new List<string>();
             config.UpgradedRelativeEffects = config.RelativeEffects;
 

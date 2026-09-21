@@ -35,6 +35,8 @@ namespace TianziMod.Cards
 
             config.Keywords = Keyword.Exile | Keyword.Retain;
             config.UpgradedKeywords = Keyword.Exile | Keyword.Retain;
+            config.RelativeKeyword = Keyword.Block | Keyword.Shield;
+            config.UpgradedRelativeKeyword = Keyword.Block | Keyword.Shield;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

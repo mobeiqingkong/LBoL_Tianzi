@@ -36,6 +36,8 @@ namespace TianziMod.Cards
                 nameof(TianziKarmaKwSe),
             };
             config.UpgradedRelativeEffects = config.RelativeEffects;
+            config.RelativeKeyword = Keyword.Block | Keyword.Exile | Keyword.Ethereal | Keyword.Upgrade;
+            config.UpgradedRelativeKeyword = Keyword.Block | Keyword.Exile | Keyword.Ethereal | Keyword.Upgrade;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

@@ -26,6 +26,8 @@ namespace TianziMod.Cards
             config.Rarity = Rarity.Uncommon;
             config.Type = CardType.Ability;
             config.TargetType = TargetType.Self;
+            config.Mana = new ManaGroup() { White = 1 };
+            config.UpgradedMana = new ManaGroup() { White = 1 };
             config.RelativeEffects = new List<string>()
             {
                 nameof(TianziHeavenShieldSe),

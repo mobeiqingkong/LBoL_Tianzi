@@ -34,6 +34,8 @@ namespace TianziMod.Cards
             config.Value1 = 1;
             config.Value2 = 1;
             config.UpgradedValue2 = 2;
+            config.Mana = new ManaGroup() { Philosophy = 1 };
+            config.UpgradedMana = new ManaGroup() { Philosophy = 2 };
             config.RelativeEffects = new List<string>() { nameof(Weak), nameof(TianziNextTurnPhilSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "";

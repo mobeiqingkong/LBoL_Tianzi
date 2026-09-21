@@ -26,9 +26,11 @@ namespace TianziMod.Cards
             config.Rarity = Rarity.Uncommon;
             config.Type = CardType.Ability;
             config.TargetType = TargetType.Self;
-            config.RelativeEffects = new List<string>() { nameof(TianziEnduranceSe) };
+            config.RelativeEffects = new List<string>() { nameof(TianziEnduranceSe), nameof(Spirit) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "";
+            config.RelativeKeyword = Keyword.Block;
+            config.UpgradedRelativeKeyword = Keyword.Block;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

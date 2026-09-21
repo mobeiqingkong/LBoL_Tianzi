@@ -182,7 +182,7 @@ TianziDanceSword:
   Description: |-
     造成 {Damage} 点伤害。
     施加 {Value1} 回合|虚弱|。
-    下回合获得 {Value2} 点彩色法力，抽 |e:1| 张牌。
+    下回合获得{Mana}，抽 |e:1| 张牌。
 
 TianziLandLiquefy:
   Name: 大地液化
@@ -284,7 +284,7 @@ TianziWeatherMastery:
   Description: |-
     选择一张手牌丢弃。获得 {Block} 点|格挡|。
     选择弃牌堆内至多一张牌置于抽牌堆顶。
-    若手牌数量大于 {Value1}，额外获得 |e:1| 点白色法力。
+    若手牌数量大于 {Value1}，额外获得{Mana}。
 
 TianziScarletRadiance:
   Name: 绯想的威光
@@ -315,7 +315,7 @@ TianziPureWish:
 TianziHeavenShield:
   Name: 天界之庇护
   Description: |-
-    获得|天界庇护|：{PlayerName}的回合开始时获得 |e:1| 点白色法力。
+    获得|天界庇护|：{PlayerName}的回合开始时获得{Mana}。
     {PlayerName}的普通回合结束时获得 |e:1| 层|庇护|。
 
 TianziMeditation:
@@ -388,7 +388,7 @@ TianziWorldCleaver:
   Description: |-
     从左到右丢弃与消耗费用相等数量的手牌，并抽取等量的牌。
     根据丢弃牌的种类依次触发：攻击获得|火力|；防御获得|灵力|；
-    技能获得 |e:2| 点彩色法力；能力或诅咒与状态则|放逐|手牌与弃牌中的诅咒与状态。
+    技能获得{Mana}；能力或诅咒与状态则|放逐|手牌与弃牌中的诅咒与状态。
     返还超出可弃手牌数量的费用。
 
 TianziScarletApocalypse:
@@ -400,7 +400,7 @@ TianziScarletApocalypse:
 
 TianziFinalJudgement:
   Name: 纯粹致死
-  Description: 获得|致死|：{PlayerName}在自己的回合内获得无色法力时，对所有敌人造成其最大生命值 |e:1|% 的伤害。
+  Description: 获得|致死|：{PlayerName}在自己的回合内获得{Mana}或{Mana2}时，对所有敌人造成其最大生命值 |e:1|% 的伤害。
 
 TianziHeavenCreation:
   Name: 天界造物
@@ -430,14 +430,14 @@ TianziPeachTalisman:
 
 TianziMortalJourney:
   Name: 凡间之游
-  Description: 获得|凡游|：{PlayerName}每打出 {Value1} 张牌，获得 |e:1| 点白色法力并抽 |e:1| 张牌。
+  Description: 获得|凡游|：{PlayerName}每打出 {Value1} 张牌，获得{Mana}并抽 |e:1| 张牌。
   FlavorText: 下凡一趟，她学会了凡人的节奏：走几步，歇一歇。
 
 TianziHeavenThrone:
   Name: 有顶天的恩宠
   Description: |-
     获得|恩宠|：回合结束时将失去的|格挡|转化为|临命|。
-    每回合开始获得 |e:1| 点白色法力。
+    每回合开始获得{Mana}。
 
 TianziPeachEternity:
   Name: “野生桃奶”
@@ -487,8 +487,8 @@ TianziSplash:
 
 TianziIkuFriend:
   Name: 龙宫使者衣玖
-  Description: "{PassiveCostIcon}|f:占卜 {Scry}。直到自己的回合开始之前获得 {Value2} 层电击。|"
-  ExtraDescription1: "{ActiveCostIcon}|a:获得 1 回合天衣无缝。|"
+  Description: "{FriendP}|f:占卜 {Scry}。直到自己的回合开始之前获得 {Value2} 层电击。|"
+  ExtraDescription1: "{FriendA}|a:获得 1 回合天衣无缝。|"
 
 TianziShrugIgnore:
   Name: 耸肩无视
@@ -523,7 +523,7 @@ TianziEarthStone:
 
 TianziFeast:
   Name: 庆功宴
-  Description: 每当一名敌人被打败，恢复 |e:2| 点生命值，获得 |e:1| 点彩色法力，抽 |e:1| 张牌。
+  Description: 每当一名敌人被打败，恢复 |e:2| 点生命值，获得{Mana}，抽 |e:1| 张牌。
 
 TianziPeachMake:
   Name: 仙桃制成

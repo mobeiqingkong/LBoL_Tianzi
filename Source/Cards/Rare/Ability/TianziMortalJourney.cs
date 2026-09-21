@@ -33,7 +33,8 @@ namespace TianziMod.Cards
             config.Value1 = 5;
             config.Keywords = Keyword.Initial | Keyword.Replenish;
             config.UpgradedKeywords = Keyword.Initial | Keyword.Replenish;
-
+            config.Mana = new ManaGroup() { White = 1 };
+            config.UpgradedMana = new ManaGroup() { White = 1 };
             config.RelativeEffects = new List<string>() { nameof(TianziMortalJourneySe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
 

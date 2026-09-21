@@ -7,6 +7,7 @@ using LBoL.Core.Battle.BattleActions;
 using LBoL.Core.StatusEffects;
 using LBoL.Core.Units;
 using LBoL.EntityLib.Exhibits;
+using LBoL.EntityLib.StatusEffects.Basic;
 using LBoLEntitySideloader.Attributes;
 
 namespace TianziMod.Exhibits
@@ -20,7 +21,11 @@ namespace TianziMod.Exhibits
             config.BaseManaColor = ManaColor.Red;
             config.BaseManaAmount = 1;
             config.Value1 = 1; // 额外施加的层数
-            config.RelativeEffects = new List<string>() { nameof(Weak), nameof(Vulnerable) };
+            config.RelativeEffects = new List<string>()
+            {
+                nameof(Weak),
+                nameof(Vulnerable),
+            };
             return config;
         }
     }
