@@ -231,6 +231,16 @@ namespace TianziMod.StatusEffects
                 base.Battle.CardDrawn,
                 new EventSequencedReactor<CardEventArgs>(this.OnCardDrawn)
             );
+            // 庇护（AmuletForCard）拦截加入弃牌/抽牌堆的状态牌时，同样计次并抽 1
+            base.ReactOwnerEvent<CardsEventArgs>(
+                base.Battle.CardsAddedToDiscard,
+                new EventSequencedReactor<CardsEventArgs>(this.OnAmuletCards));
+            base.ReactOwnerEvent<CardsAddingToDrawZoneEventArgs>(
+                base.Battle.CardsAddedToDrawZone,
+                new EventSequencedReactor<CardsAddingToDrawZoneEventArgs>(this.OnAmuletDrawZone));
+            base.ReactOwnerEvent<StatusEffectApplyEventArgs>(
+                unit.StatusEffectAdding,
+                new EventSequencedReactor<StatusEffectApplyEventArgs>(this.OnStatusAdding));
         }
 
         private IEnumerable<BattleAction> OnTurnStarted(UnitEventArgs args)
@@ -251,6 +261,54 @@ namespace TianziMod.StatusEffects
             this._usedThisTurn += 1;
             base.NotifyActivating();
             yield return new ExileCardAction(card);
+            yield return new DrawManyCardAction(1);
+        }
+
+        private IEnumerable<BattleAction> OnAmuletCards(CardsEventArgs args)
+        {
+            return this.TryAmuletTriggers(args.Cards);
+        }
+
+        private IEnumerable<BattleAction> OnAmuletDrawZone(CardsAddingToDrawZoneEventArgs args)
+        {
+            return this.TryAmuletTriggers(args.Cards);
+        }
+
+        private IEnumerable<BattleAction> TryAmuletTriggers(IEnumerable<Card> cards)
+        {
+            if (base.Battle.BattleShouldEnd || this._usedThisTurn >= base.Level)
+                yield break;
+            AmuletForCard amulet = base.Owner.GetStatusEffect<AmuletForCard>();
+            if (amulet == null || amulet.Level <= 0)
+                yield break;
+            int triggers = 0;
+            foreach (Card card in cards)
+            {
+                if (card != null && card.CardType == CardType.Status)
+                    triggers++;
+            }
+            if (triggers <= 0)
+                yield break;
+            while (triggers > 0 && this._usedThisTurn < base.Level)
+            {
+                this._usedThisTurn += 1;
+                triggers -= 1;
+                base.NotifyActivating();
+                yield return new DrawManyCardAction(1);
+            }
+        }
+
+        private IEnumerable<BattleAction> OnStatusAdding(StatusEffectApplyEventArgs args)
+        {
+            if (base.Battle.BattleShouldEnd || this._usedThisTurn >= base.Level)
+                yield break;
+            if (args.Effect == null || args.Effect.Type != StatusEffectType.Negative || args.IsCanceled)
+                yield break;
+            Amulet amulet = base.Owner.GetStatusEffect<Amulet>();
+            if (amulet == null || amulet.Level <= 0)
+                yield break;
+            this._usedThisTurn += 1;
+            base.NotifyActivating();
             yield return new DrawManyCardAction(1);
         }
     }

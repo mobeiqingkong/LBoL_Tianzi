@@ -82,8 +82,8 @@ TianziScarletRadianceSe:
 TianziScarletWaveSe:
   Name: 斩波
   Description: |-
-    {OwnerName}每回合首次造成攻击伤害时，获得等量的|格挡|。
-  Brief: 每回合首次攻击伤害转为等量|格挡|。
+    {OwnerName}每回合前 {Level} 张攻击牌造成攻击伤害时，获得等量的|格挡|。
+  Brief: 每回合前 {Level} 次攻击伤害转为等量|格挡|。
 
 TianziKeystoneMatrixSe:
   Name: 石阵
@@ -140,7 +140,7 @@ TianziPureWishSe:
   Name: 清霖
   Description: |-
     {OwnerName}每回合前 {Level} 次抽到诅咒或状态牌时，
-    将其放逐并抽 |e:1| 张牌。
+    将其放逐并抽 |e:1| 张牌；|庇护|触发时此效果也会生效。
   Brief: "前 {Level} 次抽到诅咒/状态牌时放逐并补抽。"
 
 TianziHeavenShieldSe:
@@ -228,14 +228,14 @@ TianziReflectSe:
 TianziGraceSe:
   Name: 恩宠
   Description: |-
-    回合结束时将失去的|格挡|转化为|绝壁|。
+    回合结束时将剩余即将失去的|格挡|转化为|绝壁|。
     每回合开始获得{Mana}。
-  Brief: 失去的|格挡|转为|绝壁|。
+  Brief: 回合末|格挡|转为|绝壁|。
 
 TianziLethalSe:
   Name: 致死
-  Description: "{OwnerName}在回合内获得{Mana}或{Mana2}时，对所有敌人造成其最大生命值 |e:1|% 的伤害。"
-  Brief: 获得{Mana}或{Mana2}时百分比伤害。
+  Description: "{OwnerName}在回合内获得{Mana}时，对所有敌人造成其最大生命值 |e:1|% 的伤害。"
+  Brief: 获得无色法力时百分比伤害。
 
 TianziBossPeachSe:
   Name: 仙桃

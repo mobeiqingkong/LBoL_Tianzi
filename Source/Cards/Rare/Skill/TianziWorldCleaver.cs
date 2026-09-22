@@ -5,21 +5,20 @@ using LBoL.ConfigData;
 using LBoL.Core;
 using LBoL.Core.Battle;
 using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.Battle.Interactions;
 using LBoL.Core.Cards;
 using LBoL.Core.StatusEffects;
 using LBoL.EntityLib.StatusEffects.Basic;
 using LBoL.Core.Units;
-using LBoL.EntityLib.StatusEffects.ExtraTurn;
 using LBoLEntitySideloader.Attributes;
 using TianziMod.Cards.Template;
-using TianziMod.GunName;
 using TianziMod.Keywords;
 using TianziMod.StatusEffects;
 
 namespace TianziMod.Cards
 {
 
-    // ------------------------------------------------------------------ 天地开辟之剑
+    // ------------------------------------------------------------------ 乾坤一掷
     public sealed class TianziWorldCleaverDef : TianziCardTemplate
     {
         public override CardConfig MakeConfig()
@@ -61,8 +60,14 @@ namespace TianziMod.Cards
             }
             int n = x < hand.Count ? x : hand.Count;
             List<Card> dumped = new List<Card>();
-            for (int i = 0; i < n; i++)
-                dumped.Add(hand[i]);
+            if (n > 0)
+            {
+                SelectHandInteraction pick = new SelectHandInteraction(n, n, hand) { Source = this };
+                yield return new InteractionAction(pick, false);
+                foreach (Card c in pick.SelectedCards)
+                    dumped.Add(c);
+                n = dumped.Count;
+            }
 
             foreach (Card c in dumped)
                 yield return new DiscardAction(c);

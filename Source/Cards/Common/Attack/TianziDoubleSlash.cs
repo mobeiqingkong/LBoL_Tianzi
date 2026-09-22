@@ -57,7 +57,10 @@ namespace TianziMod.Cards
             {
                 yield return base.AttackAction(selector, gunPair);
             }
-            yield return new AddCardsToHandAction(new Card[] { Library.CreateCard<TianziSecondSlash>() });
+            Card second = Library.CreateCard<TianziSecondSlash>();
+            if (base.IsUpgraded)
+                second.Upgrade();
+            yield return new AddCardsToHandAction(new Card[] { second });
             yield break;
         }
     }

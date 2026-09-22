@@ -220,8 +220,6 @@ namespace TianziMod.StatusEffects
             get { return new ManaGroup() { White = 1 }; }
         }
 
-        private int _blockAtStart;
-
         protected override void OnAdded(Unit unit)
         {
             base.ReactOwnerEvent<UnitEventArgs>(
@@ -234,16 +232,16 @@ namespace TianziMod.StatusEffects
 
         private IEnumerable<BattleAction> OnStart(UnitEventArgs args)
         {
-            this._blockAtStart = base.Battle.Player.Block;
             yield return new GainManaAction(new ManaGroup() { White = 1 });
         }
 
         private IEnumerable<BattleAction> OnEnd(UnitEventArgs args)
         {
-            int lost = this._blockAtStart - base.Battle.Player.Block;
-            if (lost <= 0)
+            // 回合末即将失去的剩余格挡 → 绝壁
+            int block = base.Battle.Player.Block;
+            if (block <= 0)
                 yield break;
-            BattleAction gain = TianziTempHp.GainAction(base.Battle.Player, lost, 0.1f);
+            BattleAction gain = TianziTempHp.GainAction(base.Battle.Player, block, 0.1f);
             if (gain == null)
                 yield break;
             base.NotifyActivating();
@@ -271,11 +269,6 @@ namespace TianziMod.StatusEffects
             get { return new ManaGroup() { Colorless = 1 }; }
         }
 
-        public ManaGroup Mana2
-        {
-            get { return new ManaGroup() { Philosophy = 1 }; }
-        }
-
         protected override void OnAdded(Unit unit)
         {
             base.ReactOwnerEvent<ManaEventArgs>(
@@ -287,7 +280,7 @@ namespace TianziMod.StatusEffects
         {
             if (base.Battle.BattleShouldEnd || !base.Battle.Player.IsInTurn)
                 yield break;
-            if (args.Value.Colorless <= 0 && args.Value.Philosophy <= 0)
+            if (args.Value.Colorless <= 0)
                 yield break;
             base.NotifyActivating();
             foreach (EnemyUnit enemy in base.Battle.AllAliveEnemies)

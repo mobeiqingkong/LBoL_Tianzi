@@ -38,6 +38,7 @@ namespace TianziMod.Cards
             config.RelativeEffects = new List<string>()
             {
                 nameof(Vulnerable),
+                nameof(Weak),
                 nameof(AmuletForCard),
                 nameof(TianziKarmaKwSe),
             };
@@ -54,8 +55,7 @@ namespace TianziMod.Cards
 
     /// <summary>
     /// 天人落书：选择一张手牌放逐，抽 {Value1} 张牌。
-    /// 被放逐的牌是 攻击 / 防御 / 技能 / 能力 / 诅咒或状态 时，
-    /// 分别对应 易伤 / 脆弱 / 多抽 1 张 / {Value2} 层庇护 / 获得一张光芒。
+    /// 攻击→易伤；防御→虚弱；技能→多抽 1；能力→庇护；诅咒/状态→光芒。
     /// </summary>
     [EntityLogic(typeof(TianziHeavenlyWritingDef))]
     public sealed class TianziHeavenlyWriting : TianziCard
@@ -86,7 +86,7 @@ namespace TianziMod.Cards
                 this,
                 exiled.CardType,
                 this.WritingVuln(),
-                this.WritingVuln(),
+                this.WritingWeak(),
                 this.WritingDraw(),
                 this.WritingAmulet(),
                 this.WritingLight()))
@@ -100,6 +100,15 @@ namespace TianziMod.Cards
                 yield break;
             EnemyUnit pick = enemies[UnityEngine.Random.Range(0, enemies.Count)];
             yield return base.DebuffAction<Vulnerable>(pick, 1, 1, 0, 0, true, 0.2f);
+        }
+
+        private IEnumerable<BattleAction> WritingWeak()
+        {
+            List<EnemyUnit> enemies = new List<EnemyUnit>(base.Battle.AllAliveEnemies);
+            if (enemies.Count == 0)
+                yield break;
+            EnemyUnit pick = enemies[UnityEngine.Random.Range(0, enemies.Count)];
+            yield return base.DebuffAction<Weak>(pick, 1, 1, 0, 0, true, 0.2f);
         }
 
         private IEnumerable<BattleAction> WritingDraw()

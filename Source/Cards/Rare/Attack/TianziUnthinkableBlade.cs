@@ -42,10 +42,14 @@ namespace TianziMod.Cards
             config.UpgradedValue1 = 3;
             config.Mana = new ManaGroup() { Any = 1 };
 
+            config.Keywords = Keyword.Accuracy;
+            config.UpgradedKeywords = Keyword.Accuracy;
+
             config.RelativeEffects = new List<string>()
             {
                 nameof(ExtraTurn),
                 nameof(TimeIsLimited),
+                nameof(TianziWeatherForecastSe),
                 nameof(TianziWeatherClear),
                 nameof(TianziWeatherMist),
                 nameof(TianziWeatherCloud),
@@ -66,7 +70,7 @@ namespace TianziMod.Cards
 
     /// <summary>
     /// 非想「非想非非想之剑」：造成 {Damage} 点伤害。
-    /// 随机释放一种天气并持续 {Value1} 回合。
+    /// 下回合随机释放一种天气并持续 {Value1} 回合。
     /// 结束{PlayerName}的回合，进行一个额外的回合，并获得 1 点|时间有限|。
     /// </summary>
     [EntityLogic(typeof(TianziUnthinkableBladeDef))]
@@ -80,11 +84,7 @@ namespace TianziMod.Cards
         {
             yield return base.AttackAction(selector);
 
-            foreach (BattleAction action in TianziWeather.ApplyRandom(
-                base.Battle.Player, base.Value1))
-            {
-                yield return action;
-            }
+            yield return BuffAction<TianziWeatherForecastSe>(0, base.Value1, 0, 0, 0.2f);
 
             yield return BuffAction<ExtraTurn>(1, 0, 0, 0, 0.2f);
             yield return base.DebuffAction<TimeIsLimited>(

@@ -43,8 +43,8 @@ namespace TianziMod.Cards
             config.Value1 = 2; // 每失去 4% 生命，额外 + 目标最大生命 Value1%
             config.UpgradedValue1 = 3;
 
-            config.Keywords = Keyword.Exile | Keyword.Retain;
-            config.UpgradedKeywords = Keyword.Exile | Keyword.Retain;
+            config.Keywords = Keyword.Exile | Keyword.Retain | Keyword.Accuracy;
+            config.UpgradedKeywords = Keyword.Exile | Keyword.Retain | Keyword.Accuracy;
 
             config.Illustrator = "";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

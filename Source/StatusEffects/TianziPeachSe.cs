@@ -145,8 +145,9 @@ namespace TianziMod.StatusEffects
         {
             StatusEffectConfig config = GetDefaultStatusEffectConfig();
             config.Type = StatusEffectType.Positive;
-            config.HasLevel = false;
-            config.IsStackable = false;
+            config.HasLevel = true;
+            config.LevelStackType = StackType.Max;
+            config.IsStackable = true;
             return config;
         }
     }

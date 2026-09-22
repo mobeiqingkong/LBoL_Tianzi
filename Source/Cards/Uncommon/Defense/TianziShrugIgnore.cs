@@ -48,7 +48,7 @@ namespace TianziMod.Cards
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
             yield return base.DefenseAction(true);
-            yield return BuffAction<TianziShrugSe>(3, 0, 0, 0, 0.2f);
+            yield return BuffAction<TianziShrugSe>(1, 0, 0, 0, 0.2f);
         }
     }
 }

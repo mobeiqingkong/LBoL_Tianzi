@@ -181,9 +181,10 @@ TianziOverwhelming:
 TianziDanceSword:
   Name: 环舞之剑
   Description: |-
+    立刻扣除 |e:1| 点白色法力（仅白色）。
     造成 {Damage} 点伤害。
     施加 {Value1} 回合|虚弱|。
-    下回合获得{Mana}，抽 |e:1| 张牌。
+    下回合获得{Mana}，抽 |e:1| 张牌；若未能扣除法力则不会获得费用。
 
 TianziLandLiquefy:
   Name: 大地液化
@@ -269,15 +270,15 @@ TianziHeavenlyInstinct:
 TianziHeavenlyRitual:
   Name: 天人的流仪
   Description: |-
-    占卜 {Scry}。抽 |e:1| 张牌。
+    |占卜| {Scry}。抽 |e:1| 张牌。
     抽到攻击牌则获得 |e:1| 点|火力|；防御牌则获得 |e:1| 点|灵力|；
-    技能牌则额外抽 {Value1} 张。
+    技能牌则额外抽 {Value1} 张；状态或厄运则将其|放逐|。
 
 TianziHeavenlyWriting:
   Name: 天人落书
   Description: |-
     选择一张手牌|放逐|，抽 {Value1} 张牌。
-    根据|放逐|的牌：攻击或防御随机施加 |e:1| 回合|易伤|；
+    根据|放逐|的牌：攻击随机施加 |e:1| 回合|易伤|；防御随机施加 |e:1| 回合|虚弱|；
     技能额外抽 |e:1| 张；能力获得 {Value2} 层|庇护|；诅咒或状态将一张|光芒|加入手中。
 
 TianziWeatherMastery:
@@ -293,7 +294,7 @@ TianziScarletRadiance:
 
 TianziScarletWave:
   Name: 绯想剑斩波
-  Description: 获得|斩波|：每回合首次造成攻击伤害时，获得等量的|格挡|。
+  Description: 获得|斩波|：每回合前 {Value1} 张攻击牌造成攻击伤害时，获得等量的|格挡|。
 
 TianziOddEvenQi:
   Name: 天人之气
@@ -311,7 +312,7 @@ TianziPeachGarden:
 
 TianziPureWish:
   Name: 清霖之愿
-  Description: 获得|清霖|：每回合前 {Value1} 次抽到诅咒或状态牌时，将其|放逐|并抽 |e:1| 张牌。
+  Description: 获得|清霖|：每回合前 {Value1} 次抽到诅咒或状态牌时，将其|放逐|并抽 |e:1| 张牌；|庇护|触发时此效果也会生效。
 
 TianziHeavenShield:
   Name: 天界之庇护
@@ -349,6 +350,7 @@ TianziFinalBlade:
   Description: |-
     造成 {Damage} 点伤害。
     该敌人每失去 |e:4|% 生命值，{SelfName}的伤害就额外提高该敌人最大生命值 {Value1}% 的伤害。
+    |放逐| |保留| |精准|
   FlavorText: 她把剑举过头顶的那一刻，天上的云停住了。
 
 TianziHardshipFirst:
@@ -371,9 +373,10 @@ TianziUnthinkableBlade:
   Name: 非想「非想非非想之剑」
   Description: |-
     造成 {Damage} 点伤害。
-    随机释放一种天气，持续 {Value1} 回合。
+    下回合随机释放一种天气，持续 {Value1} 回合。
     结束{PlayerName}的回合，进行一个额外的回合。
     |时间有限|{Mana}。
+    |精准|
   FlavorText: 那一剑没有名字，因为想不出来的时候，名字也就无所谓了。
 
 TianziPureDawn:
@@ -387,7 +390,7 @@ TianziPureDawn:
 TianziWorldCleaver:
   Name: 乾坤一掷
   Description: |-
-    从左到右丢弃与消耗费用相等数量的手牌，并抽取等量的牌。
+    选择丢弃与消耗费用相等数量的手牌，并抽取等量的牌。
     根据丢弃牌的种类依次触发：攻击获得|火力|；防御获得|灵力|；
     技能获得{Mana}；能力或诅咒与状态则|放逐|手牌与弃牌中的诅咒与状态。
     返还超出可弃手牌数量的费用。
@@ -396,12 +399,13 @@ TianziScarletApocalypse:
   Name: 气符「天启气象之剑」
   Description: |-
     造成 {Damage} 点伤害。
-    随机释放一种天气，持续 {Value1} 回合。
+    下回合随机释放一种天气，持续 {Value1} 回合。
     若打出{SelfName}时已有天气，造成原来的|e:1.5|倍的伤害。
+    |精准|
 
 TianziFinalJudgement:
   Name: 纯粹致死
-  Description: 获得|致死|：{PlayerName}在自己的回合内获得{Mana}或{Mana2}时，对所有敌人造成其最大生命值 |e:1|% 的伤害。
+  Description: 获得|致死|：{PlayerName}在自己的回合内获得{Mana}时，对所有敌人造成其最大生命值 |e:1|% 的伤害。
 
 TianziHeavenCreation:
   Name: 天界造物
@@ -495,7 +499,7 @@ TianziShrugIgnore:
   Name: 耸肩无视
   Description: |-
     获得 {Block} 点|格挡|。
-    {PlayerName}在自己的回合内受到伤害时，获得 |e:3| 点|格挡|。此效果不可叠加。
+    {PlayerName}在自己的回合内受到伤害时，获得 |e:1| 点|格挡|。此效果不可叠加。
 
 TianziBlueMeditation:
   Name: 冥想

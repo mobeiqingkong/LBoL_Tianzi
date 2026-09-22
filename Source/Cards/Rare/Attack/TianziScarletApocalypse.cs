@@ -33,9 +33,12 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.SingleEnemy;
             config.Damage = 15;
             config.UpgradedDamage = 20;
-            config.Value1 = 3;
+            config.Value1 = 1;
+            config.Keywords = Keyword.Accuracy;
+            config.UpgradedKeywords = Keyword.Accuracy;
             config.RelativeEffects = new List<string>()
             {
+                nameof(TianziWeatherForecastSe),
                 nameof(TianziWeatherClear),
                 nameof(TianziWeatherMist),
                 nameof(TianziWeatherCloud),
@@ -75,10 +78,9 @@ namespace TianziMod.Cards
             foreach (Unit enemy in selector.GetUnits(base.Battle))
             {
                 yield return new DamageAction(
-                    base.Battle.Player, enemy, DamageInfo.Attack(dmg, false), base.GunName, GunType.Single);
+                    base.Battle.Player, enemy, DamageInfo.Attack(dmg, true), base.GunName, GunType.Single);
             }
-            foreach (BattleAction action in TianziWeather.ApplyRandom(base.Battle.Player, base.Value1))
-                yield return action;
+            yield return BuffAction<TianziWeatherForecastSe>(0, base.Value1, 0, 0, 0.2f);
         }
     }
 }

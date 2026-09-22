@@ -90,7 +90,7 @@ namespace TianziMod.Cards
                 this.RitualDefense(),
                 this.RitualSkill(),
                 null,
-                null))
+                this.RitualExile(drawn)))
                 yield return action;
         }
 
@@ -107,6 +107,13 @@ namespace TianziMod.Cards
         private IEnumerable<BattleAction> RitualSkill()
         {
             yield return new DrawManyCardAction(base.Value1);
+        }
+
+        private IEnumerable<BattleAction> RitualExile(Card card)
+        {
+            if (card == null)
+                yield break;
+            yield return new ExileCardAction(card);
         }
     }
 }
