@@ -1,0 +1,58 @@
+﻿using System;
+using LBoL.Base;
+
+namespace LBoL.Core.Battle.BattleActions;
+
+public class GainTurnManaAction : SimpleEventBattleAction<ManaEventArgs>
+{
+	public GainTurnManaAction(ManaGroup value)
+	{
+		if (value.Any > 0)
+		{
+			throw new InvalidOperationException("Cant gain extra turn mana with color: Any.");
+		}
+		base.Args = new ManaEventArgs
+		{
+			Value = value
+		};
+	}
+
+	protected override void PreEventPhase()
+	{
+		Trigger(base.Battle.TurnManaGaining);
+	}
+
+	protected override void MainPhase()
+	{
+		base.Args.Value = base.Battle.GainTurnMana(base.Args.Value);
+	}
+
+	protected override void PostEventPhase()
+	{
+		Trigger(base.Battle.TurnManaGained);
+	}
+}
+
+====MIX====
+using System.Linq;
+using JetBrains.Annotations;
+using LBoL.Core.Cards;
+
+namespace LBoL.EntityLib.Cards.Character.Marisa;
+
+[UsedImplicitly]
+public sealed class MixAndShake : Card
+{
+	protected override int AdditionalDamage
+	{
+		get
+		{
+			if (base.Battle != null)
+			{
+				return base.Value1 * (base.Battle.DrawZone.OfType<Potion>().Count() + base.Battle.DiscardZone.OfType<Potion>().Count());
+			}
+			return 0;
+		}
+	}
+}
+

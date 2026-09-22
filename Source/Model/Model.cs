@@ -1,5 +1,6 @@
 using Cysharp.Threading.Tasks;
 using LBoL.ConfigData;
+using LBoL.Core;
 using LBoL.Presentation;
 using LBoLEntitySideloader;
 using LBoLEntitySideloader.Entities;
@@ -27,7 +28,12 @@ namespace TianziMod.model
 
         public override LocalizationOption LoadLocalization()
         {
-            return TianziLocalization.UnitModelBatchLoc.AddEntity(this);
+            // UnitModel 没有 TypeFactory，不能走 BatchLocalization（factoryType=null 会刷
+            // FillLocalizationTables was given a null facType）。直接用 LocalizationFiles 写入 UnitNameTable。
+            LocalizationFiles files = new LocalizationFiles(BepinexPlugin.directorySource);
+            files.AddLocaleFile(Locale.ZhHans, TianziLocalization.UnitModel + "ZhHans");
+            files.fallbackLoc = Locale.ZhHans;
+            return files;
         }
 
         public override ModelOption LoadModelOptions()

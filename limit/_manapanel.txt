@@ -1,0 +1,2026 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using DG.Tweening;
+using LBoL.Base;
+using LBoL.Base.Extensions;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.Cards;
+using LBoL.Presentation.InputSystemExtend;
+using LBoL.Presentation.UI.ExtraWidgets;
+using LBoL.Presentation.UI.Widgets;
+using TMPro;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.Pool;
+using UnityEngine.UI;
+
+namespace LBoL.Presentation.UI.Panels;
+
+public class BattleManaPanel : UiPanel
+{
+	private sealed class ManaCollection
+	{
+		private readonly BattleManaPanel _parent;
+
+		private readonly Vector2 _origin;
+
+		private readonly Vector2 _deltaPosition;
+
+		private readonly Vector2 _highlightDeltaPosition;
+
+		private readonly Vector2 _pendingUseDeltaPosition;
+
+		private readonly bool _isPooled;
+
+		private List<BattleManaWidget> _normalWidgets;
+
+		private List<BattleManaWidget> _highlightWidgets;
+
+		private ManaGroup _totalMana;
+
+		private ManaGroup _highlightMana;
+
+		private bool _isFolded;
+
+		public List<BattleManaWidget> NormalWidgets => _normalWidgets;
+
+		public List<BattleManaWidget> HighlightWidgets => _highlightWidgets;
+
+		public ManaGroup TotalMana => _totalMana;
+
+		public ManaGroup HighlightMana => _highlightMana;
+
+		public ManaGroup NormalMana => _totalMana - _highlightMana;
+
+		public ManaCollection(BattleManaPanel parent, bool pooled, Vector2 origin, Vector2 delta, Vector2 highlightDelta, Vector2 pendingUseDelta)
+		{
+			_parent = parent;
+			_isPooled = pooled;
+			_origin = origin;
+			_deltaPosition = delta;
+			_highlightDeltaPosition = highlightDelta;
+			_pendingUseDeltaPosition = pendingUseDelta;
+			_normalWidgets = parent.CreateManaWidgetList();
+			_highlightWidgets = parent.CreateManaWidgetList();
+		}
+
+		[Conditional("UNITY_EDITOR")]
+		private void ConsistancyTest([CallerMemberName] string callderName = null)
+		{
+			ManaGroup empty = ManaGroup.Empty;
+			foreach (BattleManaWidget normalWidget in _normalWidgets)
+			{
+				empty[normalWidget.ManaColor] += normalWidget.Amount;
+			}
+			if (empty != _totalMana - _highlightMana)
+			{
+				UnityEngine.Debug.LogError($"{callderName}: normal mana mismatch: {empty} vs {_totalMana - _highlightMana}");
+			}
+			ManaGroup empty2 = ManaGroup.Empty;
+			foreach (BattleManaWidget highlightWidget in _highlightWidgets)
+			{
+				empty2[highlightWidget.ManaColor] += highlightWidget.Amount;
+			}
+			if (empty2 != _highlightMana)
+			{
+				UnityEngine.Debug.LogError($"{callderName}: highlight mana mismatch: {empty2} vs {_highlightMana}");
+			}
+		}
+
+		public bool ContainsNormalWidget(BattleManaWidget widget)
+		{
+			return _normalWidgets.Contains(widget);
+		}
+
+		public void ResetAllManas(ManaGroup total, bool transition = true)
+		{
+			_isFolded = total.Amount > 10;
+			_totalMana = total;
+			_highlightMana = ManaGroup.Empty;
+			_parent.ClearWidgetList(_normalWidgets, transition);
+			_parent.ClearWidgetList(_highlightWidgets, transition);
+			Vector2 origin = _origin;
+			ManaColor[] colors = Colors;
+			foreach (ManaColor color in colors)
+			{
+				int num = total[color];
+				if (num <= 0)
+				{
+					continue;
+				}
+				if (_isFolded)
+				{
+					BattleManaWidget item = _parent.CreateManaWidget(color, _isPooled, num, BattleManaStatus.Active, origin);
+					_normalWidgets.Add(item);
+					origin += _deltaPosition;
+					continue;
+				}
+				for (int j = 0; j < num; j++)
+				{
+					BattleManaWidget item2 = _parent.CreateManaWidget(color, _isPooled, 1, BattleManaStatus.Active, origin);
+					_normalWidgets.Add(item2);
+					origin += _deltaPosition;
+				}
+			}
+		}
+
+		public void SetHighlightMana(ManaGroup highlight)
+		{
+			if (highlight == _highlightMana)
+			{
+				return;
+			}
+			if (!_highlightMana.IsEmpty)
+			{
+				ClearHighlight();
+			}
+			if (highlight.IsEmpty)
+			{
+				return;
+			}
+			_highlightMana = highlight;
+			ManaGroup manaGroup = _totalMana - highlight;
+			Vector2 origin = _origin;
+			if (_isFolded)
+			{
+				Vector2 vector = origin + _deltaPosition * manaGroup.ColorCount + _highlightDeltaPosition;
+				ManaColor[] colors = Colors;
+				foreach (ManaColor color in colors)
+				{
+					int num = highlight[color];
+					int num2 = _normalWidgets.FindIndex((BattleManaWidget w) => w.ManaColor == color);
+					if (num > 0)
+					{
+						BattleManaWidget battleManaWidget = _normalWidgets[num2];
+						if (battleManaWidget.Amount == num)
+						{
+							_normalWidgets.RemoveAt(num2);
+							battleManaWidget.MoveTo(vector, _isPooled, BattleManaStatus.Active);
+							_highlightWidgets.Add(battleManaWidget);
+							vector += _deltaPosition;
+						}
+						else
+						{
+							battleManaWidget.Amount -= num;
+							battleManaWidget.MoveTo(origin, _isPooled, BattleManaStatus.Active);
+							BattleManaWidget item = _parent.CreateManaWidget(color, _isPooled, num, BattleManaStatus.Active, battleManaWidget.CurrentPosition, vector);
+							_highlightWidgets.Add(item);
+							origin += _deltaPosition;
+							vector += _deltaPosition;
+						}
+					}
+					else if (num2 >= 0)
+					{
+						_normalWidgets[num2].MoveTo(origin, _isPooled, BattleManaStatus.Active);
+						origin += _deltaPosition;
+					}
+				}
+				return;
+			}
+			Vector2 toPosition = origin + _deltaPosition * manaGroup.Amount + _highlightDeltaPosition;
+			List<BattleManaWidget> list = _parent.CreateManaWidgetList();
+			foreach (BattleManaWidget normalWidget in _normalWidgets)
+			{
+				ManaColor manaColor = normalWidget.ManaColor;
+				if (highlight[manaColor] > 0)
+				{
+					ManaColor color2 = manaColor;
+					int i = highlight[color2] - 1;
+					highlight[color2] = i;
+					normalWidget.MoveTo(toPosition, _isPooled, BattleManaStatus.Active);
+					_highlightWidgets.Add(normalWidget);
+					toPosition += _deltaPosition;
+				}
+				else
+				{
+					normalWidget.MoveTo(origin, _isPooled, BattleManaStatus.Active);
+					list.Add(normalWidget);
+					origin += _deltaPosition;
+				}
+			}
+			_parent.ReleaseManaWidgetList(_normalWidgets);
+			_normalWidgets = list;
+		}
+
+		public void ClearHighlight()
+		{
+			if (_highlightMana.IsEmpty)
+			{
+				return;
+			}
+			_highlightMana = ManaGroup.Empty;
+			Vector2 origin = _origin;
+			List<BattleManaWidget> list = _parent.CreateManaWidgetList();
+			if (_isFolded)
+			{
+				ManaColor[] colors = Colors;
+				foreach (ManaColor color in colors)
+				{
+					int num = _normalWidgets.FindIndex((BattleManaWidget w) => w.ManaColor == color);
+					int num2 = _highlightWidgets.FindIndex((BattleManaWidget w) => w.ManaColor == color);
+					if (num >= 0 && num2 >= 0)
+					{
+						BattleManaWidget battleManaWidget = _normalWidgets[num];
+						battleManaWidget.MoveTo(origin, _isPooled, BattleManaStatus.Active);
+						list.Add(battleManaWidget);
+						BattleManaWidget battleManaWidget2 = _highlightWidgets[num2];
+						battleManaWidget.Amount += battleManaWidget2.Amount;
+						_parent.DisappearAndReleaseManaWidget(battleManaWidget2, origin);
+					}
+					else if (num >= 0)
+					{
+						BattleManaWidget battleManaWidget3 = _normalWidgets[num];
+						battleManaWidget3.MoveTo(origin, _isPooled, BattleManaStatus.Active);
+						list.Add(battleManaWidget3);
+					}
+					else
+					{
+						if (num2 < 0)
+						{
+							continue;
+						}
+						BattleManaWidget battleManaWidget4 = _highlightWidgets[num2];
+						battleManaWidget4.MoveTo(origin, _isPooled, BattleManaStatus.Active);
+						list.Add(battleManaWidget4);
+					}
+					origin += _deltaPosition;
+				}
+			}
+			else
+			{
+				ManaColor[] colors = Colors;
+				foreach (ManaColor key in colors)
+				{
+					foreach (BattleManaWidget item in _normalWidgets.EnumerateEqualRange(key, (BattleManaWidget w) => w.ManaColor))
+					{
+						item.MoveTo(origin, _isPooled, BattleManaStatus.Active);
+						list.Add(item);
+						origin += _deltaPosition;
+					}
+					foreach (BattleManaWidget item2 in _highlightWidgets.EnumerateEqualRange(key, (BattleManaWidget w) => w.ManaColor))
+					{
+						item2.MoveTo(origin, _isPooled, BattleManaStatus.Active);
+						list.Add(item2);
+						origin += _deltaPosition;
+					}
+				}
+			}
+			_parent.ReleaseManaWidgetList(_normalWidgets);
+			_normalWidgets = list;
+			_highlightWidgets.Clear();
+		}
+
+		private void Fold()
+		{
+			if (_isFolded)
+			{
+				UnityEngine.Debug.LogError("Try to fold while already folded.");
+				return;
+			}
+			ManaGroup manaGroup = _totalMana - _highlightMana;
+			Vector2 origin = _origin;
+			if (manaGroup.Amount > 0)
+			{
+				List<BattleManaWidget> list = _parent.CreateManaWidgetList();
+				ManaColor[] colors = Colors;
+				foreach (ManaColor manaColor in colors)
+				{
+					foreach (BattleManaWidget item in _normalWidgets.EnumerateEqualRange(manaColor, (BattleManaWidget w) => w.ManaColor))
+					{
+						_parent.DisappearAndReleaseManaWidget(item, origin);
+					}
+					int num = manaGroup[manaColor];
+					if (num > 0)
+					{
+						list.Add(_parent.CreateManaWidget(manaColor, _isPooled, num, BattleManaStatus.Active, origin));
+						origin += _deltaPosition;
+					}
+				}
+				_parent.ReleaseManaWidgetList(_normalWidgets);
+				_normalWidgets = list;
+			}
+			if (_highlightWidgets.Count > 0)
+			{
+				origin += _highlightDeltaPosition;
+				List<BattleManaWidget> list2 = _parent.CreateManaWidgetList();
+				ManaColor[] colors = Colors;
+				foreach (ManaColor manaColor2 in colors)
+				{
+					int num2 = _highlightMana[manaColor2];
+					if (num2 <= 0)
+					{
+						continue;
+					}
+					foreach (BattleManaWidget item2 in _highlightWidgets.EnumerateEqualRange(manaColor2, (BattleManaWidget w) => w.ManaColor))
+					{
+						_parent.DisappearAndReleaseManaWidget(item2, origin);
+					}
+					list2.Add(_parent.CreateManaWidget(manaColor2, _isPooled, num2, BattleManaStatus.Active, origin));
+					origin += _deltaPosition;
+				}
+				_parent.ReleaseManaWidgetList(_highlightWidgets);
+				_highlightWidgets = list2;
+			}
+			_isFolded = true;
+		}
+
+		private void Unfold()
+		{
+			if (!_isFolded)
+			{
+				UnityEngine.Debug.LogError("Try to unfold while already unfolded.");
+				return;
+			}
+			Vector2 origin = _origin;
+			if (_normalWidgets.Count > 0)
+			{
+				List<BattleManaWidget> list = _parent.CreateManaWidgetList();
+				foreach (BattleManaWidget normalWidget in _normalWidgets)
+				{
+					int amount = normalWidget.Amount;
+					for (int i = 0; i < amount; i++)
+					{
+						list.Add(_parent.CreateManaWidget(normalWidget.ManaColor, _isPooled, 1, BattleManaStatus.Active, normalWidget.CurrentPosition, origin));
+						origin += _deltaPosition;
+					}
+					_parent.DisappearAndReleaseManaWidget(normalWidget);
+				}
+				_parent.ReleaseManaWidgetList(_normalWidgets);
+				_normalWidgets = list;
+			}
+			if (_highlightWidgets.Count > 0)
+			{
+				origin += _highlightDeltaPosition;
+				List<BattleManaWidget> list2 = _parent.CreateManaWidgetList();
+				foreach (BattleManaWidget highlightWidget in _highlightWidgets)
+				{
+					int amount2 = highlightWidget.Amount;
+					for (int j = 0; j < amount2; j++)
+					{
+						list2.Add(_parent.CreateManaWidget(highlightWidget.ManaColor, _isPooled, 1, BattleManaStatus.Active, highlightWidget.CurrentPosition, origin));
+						origin += _deltaPosition;
+					}
+					_parent.DisappearAndReleaseManaWidget(highlightWidget);
+				}
+				_parent.ReleaseManaWidgetList(_highlightWidgets);
+				_highlightWidgets = list2;
+			}
+			_isFolded = false;
+		}
+
+		private void AdjustAll()
+		{
+			Vector2 origin = _origin;
+			foreach (BattleManaWidget normalWidget in _normalWidgets)
+			{
+				normalWidget.MoveTo(origin, _isPooled, BattleManaStatus.Active);
+				origin += _deltaPosition;
+			}
+			origin += _highlightDeltaPosition;
+			foreach (BattleManaWidget highlightWidget in _highlightWidgets)
+			{
+				highlightWidget.MoveTo(origin, _isFolded, BattleManaStatus.Active);
+				origin += _deltaPosition;
+			}
+		}
+
+		public void AddSingleNormalMana(BattleManaWidget widget)
+		{
+			ManaColor color = widget.ManaColor;
+			ref ManaGroup totalMana = ref _totalMana;
+			ManaColor color2 = color;
+			int value = totalMana[color2] + 1;
+			totalMana[color2] = value;
+			ManaGroup manaGroup = _totalMana - _highlightMana;
+			if (_totalMana.Amount > 10)
+			{
+				if (!_isFolded)
+				{
+					Fold();
+					int index = _normalWidgets.FindIndex((BattleManaWidget w) => w.ManaColor == color);
+					BattleManaWidget battleManaWidget = _normalWidgets[index];
+					battleManaWidget.Amount = manaGroup[color];
+					_parent.DisappearAndReleaseManaWidget(widget, battleManaWidget.TargetPosition, _isPooled);
+					return;
+				}
+				int num = _normalWidgets.UpperBound(color, (BattleManaWidget w) => w.ManaColor);
+				if (num > 0 && _normalWidgets[num - 1].ManaColor == color)
+				{
+					BattleManaWidget battleManaWidget2 = _normalWidgets[num - 1];
+					value = battleManaWidget2.Amount + 1;
+					battleManaWidget2.Amount = value;
+					_parent.DisappearAndReleaseManaWidget(widget, battleManaWidget2.TargetPosition, _isPooled);
+				}
+				else
+				{
+					_normalWidgets.Insert(num, widget);
+					AdjustAll();
+				}
+			}
+			else
+			{
+				int index2 = _normalWidgets.UpperBound(color, (BattleManaWidget w) => w.ManaColor);
+				_normalWidgets.Insert(index2, widget);
+				AdjustAll();
+			}
+		}
+
+		public void AddNormalMana(ManaGroup adding, [MaybeNull] IReadOnlyList<BattleManaWidget> sourceWidgets, [MaybeNull] IList<BattleManaWidget> result)
+		{
+			Vector2 origin = _origin;
+			_totalMana += adding;
+			ManaGroup manaGroup = _totalMana - _highlightMana;
+			if (_totalMana.Amount > 10)
+			{
+				if (!_isFolded)
+				{
+					Fold();
+				}
+				else
+				{
+					foreach (BattleManaWidget normalWidget in _normalWidgets)
+					{
+						normalWidget.Amount = manaGroup[normalWidget.ManaColor];
+					}
+				}
+				ManaColor[] colors = Colors;
+				foreach (ManaColor manaColor in colors)
+				{
+					int num = _normalWidgets.UpperBound(manaColor, (BattleManaWidget w) => w.ManaColor);
+					BattleManaWidget battleManaWidget = ((num > 0 && _normalWidgets[num - 1].ManaColor == manaColor) ? _normalWidgets[num - 1] : null);
+					int num2 = adding[manaColor];
+					if (num2 > 0)
+					{
+						if ((object)battleManaWidget != null)
+						{
+							battleManaWidget.MoveTo(origin, _isPooled, BattleManaStatus.Active);
+							result?.Add(battleManaWidget);
+						}
+						else
+						{
+							BattleManaWidget item = _parent.CreateManaWidget(manaColor, _isPooled, num2, BattleManaStatus.Active, origin);
+							_normalWidgets.Insert(num, item);
+							result?.Add(item);
+						}
+						if (sourceWidgets != null)
+						{
+							foreach (BattleManaWidget sourceWidget in sourceWidgets)
+							{
+								if (sourceWidget.ManaColor == manaColor)
+								{
+									_parent.DisappearAndReleaseManaWidget(sourceWidget, origin);
+								}
+							}
+						}
+						origin += _deltaPosition;
+					}
+					else if ((object)battleManaWidget != null)
+					{
+						battleManaWidget.MoveTo(origin, _isPooled, BattleManaStatus.Active);
+						origin += _deltaPosition;
+					}
+				}
+			}
+			else
+			{
+				List<BattleManaWidget> list = _parent.CreateManaWidgetList();
+				ManaColor[] colors = Colors;
+				foreach (ManaColor manaColor2 in colors)
+				{
+					foreach (int item3 in _normalWidgets.EqualRange(manaColor2, (BattleManaWidget w) => w.ManaColor))
+					{
+						BattleManaWidget battleManaWidget2 = _normalWidgets[item3];
+						battleManaWidget2.MoveTo(origin, _isPooled, BattleManaStatus.Active);
+						list.Add(battleManaWidget2);
+						origin += _deltaPosition;
+					}
+					int num3 = adding[manaColor2];
+					if (num3 <= 0)
+					{
+						continue;
+					}
+					if (sourceWidgets != null)
+					{
+						Range range = sourceWidgets.EqualRange(manaColor2, (BattleManaWidget w) => w.ManaColor);
+						range.Count();
+						foreach (int item4 in range)
+						{
+							BattleManaWidget battleManaWidget3 = sourceWidgets[item4];
+							battleManaWidget3.MoveTo(origin, _isPooled, BattleManaStatus.Active);
+							list.Add(battleManaWidget3);
+							result?.Add(battleManaWidget3);
+							origin += _deltaPosition;
+						}
+					}
+					else
+					{
+						for (int j = 0; j < num3; j++)
+						{
+							BattleManaWidget item2 = _parent.CreateManaWidget(manaColor2, _isPooled, 1, BattleManaStatus.Active, origin);
+							list.Add(item2);
+							result?.Add(item2);
+							origin += _deltaPosition;
+						}
+					}
+				}
+				_parent.ReleaseManaWidgetList(_normalWidgets);
+				_normalWidgets = list;
+			}
+			foreach (BattleManaWidget highlightWidget in _highlightWidgets)
+			{
+				highlightWidget.MoveTo(origin, _isPooled, BattleManaStatus.Active);
+				origin += _deltaPosition;
+			}
+		}
+
+		public BattleManaWidget ExtractSingleNormalMana(BattleManaWidget widget)
+		{
+			if (!_normalWidgets.Contains(widget))
+			{
+				throw new InvalidOperationException("Cannot extra widget that is not in normal widgets");
+			}
+			ManaColor manaColor = widget.ManaColor;
+			int amount;
+			if (_isFolded)
+			{
+				bool flag = _totalMana.Amount - 1 <= 10;
+				if (widget.Amount > 1)
+				{
+					BattleManaWidget battleManaWidget = widget;
+					amount = battleManaWidget.Amount - 1;
+					battleManaWidget.Amount = amount;
+					widget = _parent.CreateInactiveManaWidget(manaColor, _isPooled, 1);
+					widget.InstantAppear(BattleManaStatus.Active, widget.CurrentPosition);
+					if (flag)
+					{
+						Unfold();
+					}
+				}
+				else
+				{
+					_normalWidgets.Remove(widget);
+					if (flag)
+					{
+						Unfold();
+					}
+					else
+					{
+						AdjustAll();
+					}
+				}
+			}
+			else
+			{
+				_normalWidgets.Remove(widget);
+				AdjustAll();
+			}
+			ref ManaGroup totalMana = ref _totalMana;
+			ManaColor color = manaColor;
+			amount = totalMana[color] - 1;
+			totalMana[color] = amount;
+			return widget;
+		}
+
+		public void RemoveNormalMana(ManaGroup removing, [MaybeNull] IList<BattleManaWidget> result)
+		{
+			ManaGroup normalMana = NormalMana;
+			if (!normalMana.CanAfford(removing))
+			{
+				throw new InvalidOperationException($"Cannot remove {removing} from {normalMana}");
+			}
+			ManaColor[] colors;
+			if (_isFolded)
+			{
+				colors = Colors;
+				foreach (ManaColor color in colors)
+				{
+					int num = removing[color];
+					if (num <= 0)
+					{
+						continue;
+					}
+					int index = _normalWidgets.FindIndex((BattleManaWidget w) => w.ManaColor == color);
+					BattleManaWidget battleManaWidget = _normalWidgets[index];
+					if (battleManaWidget.Amount > num)
+					{
+						battleManaWidget.Amount -= num;
+						if (result != null)
+						{
+							for (int j = 0; j < num; j++)
+							{
+								BattleManaWidget battleManaWidget2 = _parent.CreateInactiveManaWidget(color, _isPooled, 1);
+								battleManaWidget2.InstantAppear(BattleManaStatus.Active, battleManaWidget.CurrentPosition);
+								result.Add(battleManaWidget2);
+							}
+						}
+						continue;
+					}
+					_normalWidgets.RemoveAt(index);
+					if (result != null)
+					{
+						if (battleManaWidget.Amount == 1)
+						{
+							result.Add(battleManaWidget);
+							continue;
+						}
+						for (int k = 0; k < num; k++)
+						{
+							BattleManaWidget battleManaWidget3 = _parent.CreateInactiveManaWidget(color, _isPooled, 1);
+							battleManaWidget3.InstantAppear(BattleManaStatus.Active, battleManaWidget.CurrentPosition);
+							result.Add(battleManaWidget3);
+						}
+						_parent.DisappearAndReleaseManaWidget(battleManaWidget);
+					}
+					else
+					{
+						_parent.DisappearAndReleaseManaWidget(battleManaWidget);
+					}
+				}
+				_totalMana -= removing;
+				if (_totalMana.Amount <= 10)
+				{
+					Unfold();
+				}
+				else
+				{
+					AdjustAll();
+				}
+				return;
+			}
+			List<BattleManaWidget> list = _parent.CreateManaWidgetList();
+			colors = Colors;
+			foreach (ManaColor manaColor in colors)
+			{
+				int num2 = removing[manaColor];
+				int num3 = normalMana[manaColor] - num2;
+				Range range = _normalWidgets.EqualRange(manaColor, (BattleManaWidget w) => w.ManaColor);
+				int value = range.Start.Value;
+				int value2 = range.End.Value;
+				int num4 = value + num3;
+				for (int l = value; l < num4; l++)
+				{
+					BattleManaWidget item = _normalWidgets[l];
+					list.Add(item);
+				}
+				for (int m = num4; m < value2; m++)
+				{
+					BattleManaWidget battleManaWidget4 = _normalWidgets[m];
+					if (result != null)
+					{
+						result.Add(battleManaWidget4);
+					}
+					else
+					{
+						_parent.DisappearAndReleaseManaWidget(battleManaWidget4);
+					}
+				}
+			}
+			_parent.ReleaseManaWidgetList(_normalWidgets);
+			_normalWidgets = list;
+			_totalMana -= removing;
+			AdjustAll();
+		}
+
+		public List<BattleManaWidget> Prepay()
+		{
+			List<BattleManaWidget> highlightWidgets = _highlightWidgets;
+			_totalMana -= _highlightMana;
+			_highlightMana = ManaGroup.Empty;
+			_highlightWidgets = _parent.CreateManaWidgetList();
+			if (_isFolded && _totalMana.Amount <= 10)
+			{
+				Unfold();
+			}
+			Vector2 toPosition = _origin + _normalWidgets.Count * _deltaPosition + _highlightDeltaPosition + _pendingUseDeltaPosition;
+			foreach (BattleManaWidget item in highlightWidgets)
+			{
+				item.MoveTo(toPosition, item.IsPooled, BattleManaStatus.PendingUse);
+				toPosition += _deltaPosition;
+			}
+			return highlightWidgets;
+		}
+	}
+
+	private sealed class ConsumingManaWidgets
+	{
+		public ConsumingMana Value { get; }
+
+		public List<BattleManaWidget> UnpooledWidgets { get; }
+
+		public List<BattleManaWidget> PooledWidgets { get; }
+
+		public ConsumingManaWidgets(ConsumingMana value, List<BattleManaWidget> unpooled, List<BattleManaWidget> pooled)
+		{
+			Value = value;
+			UnpooledWidgets = unpooled;
+			PooledWidgets = pooled;
+		}
+
+		public override string ToString()
+		{
+			ManaGroup manaGroup = MergeWidgetsMana(UnpooledWidgets);
+			ManaGroup manaGroup2 = MergeWidgetsMana(PooledWidgets);
+			ManaGroup manaGroup3 = manaGroup;
+			ManaGroup manaGroup4 = manaGroup2;
+			if (manaGroup3 != Value.Unpooled || manaGroup4 != Value.Pooled)
+			{
+				return $"{Value}(actually {manaGroup3}+{manaGroup4})";
+			}
+			return Value.ToString();
+			static ManaGroup MergeWidgetsMana(IEnumerable<BattleManaWidget> widgets)
+			{
+				ManaGroup empty = ManaGroup.Empty;
+				foreach (BattleManaWidget widget in widgets)
+				{
+					empty[widget.ManaColor] += widget.Amount;
+				}
+				return empty;
+			}
+		}
+	}
+
+	private sealed class CardCostSnapshot
+	{
+		public Card Card { get; }
+
+		public bool IsXCost { get; }
+
+		public ManaGroup Cost { get; }
+
+		public ManaGroup? KickerTotalCost { get; }
+
+		public bool KickerPaying { get; set; }
+
+		public bool IsPseudoEmpty
+		{
+			get
+			{
+				if (!IsXCost)
+				{
+					return Cost.IsEmpty;
+				}
+				return false;
+			}
+		}
+
+		public CardCostSnapshot(Card card)
+		{
+			Card = card;
+			if (card.IsXCost)
+			{
+				IsXCost = true;
+				Cost = card.XCostRequiredMana;
+			}
+			else
+			{
+				Cost = card.Cost;
+			}
+			if (card.HasKicker)
+			{
+				KickerTotalCost = card.KickerTotalCost;
+			}
+			else
+			{
+				KickerTotalCost = null;
+			}
+		}
+
+		public override string ToString()
+		{
+			if (!IsXCost)
+			{
+				return "CardCost: " + Cost.ToString();
+			}
+			return "CardCost: X";
+		}
+	}
+
+	private ManaCollection _unpooledCollection;
+
+	private ManaCollection _pooledCollection;
+
+	private int _currentManaIndex;
+
+	[Header("Gamepad")]
+	[SerializeField]
+	private GamepadButtonTip gamepadBaseManaTip;
+
+	private Action quickSelectBaseManaAfterClickAction;
+
+	[SerializeField]
+	private BattleManaWidget battleManaTemplate;
+
+	[SerializeField]
+	private Transform manaRoot;
+
+	[SerializeField]
+	private TextMeshProUGUI amountText;
+
+	[SerializeField]
+	private CanvasGroup pooledGroup;
+
+	[SerializeField]
+	private Button clearPooledButton;
+
+	[SerializeField]
+	private GameObject tooltipZone;
+
+	[SerializeField]
+	private GameObject kickerPreferRoot;
+
+	[SerializeField]
+	private SwitchWidget kickerPreferSwitch;
+
+	[Header("UI adjustment")]
+	[SerializeField]
+	private float unpooledX;
+
+	[SerializeField]
+	private float unpooledY;
+
+	[SerializeField]
+	private float unpooledDeltaY = 110f;
+
+	[SerializeField]
+	private float pooledX = 126f;
+
+	[SerializeField]
+	private float pooledY;
+
+	[SerializeField]
+	private float pooledDeltaY = 100f;
+
+	[SerializeField]
+	private float highlightDeltaY = 50f;
+
+	[SerializeField]
+	private float pendingUseDeltaY = 50f;
+
+	[SerializeField]
+	private float transitionDuration = 0.2f;
+
+	private static readonly ManaColor[] Colors = ManaColors.WUBRGCP.ToArray();
+
+	private const int FoldingThreshold = 10;
+
+	private RectTransform _rect;
+
+	private readonly List<ConsumingManaWidgets> _consumingDeque = new List<ConsumingManaWidgets>();
+
+	private readonly Dictionary<ManaColor, IObjectPool<BattleManaWidget>> _manaWidgetPoolTable = new Dictionary<ManaColor, IObjectPool<BattleManaWidget>>();
+
+	private readonly IObjectPool<List<BattleManaWidget>> _manaListPool = new ObjectPool<List<BattleManaWidget>>(() => new List<BattleManaWidget>(), null, delegate(List<BattleManaWidget> list)
+	{
+		list.Clear();
+	}, null, collectionCheck: false, 16);
+
+	private Vector3 _widgetSize;
+
+	private CardCostSnapshot _currentHighlightingCost;
+
+	private bool _showKickerPrefer;
+
+	private bool _poolBgActive;
+
+	public override PanelLayer Layer => PanelLayer.Base;
+
+	public float TransitionDuration => transitionDuration;
+
+	public ManaGroup AvailableMana => _pooledCollection.TotalMana + _unpooledCollection.TotalMana;
+
+	public ManaGroup PooledMana => _pooledCollection.TotalMana;
+
+	public bool ShowKickerPrefer
+	{
+		get
+		{
+			return _showKickerPrefer;
+		}
+		set
+		{
+			if (_showKickerPrefer != value)
+			{
+				_showKickerPrefer = value;
+				kickerPreferRoot.SetActive(value);
+			}
+		}
+	}
+
+	public ManaGroup HighlightingMana => _unpooledCollection.HighlightMana + _pooledCollection.HighlightMana;
+
+	public bool PreferKicker { get; set; }
+
+	public bool CurrentKickerHighlighting => _currentHighlightingCost?.KickerPaying ?? false;
+
+	private static void FillAnyCost(ref int any, ref ManaGroup available, in ManaGroup handRemainCost, out ManaGroup payment)
+	{
+		payment = ManaGroup.Empty;
+		int colorless = available.Colorless;
+		if (colorless >= any)
+		{
+			available.Colorless -= any;
+			payment.Colorless += any;
+			any = 0;
+			return;
+		}
+		available.Colorless = 0;
+		payment.Colorless += colorless;
+		any -= colorless;
+		List<ManaColor> list = new List<ManaColor>();
+		foreach (ManaColor item in ManaColors.WUBRG)
+		{
+			if (handRemainCost[item] == 0)
+			{
+				list.Add(item);
+			}
+		}
+		while (any > 0)
+		{
+			ManaColor manaColor = list.MaxByOrDefault(available.GetValue);
+			int num = ((manaColor != 0) ? available[manaColor] : 0);
+			if (num == 0)
+			{
+				manaColor = ManaColors.WUBRG.MaxBy(available.GetValue);
+				num = available[manaColor];
+			}
+			if (num == 0)
+			{
+				break;
+			}
+			available[manaColor] = num - 1;
+			ManaColor color = manaColor;
+			int value = payment[color] + 1;
+			payment[color] = value;
+			any--;
+		}
+		if (any != 0)
+		{
+			int philosophy = available.Philosophy;
+			if (philosophy >= any)
+			{
+				available.Philosophy -= any;
+				payment.Philosophy += any;
+				any = 0;
+			}
+			else
+			{
+				available.Philosophy = 0;
+				payment.Philosophy += philosophy;
+				any -= philosophy;
+			}
+		}
+	}
+
+	private static void FillHybridCost(ref int hybrid, List<ManaColor> hybridColors, ref ManaGroup available, in ManaGroup handRemainCost, out ManaGroup payment)
+	{
+		payment = ManaGroup.Empty;
+		List<ManaColor> list = new List<ManaColor>();
+		foreach (ManaColor hybridColor in hybridColors)
+		{
+			if (handRemainCost[hybridColor] == 0)
+			{
+				list.Add(hybridColor);
+			}
+		}
+		while (hybrid > 0)
+		{
+			ManaColor manaColor = list.MaxByOrDefault(available.GetValue);
+			int num = ((manaColor != 0) ? available[manaColor] : 0);
+			if (num == 0)
+			{
+				manaColor = hybridColors.MaxBy(available.GetValue);
+				num = available[manaColor];
+			}
+			if (num == 0)
+			{
+				break;
+			}
+			available[manaColor] = num - 1;
+			ManaColor color = manaColor;
+			int value = payment[color] + 1;
+			payment[color] = value;
+			hybrid--;
+		}
+		if (hybrid != 0)
+		{
+			int philosophy = available.Philosophy;
+			if (philosophy >= hybrid)
+			{
+				available.Philosophy -= hybrid;
+				payment.Philosophy += hybrid;
+				hybrid = 0;
+			}
+			else
+			{
+				available.Philosophy = 0;
+				payment.Philosophy += philosophy;
+				hybrid -= philosophy;
+			}
+		}
+	}
+
+	internal static bool CalculateAutoPayment(ManaGroup unpooledMana, ManaGroup pooledMana, ManaGroup handRemainCost, ManaGroup cost, ManaGroup? kickerCost, bool preferKicker, [MaybeNull] IXCostFilter xCostFilter, out bool kickerPaying, out ManaGroup unpooledPayment, out ManaGroup pooledPayment)
+	{
+		kickerPaying = false;
+		if (kickerCost.HasValue)
+		{
+			if (preferKicker)
+			{
+				if ((unpooledMana + pooledMana).CanAfford(kickerCost.Value))
+				{
+					cost = kickerCost.Value;
+					kickerPaying = true;
+				}
+			}
+			else if (pooledMana.CanAfford(kickerCost.Value))
+			{
+				cost = kickerCost.Value;
+				kickerPaying = true;
+			}
+		}
+		unpooledPayment = ManaGroup.Empty;
+		pooledPayment = ManaGroup.Empty;
+		int any = cost.Any;
+		int hybrid = cost.Hybrid;
+		foreach (ManaColor item in ManaColors.WUBRGC)
+		{
+			int num = cost[item];
+			if (num != 0)
+			{
+				int num2 = unpooledMana[item] + pooledMana[item];
+				int num3 = num - num2;
+				if (num3 > 0 && pooledMana.Philosophy > 0)
+				{
+					int num4 = Math.Min(num3, pooledMana.Philosophy);
+					cost[item] -= num4;
+					pooledMana.Philosophy -= num4;
+					pooledPayment.Philosophy += num4;
+					num3 -= num4;
+				}
+				if (num3 > 0 && unpooledMana.Philosophy > 0)
+				{
+					int num5 = Math.Min(num3, unpooledMana.Philosophy);
+					cost[item] -= num5;
+					unpooledMana.Philosophy -= num5;
+					unpooledPayment.Philosophy += num5;
+					num3 -= num5;
+				}
+				if (num3 > 0)
+				{
+					return false;
+				}
+			}
+		}
+		foreach (ManaColor item2 in ManaColors.WUBRGC)
+		{
+			int num6 = cost[item2];
+			int num7 = pooledMana[item2];
+			if (num6 > 0 && num7 > 0)
+			{
+				int num8 = Math.Min(num6, num7);
+				cost[item2] -= num8;
+				pooledMana[item2] -= num8;
+				pooledPayment[item2] += num8;
+			}
+		}
+		while (pooledMana.Philosophy > 0)
+		{
+			ManaColor manaColor = ManaColors.WUBRGC.Where((ManaColor c) => cost[c] > 0).MinByOrDefault((ManaColor c) => pooledMana[c] + unpooledMana[c]);
+			if (manaColor == ManaColor.Any)
+			{
+				break;
+			}
+			ref ManaGroup reference = ref pooledMana;
+			int philosophy = reference.Philosophy - 1;
+			reference.Philosophy = philosophy;
+			philosophy = pooledPayment.Philosophy + 1;
+			pooledPayment.Philosophy = philosophy;
+			ref ManaGroup reference2 = ref cost;
+			ManaColor color = manaColor;
+			philosophy = reference2[color] - 1;
+			reference2[color] = philosophy;
+		}
+		if (hybrid > 0)
+		{
+			List<ManaColor> hybridColors = ManaGroup.HybridColors[cost.HybridColor];
+			FillHybridCost(ref hybrid, hybridColors, ref pooledMana, in handRemainCost, out var payment);
+			pooledPayment += payment;
+		}
+		if (any > 0)
+		{
+			FillAnyCost(ref any, ref pooledMana, in handRemainCost, out var payment2);
+			pooledPayment += payment2;
+		}
+		foreach (ManaColor item3 in ManaColors.WUBRGC)
+		{
+			int num9 = cost[item3];
+			int num10 = unpooledMana[item3];
+			if (num9 > 0 && num10 > 0)
+			{
+				int num11 = Math.Min(num9, num10);
+				cost[item3] -= num11;
+				unpooledMana[item3] -= num11;
+				unpooledPayment[item3] += num11;
+			}
+		}
+		if (hybrid > 0)
+		{
+			List<ManaColor> hybridColors2 = ManaGroup.HybridColors[cost.HybridColor];
+			FillHybridCost(ref hybrid, hybridColors2, ref unpooledMana, in handRemainCost, out var payment3);
+			unpooledPayment += payment3;
+		}
+		if (any > 0)
+		{
+			FillAnyCost(ref any, ref unpooledMana, in handRemainCost, out var payment4);
+			unpooledPayment += payment4;
+		}
+		if (xCostFilter != null)
+		{
+			ManaGroup xCostFromPooled = xCostFilter.GetXCostFromPooled(pooledMana);
+			pooledMana -= xCostFromPooled;
+			pooledPayment += xCostFromPooled;
+		}
+		return any == 0;
+	}
+
+	private void InitCollections()
+	{
+		_unpooledCollection = new ManaCollection(this, pooled: false, new Vector2(unpooledX, unpooledY), new Vector2(0f, unpooledDeltaY), new Vector2(0f, highlightDeltaY), new Vector2(0f, pendingUseDeltaY));
+		_pooledCollection = new ManaCollection(this, pooled: true, new Vector2(pooledX, pooledY), new Vector2(0f, pooledDeltaY), new Vector2(0f, highlightDeltaY), new Vector2(0f, pendingUseDeltaY));
+	}
+
+	private BattleManaWidget CreateManaWidget(ManaColor color, bool pooled, int amount, BattleManaStatus status, Vector2 fromPosition, Vector2? toPosition = null)
+	{
+		BattleManaWidget battleManaWidget = CreateInactiveManaWidget(color, pooled, amount);
+		battleManaWidget.Appear(status, fromPosition, toPosition);
+		return battleManaWidget;
+	}
+
+	private BattleManaWidget CreateInactiveManaWidget(ManaColor color, bool pooled, int amount)
+	{
+		int num = ++_currentManaIndex;
+		BattleManaWidget battleManaWidget = _manaWidgetPoolTable[color].Get();
+		battleManaWidget.gameObject.name = ((amount > 1) ? $"Mana [{num}]: {color.ToShortName()} (x{amount})" : $"Mana [{num}]: {color.ToShortName()}");
+		battleManaWidget.Reinit(pooled);
+		battleManaWidget.Amount = amount;
+		battleManaWidget.Index = num;
+		return battleManaWidget;
+	}
+
+	private void ReleaseManaWidget(BattleManaWidget widget)
+	{
+		_manaWidgetPoolTable[widget.ManaColor].Release(widget);
+	}
+
+	private void DisappearAndReleaseManaWidget(BattleManaWidget widget)
+	{
+		widget.Disappear(delegate
+		{
+			ReleaseManaWidget(widget);
+		});
+	}
+
+	private void DisappearAndReleaseManaWidget(BattleManaWidget widget, Vector2 toPosition)
+	{
+		widget.Disappear(toPosition, delegate
+		{
+			ReleaseManaWidget(widget);
+		});
+	}
+
+	private void DisappearAndReleaseManaWidget(BattleManaWidget widget, Vector2 toPosition, bool pooled)
+	{
+		widget.Disappear(toPosition, pooled, delegate
+		{
+			ReleaseManaWidget(widget);
+		});
+	}
+
+	private void ConsumeAndReleaseManaWidget(BattleManaWidget widget)
+	{
+		widget.Consume(delegate
+		{
+			ReleaseManaWidget(widget);
+		});
+	}
+
+	private List<BattleManaWidget> CreateManaWidgetList()
+	{
+		return _manaListPool.Get();
+	}
+
+	private void ReleaseManaWidgetList(List<BattleManaWidget> list)
+	{
+		_manaListPool.Release(list);
+	}
+
+	private void ClearWidgetList(List<BattleManaWidget> list, bool transition)
+	{
+		foreach (BattleManaWidget item in list)
+		{
+			if (transition)
+			{
+				DisappearAndReleaseManaWidget(item);
+			}
+			else
+			{
+				ReleaseManaWidget(item);
+			}
+		}
+		list.Clear();
+	}
+
+	private void ResetAllManas(ManaGroup unpooled, ManaGroup pooled, bool transition = true)
+	{
+		_unpooledCollection.ResetAllManas(unpooled, transition);
+		_pooledCollection.ResetAllManas(pooled, transition);
+		foreach (ConsumingManaWidgets item in _consumingDeque)
+		{
+			foreach (BattleManaWidget pooledWidget in item.PooledWidgets)
+			{
+				DisappearAndReleaseManaWidget(pooledWidget);
+			}
+			foreach (BattleManaWidget unpooledWidget in item.UnpooledWidgets)
+			{
+				DisappearAndReleaseManaWidget(unpooledWidget);
+			}
+			ReleaseManaWidgetList(item.PooledWidgets);
+			ReleaseManaWidgetList(item.UnpooledWidgets);
+		}
+		_consumingDeque.Clear();
+		UpdateHighlightManaForCard();
+		UpdateAmountText();
+		SetPoolBgActive(!_pooledCollection.TotalMana.IsEmpty);
+	}
+
+	public void QuickSelectBaseManaByGamepad()
+	{
+		BattleManaWidget battleManaWidget = null;
+		if (_unpooledCollection.TotalMana.Amount > 0)
+		{
+			if (_unpooledCollection.NormalWidgets.Count > 0)
+			{
+				battleManaWidget = _unpooledCollection.NormalWidgets[0];
+			}
+			else if (_unpooledCollection.HighlightWidgets.Count > 0)
+			{
+				battleManaWidget = _unpooledCollection.HighlightWidgets[0];
+			}
+		}
+		else if (_pooledCollection.TotalMana.Amount > 0)
+		{
+			if (_pooledCollection.NormalWidgets.Count > 0)
+			{
+				battleManaWidget = _pooledCollection.NormalWidgets[0];
+			}
+			else if (_pooledCollection.HighlightWidgets.Count > 0)
+			{
+				battleManaWidget = _pooledCollection.HighlightWidgets[0];
+			}
+		}
+		if (!(battleManaWidget == null))
+		{
+			EventSystem.current.SetSelectedGameObject(battleManaWidget.gameObject);
+		}
+	}
+
+	private void QuickSelectBaseManaAfterClick(BattleManaWidget widget, bool rightClick)
+	{
+		ManaCollection targetPool = _unpooledCollection;
+		int targetIndex = -1;
+		if (widget.IsPooled)
+		{
+			targetPool = _pooledCollection;
+		}
+		else
+		{
+			targetPool = _unpooledCollection;
+		}
+		int num = targetPool.NormalWidgets.IndexOf(widget);
+		if (num < 0)
+		{
+			quickSelectBaseManaAfterClickAction = QuickSelectBaseManaByGamepad;
+		}
+		else
+		{
+			targetIndex = num;
+			quickSelectBaseManaAfterClickAction = delegate
+			{
+				if (targetPool.NormalWidgets.Count > targetIndex)
+				{
+					EventSystem.current.SetSelectedGameObject(targetPool.NormalWidgets[targetIndex].gameObject);
+				}
+				else if (targetPool.NormalWidgets.Count > 0)
+				{
+					EventSystem.current.SetSelectedGameObject(targetPool.NormalWidgets[targetPool.NormalWidgets.Count - 1].gameObject);
+				}
+				else
+				{
+					QuickSelectBaseManaByGamepad();
+				}
+			};
+		}
+		if (quickSelectBaseManaAfterClickAction != null)
+		{
+			StartCoroutine(CoQuickSelectNextBaseMana());
+		}
+	}
+
+	private IEnumerator CoQuickSelectNextBaseMana()
+	{
+		yield return null;
+		quickSelectBaseManaAfterClickAction?.Invoke();
+		quickSelectBaseManaAfterClickAction = null;
+	}
+
+	public void SetGamepadTipActive(bool active)
+	{
+		gamepadBaseManaTip.gameObject.SetActive(active);
+	}
+
+	private Vector3 GetTargetCenterWorldPosition(BattleManaWidget widget)
+	{
+		return manaRoot.TransformPoint((Vector3)widget.TargetPosition + _widgetSize / 2f);
+	}
+
+	public void Awake()
+	{
+		_widgetSize = battleManaTemplate.GetComponent<RectTransform>().sizeDelta;
+		InitCollections();
+		Dictionary<string, Sprite> dictionary = Resources.LoadAll<Sprite>("Sprite Assets/ManaSprite").ToDictionary((Sprite sprite) => sprite.name);
+		ManaColor[] colors = Colors;
+		foreach (ManaColor color in colors)
+		{
+			char c = color.ToShortName();
+			Sprite unpooled = dictionary[c + "M"];
+			Sprite unpooledHighlight = dictionary[c + "MA"];
+			Sprite pooled = dictionary[c + "P"];
+			Sprite pooledHighlight = dictionary[c + "PA"];
+			_manaWidgetPoolTable.Add(color, new ObjectPool<BattleManaWidget>(delegate
+			{
+				BattleManaWidget battleManaWidget = UnityEngine.Object.Instantiate(battleManaTemplate, manaRoot);
+				battleManaWidget.Init(color, unpooled, unpooledHighlight, pooled, pooledHighlight);
+				return battleManaWidget;
+			}, delegate(BattleManaWidget widget)
+			{
+				widget.Parent = this;
+				widget.gameObject.SetActive(value: true);
+			}, delegate(BattleManaWidget widget)
+			{
+				widget.Parent = null;
+				widget.ResetStatus();
+				widget.gameObject.SetActive(value: false);
+			}, delegate(BattleManaWidget widget)
+			{
+				UnityEngine.Object.Destroy(widget.gameObject);
+			}, collectionCheck: false, 16, 32));
+		}
+		manaRoot.DestroyChildren();
+		clearPooledButton.onClick.AddListener(UnpoolAllMana);
+		pooledGroup.gameObject.SetActive(value: false);
+		pooledGroup.alpha = 0f;
+		kickerPreferRoot.SetActive(value: false);
+		kickerPreferSwitch.SetValueWithoutNotifier(PreferKicker);
+		kickerPreferSwitch.AddListener(delegate(bool isOn)
+		{
+			PreferKicker = isOn;
+		});
+		SimpleTooltipSource.CreateWithTooltipKey(tooltipZone, "BattleMana").WithPosition(TooltipDirection.Right, TooltipAlignment.Min);
+		gamepadBaseManaTip.gameObject.SetActive(value: false);
+	}
+
+	protected override void OnDestroy()
+	{
+		foreach (KeyValuePair<ManaColor, IObjectPool<BattleManaWidget>> item in _manaWidgetPoolTable)
+		{
+			item.Value.Clear();
+		}
+		base.OnDestroy();
+	}
+
+	private void UnpoolAllMana()
+	{
+		AudioManager.PlayUi("ManaInactive");
+		if (_currentHighlightingCost == null || _currentHighlightingCost.IsPseudoEmpty)
+		{
+			List<BattleManaWidget> list = CreateManaWidgetList();
+			ManaGroup normalMana = _pooledCollection.NormalMana;
+			_pooledCollection.RemoveNormalMana(normalMana, list);
+			_unpooledCollection.AddNormalMana(normalMana, list, null);
+			ReleaseManaWidgetList(list);
+		}
+		else
+		{
+			UnityEngine.Debug.LogWarning($"[BattleManaPanel] Unpool all mana while highlighting [{_currentHighlightingCost}] is not empty.");
+			_unpooledCollection.ResetAllManas(_unpooledCollection.TotalMana + _pooledCollection.TotalMana);
+			_pooledCollection.ResetAllManas(ManaGroup.Empty);
+			UpdateHighlightManaForCard();
+		}
+		SetPoolBgActive(active: false);
+		if (Singleton<InputDeviceManager>.Instance.CurrentInputDevice == InputDeviceType.Gamepad)
+		{
+			QuickSelectBaseManaByGamepad();
+		}
+	}
+
+	public bool TryPoolSingle(ManaColor color)
+	{
+		if (_unpooledCollection.TotalMana[color] <= 0)
+		{
+			return false;
+		}
+		ManaGroup manaGroup = ManaGroup.Single(color);
+		_unpooledCollection.ResetAllManas(_unpooledCollection.TotalMana - manaGroup);
+		_pooledCollection.ResetAllManas(_pooledCollection.TotalMana + manaGroup);
+		SetPoolBgActive(active: true);
+		UpdateHighlightManaForCard();
+		return true;
+	}
+
+	public void OnBattleManaClicked(BattleManaWidget widget, bool rightClick)
+	{
+		if (Singleton<InputDeviceManager>.Instance.CurrentInputDevice == InputDeviceType.Gamepad)
+		{
+			QuickSelectBaseManaAfterClick(widget, rightClick);
+		}
+		if (rightClick)
+		{
+			if (widget.IsPooled)
+			{
+				if (_pooledCollection.ContainsNormalWidget(widget))
+				{
+					int amount = _pooledCollection.NormalMana[widget.ManaColor];
+					ManaGroup manaGroup = ManaGroup.FromColor(widget.ManaColor, amount);
+					List<BattleManaWidget> list = CreateManaWidgetList();
+					_pooledCollection.RemoveNormalMana(manaGroup, list);
+					_unpooledCollection.AddNormalMana(manaGroup, list, null);
+					ReleaseManaWidgetList(list);
+				}
+			}
+			else if (_unpooledCollection.ContainsNormalWidget(widget))
+			{
+				int amount2 = _unpooledCollection.NormalMana[widget.ManaColor];
+				ManaGroup manaGroup2 = ManaGroup.FromColor(widget.ManaColor, amount2);
+				List<BattleManaWidget> list2 = CreateManaWidgetList();
+				_unpooledCollection.RemoveNormalMana(manaGroup2, list2);
+				_pooledCollection.AddNormalMana(manaGroup2, list2, null);
+				ReleaseManaWidgetList(list2);
+			}
+		}
+		else if (widget.IsPooled)
+		{
+			if (_pooledCollection.ContainsNormalWidget(widget))
+			{
+				widget = _pooledCollection.ExtractSingleNormalMana(widget);
+				_unpooledCollection.AddSingleNormalMana(widget);
+			}
+		}
+		else if (_unpooledCollection.ContainsNormalWidget(widget))
+		{
+			widget = _unpooledCollection.ExtractSingleNormalMana(widget);
+			_pooledCollection.AddSingleNormalMana(widget);
+		}
+		SetPoolBgActive(_pooledCollection.TotalMana.Amount > 0);
+	}
+
+	private void UpdateHighlightManaForCard()
+	{
+		CardCostSnapshot currentHighlightingCost = _currentHighlightingCost;
+		if (currentHighlightingCost != null)
+		{
+			ManaGroup handRemainCostExcept = UiManager.GetPanel<PlayBoard>().GetHandRemainCostExcept(currentHighlightingCost.Card);
+			if (currentHighlightingCost.IsXCost)
+			{
+				if (!CalculateAutoPayment(_unpooledCollection.TotalMana, _pooledCollection.TotalMana, handRemainCostExcept, currentHighlightingCost.Cost, currentHighlightingCost.KickerTotalCost, PreferKicker, currentHighlightingCost.Card, out var kickerPaying, out var unpooledPayment, out var pooledPayment))
+				{
+					currentHighlightingCost.KickerPaying = kickerPaying;
+					_unpooledCollection.ClearHighlight();
+					_pooledCollection.ClearHighlight();
+					currentHighlightingCost.Card.PendingManaUsage = ManaGroup.Empty;
+					return;
+				}
+				currentHighlightingCost.KickerPaying = kickerPaying;
+				_unpooledCollection.SetHighlightMana(unpooledPayment);
+				_pooledCollection.SetHighlightMana(pooledPayment);
+				currentHighlightingCost.Card.PendingManaUsage = unpooledPayment + pooledPayment;
+			}
+			else
+			{
+				if (!CalculateAutoPayment(_unpooledCollection.TotalMana, _pooledCollection.TotalMana, handRemainCostExcept, currentHighlightingCost.Cost, currentHighlightingCost.KickerTotalCost, PreferKicker, null, out var kickerPaying2, out var unpooledPayment2, out var pooledPayment2))
+				{
+					currentHighlightingCost.KickerPaying = kickerPaying2;
+					_unpooledCollection.ClearHighlight();
+					_pooledCollection.ClearHighlight();
+					currentHighlightingCost.Card.PendingManaUsage = ManaGroup.Empty;
+					return;
+				}
+				currentHighlightingCost.KickerPaying = kickerPaying2;
+				_unpooledCollection.SetHighlightMana(unpooledPayment2);
+				_pooledCollection.SetHighlightMana(pooledPayment2);
+				currentHighlightingCost.Card.PendingManaUsage = unpooledPayment2 + pooledPayment2;
+			}
+		}
+		else
+		{
+			_unpooledCollection.ClearHighlight();
+			_pooledCollection.ClearHighlight();
+		}
+		UpdateAmountText();
+	}
+
+	public void SetCostHighlightForCard(Card card)
+	{
+		_currentHighlightingCost = new CardCostSnapshot(card);
+		UpdateHighlightManaForCard();
+	}
+
+	public void ClearHighlightMana()
+	{
+		_currentHighlightingCost = null;
+		UpdateHighlightManaForCard();
+	}
+
+	protected override void OnEnterBattle()
+	{
+		ResetAllManas(base.Battle.BattleMana, ManaGroup.Empty);
+		base.Battle.ActionViewer.Register<ConsumeManaAction>(ViewConsumeMana);
+		base.Battle.ActionViewer.Register<GainManaAction>(ViewGainMana);
+		base.Battle.ActionViewer.Register<LoseManaAction>(ViewLoseMana);
+		base.Battle.ActionViewer.Register<ConvertManaAction>(ViewConvertMana);
+		if (base.GameRun.BaseDeck.Any((Card card) => card.HasKicker))
+		{
+			ShowKickerPrefer = true;
+		}
+		Show();
+	}
+
+	protected override void OnLeaveBattle()
+	{
+		_currentHighlightingCost = null;
+		ResetAllManas(base.Battle.BattleMana, ManaGroup.Empty);
+		base.Battle.ActionViewer.Unregister<ConsumeManaAction>(ViewConsumeMana);
+		base.Battle.ActionViewer.Unregister<GainManaAction>(ViewGainMana);
+		base.Battle.ActionViewer.Unregister<LoseManaAction>(ViewLoseMana);
+		base.Battle.ActionViewer.Unregister<ConvertManaAction>(ViewConvertMana);
+		ShowKickerPrefer = false;
+		Hide();
+	}
+
+	public void CheckKickerPrefer(IEnumerable<Card> cards)
+	{
+		if (!ShowKickerPrefer && base.Battle != null && cards.Any((Card card) => card.HasKicker))
+		{
+			ShowKickerPrefer = true;
+		}
+	}
+
+	protected override void OnHided()
+	{
+		ResetAllManas(ManaGroup.Empty, ManaGroup.Empty, transition: false);
+	}
+
+	private void UpdateAmountText()
+	{
+		ManaGroup availableMana = AvailableMana;
+		ManaGroup manaGroup = _unpooledCollection.HighlightMana + _pooledCollection.HighlightMana;
+		int num;
+		Color color;
+		if (!manaGroup.IsEmpty)
+		{
+			int amount = (availableMana - manaGroup).Amount;
+			Color yellow = Color.yellow;
+			num = amount;
+			color = yellow;
+		}
+		else
+		{
+			int amount2 = availableMana.Amount;
+			Color yellow = Color.white;
+			num = amount2;
+			color = yellow;
+		}
+		amountText.color = color;
+		amountText.text = ((num < 99) ? num.ToString() : "99");
+	}
+
+	private void SetPoolBgActive(bool active)
+	{
+		if (_poolBgActive == active)
+		{
+			return;
+		}
+		_poolBgActive = active;
+		pooledGroup.DOKill();
+		if (active)
+		{
+			pooledGroup.gameObject.SetActive(value: true);
+			pooledGroup.DOFade(1f, transitionDuration).SetUpdate(isIndependentUpdate: true);
+		}
+		else
+		{
+			pooledGroup.DOFade(0f, transitionDuration).SetUpdate(isIndependentUpdate: true).OnComplete(delegate
+			{
+				pooledGroup.gameObject.SetActive(value: false);
+			});
+		}
+	}
+
+	private bool TryRemoveWidgetsFromNormal(ManaGroup value, List<BattleManaWidget> result)
+	{
+		ManaGroup manaGroup = value.Intersect(_unpooledCollection.NormalMana);
+		ManaGroup manaGroup2 = value - manaGroup;
+		if (manaGroup2.IsInvalid || !_unpooledCollection.NormalMana.CanAffordExact(manaGroup) || !_pooledCollection.NormalMana.CanAffordExact(manaGroup2))
+		{
+			return false;
+		}
+		_unpooledCollection.RemoveNormalMana(manaGroup, result);
+		_pooledCollection.RemoveNormalMana(manaGroup2, result);
+		return true;
+	}
+
+	private bool RemoveWidgetsByMana(ManaGroup value, out List<BattleManaWidget> result, out Exception exception)
+	{
+		exception = null;
+		result = CreateManaWidgetList();
+		try
+		{
+			if (TryRemoveWidgetsFromNormal(value, result))
+			{
+				return true;
+			}
+			if (_currentHighlightingCost != null)
+			{
+				_unpooledCollection.ClearHighlight();
+				_pooledCollection.ClearHighlight();
+				if (TryRemoveWidgetsFromNormal(value, result))
+				{
+					if (_currentHighlightingCost != null)
+					{
+						UpdateHighlightManaForCard();
+					}
+					return true;
+				}
+			}
+			if (_consumingDeque.Count > 0)
+			{
+				UiManager.GetPanel<PlayBoard>().CancelTargetSelecting();
+				UiManager.GetPanel<PlayBoard>().RewindRequests();
+				if (TryRemoveWidgetsFromNormal(value, result))
+				{
+					return true;
+				}
+			}
+			throw new InvalidOperationException("Cannot afford losing mana");
+		}
+		catch (Exception ex)
+		{
+			ReleaseManaWidgetList(result);
+			exception = ex;
+		}
+		return false;
+	}
+
+	private IEnumerator ViewConsumeMana(ConsumeManaAction action)
+	{
+		float num = 0f;
+		PlayBoard panel = UiManager.GetPanel<PlayBoard>();
+		if (_consumingDeque.Count > 0)
+		{
+			ConsumingManaWidgets consumingManaWidgets = _consumingDeque[0];
+			_consumingDeque.RemoveAt(0);
+			if (consumingManaWidgets.Value.TotalMana == action.Args.Value)
+			{
+				foreach (BattleManaWidget item in consumingManaWidgets.UnpooledWidgets.Concat(consumingManaWidgets.PooledWidgets))
+				{
+					ConsumeAndReleaseManaWidget(item);
+					Vector3 targetCenterWorldPosition = GetTargetCenterWorldPosition(item);
+					if (action.Args.ActionSource is Card card)
+					{
+						HandCard handCard = panel.CardUi.FindHandWidget(card);
+						if ((object)handCard != null && (bool)handCard)
+						{
+							num = Math.Max(panel.PlayManaConsumeEffect(item.ManaColor, targetCenterWorldPosition, handCard.TargetWorldPosition), num);
+						}
+					}
+				}
+			}
+			else
+			{
+				UnityEngine.Debug.LogError($"Queued mana ({consumingManaWidgets.Value}) not match consuming {action.Args.Value}, resetting all.");
+				ResetAllManas(base.Battle.BattleMana, ManaGroup.Empty);
+			}
+		}
+		else
+		{
+			UnityEngine.Debug.LogError("Cannot dequeue consuming mana, resetting all.");
+			ResetAllManas(base.Battle.BattleMana, ManaGroup.Empty);
+		}
+		SetPoolBgActive(!_pooledCollection.TotalMana.IsEmpty);
+		if (num > 0f)
+		{
+			yield return new WaitForSeconds(num);
+		}
+	}
+
+	private IEnumerator ViewGainMana(GainManaAction action)
+	{
+		ManaGroup value = action.Args.Value;
+		List<BattleManaWidget> list = CreateManaWidgetList();
+		_unpooledCollection.AddNormalMana(value, null, list);
+		float num = 0f;
+		PlayBoard panel = UiManager.GetPanel<PlayBoard>();
+		if (action.Args.Cause == ActionCause.TurnStart)
+		{
+			List<BaseManaWidget> notLockedBaseManaWidgets = UiManager.GetPanel<SystemBoard>().GetNotLockedBaseManaWidgets();
+			SortedDictionary<ManaColor, List<BaseManaWidget>> sortedDictionary = new SortedDictionary<ManaColor, List<BaseManaWidget>>();
+			List<BaseManaWidget> extraTurnManaWidgets = UiManager.GetPanel<SystemBoard>().GetExtraTurnManaWidgets();
+			if (value == base.Battle.TurnMana)
+			{
+				foreach (ManaColor item3 in value.EnumerateColors())
+				{
+					List<BaseManaWidget> value2 = notLockedBaseManaWidgets.EnumerateEqualRange(item3, (BaseManaWidget w) => w.ManaColor).ToList();
+					sortedDictionary.Add(item3, value2);
+				}
+			}
+			ManaColor[] colors = Colors;
+			foreach (ManaColor color in colors)
+			{
+				if (value[color] == 0)
+				{
+					continue;
+				}
+				List<BaseManaWidget> value3;
+				List<BaseManaWidget> list2 = (sortedDictionary.TryGetValue(color, out value3) ? value3 : new List<BaseManaWidget>());
+				Range range = list.EqualRange(color, (BattleManaWidget w) => w.ManaColor);
+				BaseManaWidget baseManaWidget = extraTurnManaWidgets.FirstOrDefault((BaseManaWidget widget) => widget.ManaColor == color);
+				int num2 = ((baseManaWidget != null) ? baseManaWidget.BattleManaAmount : 0);
+				if (range.Count() == 1)
+				{
+					List<BattleManaWidget> list3 = list;
+					BattleManaWidget widget2 = list3[range.Start.GetOffset(list3.Count)];
+					foreach (BaseManaWidget item4 in list2)
+					{
+						num = Math.Max(panel.PlayManaGainEffect(color, item4.CenterWorldPosition, GetTargetCenterWorldPosition(widget2)), num);
+					}
+					if (baseManaWidget != null)
+					{
+						num = Math.Max(panel.PlayManaGainEffect(color, baseManaWidget.CenterWorldPosition, GetTargetCenterWorldPosition(widget2)), num);
+					}
+				}
+				else if (list2.Count + num2 == range.Count())
+				{
+					foreach (var item5 in list2.Zip(range.AsEnumerable()))
+					{
+						BaseManaWidget item = item5.Item1;
+						int item2 = item5.Item2;
+						BattleManaWidget widget3 = list[item2];
+						num = Math.Max(panel.PlayManaGainEffect(color, item.CenterWorldPosition, GetTargetCenterWorldPosition(widget3)), num);
+					}
+					if (baseManaWidget != null)
+					{
+						for (int j = range.Start.Value + list2.Count; j < range.End.Value; j++)
+						{
+							num = Math.Max(panel.PlayManaGainEffect(color, baseManaWidget.CenterWorldPosition, GetTargetCenterWorldPosition(list[j])), num);
+						}
+					}
+				}
+				else
+				{
+					UnityEngine.Debug.LogWarning($"[BattleManaPanel] Base widget count for color {color.ToShortName()} not equal to Battle widget count {range}");
+				}
+			}
+		}
+		else
+		{
+			Vector3? fromPosition = panel.FindActionSourceWorldPosition(action.Source);
+			foreach (BattleManaWidget item6 in list)
+			{
+				num = Math.Max(panel.PlayManaGainEffect(item6.ManaColor, fromPosition, GetTargetCenterWorldPosition(item6)), num);
+			}
+		}
+		ReleaseManaWidgetList(list);
+		UpdateHighlightManaForCard();
+		RefreshCardsEdge();
+		UpdateAmountText();
+		if (num > 0f)
+		{
+			yield return new WaitForSeconds(num);
+		}
+	}
+
+	private IEnumerator ViewLoseMana(LoseManaAction action)
+	{
+		_ = action.Args.Value;
+		ManaGroup value = action.Args.Value;
+		if (!RemoveWidgetsByMana(value, out var result, out var _))
+		{
+			ClearHighlightMana();
+			ResetAllManas(base.Battle.BattleMana, ManaGroup.Empty);
+			yield break;
+		}
+		PlayBoard panel = UiManager.GetPanel<PlayBoard>();
+		panel.ReverifyCard();
+		RefreshCardsEdge();
+		UpdateAmountText();
+		float maxDuration = 0f;
+		if (action.Args.Cause == ActionCause.TurnEnd)
+		{
+			foreach (BattleManaWidget item in result)
+			{
+				float val = panel.PlayManaLoseEffect(item.ManaColor, GetTargetCenterWorldPosition(item), null);
+				maxDuration = Math.Max(val, maxDuration);
+				DisappearAndReleaseManaWidget(item);
+			}
+			yield return new WaitForSeconds(0.2f);
+		}
+		else
+		{
+			Vector3? toPosition = panel.FindActionSourceWorldPosition(action.Source);
+			foreach (BattleManaWidget item2 in result)
+			{
+				float val2 = panel.PlayManaLoseEffect(item2.ManaColor, GetTargetCenterWorldPosition(item2), toPosition);
+				maxDuration = Math.Max(val2, maxDuration);
+				DisappearAndReleaseManaWidget(item2);
+			}
+		}
+		ReleaseManaWidgetList(result);
+		SetPoolBgActive(!_pooledCollection.TotalMana.IsEmpty);
+		if (maxDuration > 0f)
+		{
+			yield return new WaitForSeconds(maxDuration);
+		}
+	}
+
+	private IEnumerator ViewConvertMana(ConvertManaAction action)
+	{
+		AudioManager.PlayUi("ManaConvert");
+		if (!RemoveWidgetsByMana(action.Args.Input, out var result, out var _))
+		{
+			ResetAllManas(action.Battle.BattleMana, ManaGroup.Empty);
+			RefreshCardsEdge();
+			yield break;
+		}
+		ManaGroup output = action.Args.Output;
+		List<BattleManaWidget> list = CreateManaWidgetList();
+		_unpooledCollection.AddNormalMana(output, null, list);
+		UpdateHighlightManaForCard();
+		PlayBoard panel = UiManager.GetPanel<PlayBoard>();
+		panel.ReverifyCard();
+		float num = 0f;
+		Vector3? vector = panel.FindActionSourceWorldPosition(action.Source);
+		foreach (BattleManaWidget item in result)
+		{
+			num = Math.Max(panel.PlayManaLoseEffect(item.ManaColor, GetTargetCenterWorldPosition(item), vector), num);
+			DisappearAndReleaseManaWidget(item);
+		}
+		foreach (BattleManaWidget item2 in list)
+		{
+			num = Math.Max(panel.PlayManaGainEffect(item2.ManaColor, vector, GetTargetCenterWorldPosition(item2)), num);
+		}
+		ReleaseManaWidgetList(result);
+		ReleaseManaWidgetList(list);
+		RefreshCardsEdge();
+		yield return new WaitForSeconds(num);
+	}
+
+	private void RefreshCardsEdge()
+	{
+		UiManager.GetPanel<PlayBoard>().CardUi.RefreshAllCardsEdge();
+	}
+
+	public bool TryGetConfirmUseMana(Card card, out bool kicker, out ConsumingMana result)
+	{
+		if (_currentHighlightingCost == null)
+		{
+			UnityEngine.Debug.LogWarning("[BattleManaPanel] TryGetConfirmUseMana invoked while current highlighting cost is null");
+			kicker = false;
+			result = null;
+			return false;
+		}
+		if (card != _currentHighlightingCost.Card)
+		{
+			UnityEngine.Debug.LogWarning("[BattleManaPanel] Trying to get confirm mana for " + card.DebugName + " while highlighting " + _currentHighlightingCost.Card.DebugName);
+			kicker = false;
+			result = null;
+			return false;
+		}
+		if (card.IsXCost && card.HasKicker && _currentHighlightingCost.Cost.CanAfford(card.KickerTotalCost))
+		{
+			kicker = true;
+			result = new ConsumingMana(_unpooledCollection.HighlightMana, _pooledCollection.HighlightMana);
+			return true;
+		}
+		if (card.IsXCost && _currentHighlightingCost.Cost.CanAfford(card.Cost))
+		{
+			kicker = false;
+			result = new ConsumingMana(_unpooledCollection.HighlightMana, _pooledCollection.HighlightMana);
+			return true;
+		}
+		if (card.HasKicker && _currentHighlightingCost.KickerPaying)
+		{
+			ManaGroup kickerTotalCost = card.KickerTotalCost;
+			ManaGroup? kickerTotalCost2 = _currentHighlightingCost.KickerTotalCost;
+			if (kickerTotalCost == kickerTotalCost2)
+			{
+				kicker = true;
+				result = new ConsumingMana(_unpooledCollection.HighlightMana, _pooledCollection.HighlightMana);
+				return true;
+			}
+		}
+		if (card.Cost == _currentHighlightingCost.Cost)
+		{
+			kicker = false;
+			result = new ConsumingMana(_unpooledCollection.HighlightMana, _pooledCollection.HighlightMana);
+			return true;
+		}
+		kicker = false;
+		result = null;
+		return false;
+	}
+
+	public void Prepay(ConsumingMana mana)
+	{
+		ConsumingMana consumingMana = new ConsumingMana(_unpooledCollection.HighlightMana, _pooledCollection.HighlightMana);
+		if (consumingMana.Unpooled != mana.Unpooled || consumingMana.Pooled != mana.Pooled)
+		{
+			throw new InvalidOperationException("Cost not match with Highlight.");
+		}
+		ConsumingManaWidgets item = new ConsumingManaWidgets(consumingMana, _unpooledCollection.Prepay(), _pooledCollection.Prepay());
+		_consumingDeque.Add(item);
+		_currentHighlightingCost = null;
+		UpdateHighlightManaForCard();
+		RefreshCardsEdge();
+		UpdateAmountText();
+	}
+
+	private void InternalRefund(ConsumingManaWidgets consuming)
+	{
+		_unpooledCollection.AddNormalMana(consuming.Value.Unpooled, consuming.UnpooledWidgets, null);
+		_unpooledCollection.AddNormalMana(consuming.Value.Pooled, consuming.PooledWidgets, null);
+		ReleaseManaWidgetList(consuming.UnpooledWidgets);
+		ReleaseManaWidgetList(consuming.PooledWidgets);
+		UpdateHighlightManaForCard();
+	}
+
+	public void RefundFront(ManaGroup? checkMana = null)
+	{
+		UnityEngine.Debug.Log(string.Format("RefundFront({0}), queue = [{1}]", checkMana, string.Join(", ", _consumingDeque)));
+		if (_consumingDeque.Count > 0)
+		{
+			ConsumingManaWidgets consumingManaWidgets = _consumingDeque[0];
+			if (checkMana.HasValue)
+			{
+				ManaGroup valueOrDefault = checkMana.GetValueOrDefault();
+				if (valueOrDefault != consumingManaWidgets.Value.TotalMana)
+				{
+					UnityEngine.Debug.LogError($"Refunding front mana {valueOrDefault} not equal to queue front {consumingManaWidgets.Value}");
+					ResetAllManas(base.Battle.BattleMana, ManaGroup.Empty);
+					goto IL_00ce;
+				}
+			}
+			_consumingDeque.RemoveAt(0);
+			InternalRefund(consumingManaWidgets);
+		}
+		else
+		{
+			UnityEngine.Debug.LogError("Refund mana while consuming queue is empty");
+			ResetAllManas(base.Battle.BattleMana, ManaGroup.Empty);
+		}
+		goto IL_00ce;
+		IL_00ce:
+		RefreshCardsEdge();
+	}
+
+	public void RefundBack(ConsumingMana consumingMana)
+	{
+		UnityEngine.Debug.Log(string.Format("RefundBack({0}), queue = [{1}]", consumingMana, string.Join(", ", _consumingDeque)));
+		if (_consumingDeque.Count > 0)
+		{
+			List<ConsumingManaWidgets> consumingDeque = _consumingDeque;
+			ConsumingManaWidgets consumingManaWidgets = consumingDeque[consumingDeque.Count - 1];
+			if (consumingMana.Unpooled != consumingManaWidgets.Value.Unpooled || consumingMana.Pooled != consumingManaWidgets.Value.Pooled)
+			{
+				UnityEngine.Debug.LogError($"Refunding back mana {consumingMana} not equal to queue back {consumingManaWidgets.Value}");
+				ResetAllManas(base.Battle.BattleMana, ManaGroup.Empty);
+			}
+			else
+			{
+				_consumingDeque.RemoveAt(_consumingDeque.Count - 1);
+				InternalRefund(consumingManaWidgets);
+			}
+		}
+		else
+		{
+			UnityEngine.Debug.LogWarning("Refund mana while consuming queue is empty");
+			ResetAllManas(base.Battle.BattleMana, ManaGroup.Empty);
+		}
+		RefreshCardsEdge();
+	}
+}

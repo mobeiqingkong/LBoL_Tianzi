@@ -141,9 +141,8 @@ TianziPeachNectar:
 TianziPeachReserve:
   Name: 仙桃储备
   Description: |-
-    |手牌中|：回合结束时获得 |e:2| 点|绝壁|。
-    上回合每减少 {Value1} 点|绝壁|，获得 {Value2} 点|格挡|并抽 |e:1| 张牌。
-    一回合最多生效 |e:2| 次。
+    |手牌中，回合结束时|：获得 |e:2| 点|绝壁|。
+    |手牌中，回合开始时|：上回合每减少 {Value1} 点|绝壁|，获得 {Value2} 点|格挡|并抽 |e:1| 张牌，一回合最多生效 |e:2| 次。
   FlavorText: 她把仙桃掰成小块收进袖子里，说是路上万一饿了可以垫一垫。
 
 TianziBlazingSword:
@@ -151,8 +150,7 @@ TianziBlazingSword:
   Description: |-
     施加 {Value1} 回合|易伤|。
     造成 {Damage} 点伤害。
-    每额外支付 |e:1| 点任意费用，攻击段数增加 |e:1|。
-
+    每额外支付 |e:1| 点费用，攻击段数增加 |e:1|。
 TianziGrowingBraver:
   Name: 绯焰镭射
   Description: |-

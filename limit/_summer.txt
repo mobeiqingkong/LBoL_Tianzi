@@ -1,0 +1,35 @@
+﻿using System.Collections.Generic;
+using JetBrains.Annotations;
+using LBoL.Base;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.Cards;
+
+namespace LBoL.EntityLib.Cards.Character.Cirno;
+
+[UsedImplicitly]
+public sealed class SummerIce : Card
+{
+	protected override IEnumerable<BattleAction> Actions(UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
+	{
+		yield return new GainTurnManaAction(base.Mana);
+	}
+}
+
+====XCOST SAMPLE====
+LBoL.EntityLib.Cards.Character.Reimu.YoumuDoubleCut: Could not find type definition LBoL.EntityLib.Cards.Character.Reimu.YoumuDoubleCut in type system.
+LBoL.EntityLib.Cards.Neutral.Red.ShootTheMoon: Could not find type definition LBoL.EntityLib.Cards.Neutral.Red.ShootTheMoon in type system.
+dotnet.exe : Unhandled exception. System.NotSupportedException: Type LBoL.Base.ManaGroup was not found in the module be
+ing decompiled, but only in LBoL.Base
+所在位置 C:\Users\taole\AppData\Local\Temp\ps-script-cd4ae186-02ca-4c5e-beff-bb2130b3b44a.ps1:127 字符: 1
++ & "C:\Users\taole\.dotnet\dotnet.exe" run --project $proj --no-restor ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Unhandled excep...ly in LBoL.Base:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+   at ICSharpCode.Decompiler.CSharp.CSharpDecompiler.DecompileType(FullTypeName fullTypeName) in /_/ICSharpCode.Decompi
+ler/CSharp/CSharpDecompiler.cs:line 979
+   at ICSharpCode.Decompiler.CSharp.CSharpDecompiler.DecompileTypeAsString(FullTypeName fullTypeName) in /_/ICSharpCode
+.Decompiler/CSharp/CSharpDecompiler.cs:line 997
+   at Program.<Main>$(String[] args) in D:\riderProject\Hinanawi-Tenshi\limit\_dumpone\Program.cs:line 25

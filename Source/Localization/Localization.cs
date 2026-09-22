@@ -29,11 +29,6 @@ namespace TianziMod.Localization
             typeof(PlayerUnitTemplate),
             PlayerUnit
         );
-        public static BatchLocalization UnitModelBatchLoc = new BatchLocalization(
-            BepinexPlugin.directorySource,
-            typeof(UnitModelTemplate),
-            UnitModel
-        );
         public static BatchLocalization UltimateSkillsBatchLoc = new BatchLocalization(
             BepinexPlugin.directorySource,
             typeof(UltimateSkillTemplate),
@@ -49,22 +44,15 @@ namespace TianziMod.Localization
             typeof(EnemyUnitTemplate),
             EnemiesUnit
         );
-        public static BatchLocalization EnemiesGroupBatchLoc = new BatchLocalization(
-            BepinexPlugin.directorySource,
-            typeof(EnemyGroupTemplate),
-            EnemiesGroup
-        );
 
         public static void Init()
         {
             CardsBatchLoc.DiscoverAndLoadLocFiles(Cards);
             ExhibitsBatchLoc.DiscoverAndLoadLocFiles(Exhibits);
             PlayerUnitBatchLoc.DiscoverAndLoadLocFiles(PlayerUnit);
-            UnitModelBatchLoc.DiscoverAndLoadLocFiles(UnitModel);
             UltimateSkillsBatchLoc.DiscoverAndLoadLocFiles(UltimateSkills);
             StatusEffectsBatchLoc.DiscoverAndLoadLocFiles(StatusEffects);
             EnemiesUnitBatchLoc.DiscoverAndLoadLocFiles(EnemiesUnit);
-            EnemiesGroupBatchLoc.DiscoverAndLoadLocFiles(EnemiesGroup);
         }
     }
 }

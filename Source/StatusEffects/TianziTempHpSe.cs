@@ -49,16 +49,11 @@ namespace TianziMod.StatusEffects
                 base.Owner.DamageReceived,
                 new EventSequencedReactor<DamageEventArgs>(this.OnOwnerDamageReceived)
             );
-            if (unit == base.Battle.Player)
-            {
-                base.ReactOwnerEvent<UnitEventArgs>(
-                    base.Battle.Player.TurnStarting,
-                    new EventSequencedReactor<UnitEventArgs>(this.OnPlayerTurnStarting)
-                );
-            }
             int cap = TianziTempHp.MaxOf(base.Owner);
             if (base.Level > cap)
                 base.Level = cap;
+            TianziTempHp.RaiseChanged(base.Owner);
+            TianziTempHp.EnsureBattleHooks(base.Battle);
         }
 
         /// <summary>叠加时夹到上限（基础 15，可被「仙桃长久」提高）。</summary>
@@ -68,6 +63,7 @@ namespace TianziMod.StatusEffects
             int cap = TianziTempHp.MaxOf(base.Owner);
             if (base.Level > cap)
                 base.Level = cap;
+            TianziTempHp.RaiseChanged(base.Owner);
             return handled;
         }
 
@@ -90,12 +86,6 @@ namespace TianziMod.StatusEffects
             args.AddModifier(this);
         }
 
-        private IEnumerable<BattleAction> OnPlayerTurnStarting(UnitEventArgs args)
-        {
-            TianziTempHp.RotateTurnLoss();
-            yield break;
-        }
-
         private IEnumerable<BattleAction> OnOwnerDamageReceived(DamageEventArgs args)
         {
             if (this._pendingCost <= 0)
@@ -106,7 +96,6 @@ namespace TianziMod.StatusEffects
             base.Level -= used;
             TianziTempHp.LostThisTurn += used;
             TianziTempHp.RaiseLost(base.Owner, used);
-            TianziTempHp.RaiseChanged(base.Owner);
 
             if (base.Level <= 0)
                 yield return new RemoveStatusEffectAction(this, true, 0.1f);
@@ -117,6 +106,9 @@ namespace TianziMod.StatusEffects
     public static class TianziTempHp
     {
         public static int Max => TianziTempHpSe.MaxLevel;
+
+        private static BattleController _hookedBattle;
+        private static bool _rotatedThisTurn;
 
         /// <summary>
         /// 该单位的临时生命值上限 = 基础 15 + 「仙桃长久」等状态提供的加成。
@@ -186,6 +178,7 @@ namespace TianziMod.StatusEffects
             int delta = ExtraAmount(unit, amount);
             if (delta <= 0)
                 return null;
+            EnsureBattleHooks(unit == null ? null : unit.Battle);
             return new ApplyStatusEffectAction<TianziTempHpSe>(unit, delta, null, null, null, wait);
         }
 
@@ -196,6 +189,41 @@ namespace TianziMod.StatusEffects
         {
             LostLastTurn = LostThisTurn;
             LostThisTurn = 0;
+        }
+
+        /// <summary>
+        /// 绝壁 SE 可能在清空后被移除，轮转 LostLastTurn 不能依赖 SE 存活。
+        /// 在战斗生命周期内挂一次 Player.TurnStarting。
+        /// </summary>
+        public static void EnsureBattleHooks(BattleController battle)
+        {
+            if (battle == null || battle.Player == null)
+                return;
+            if (_hookedBattle == battle)
+                return;
+            _hookedBattle = battle;
+            _rotatedThisTurn = false;
+            LostThisTurn = 0;
+            LostLastTurn = 0;
+            battle.Player.TurnStarting.AddHandler(
+                new GameEventHandler<UnitEventArgs>(OnPlayerTurnStarting),
+                GameEventPriority.Highest);
+            battle.Player.TurnEnded.AddHandler(
+                new GameEventHandler<UnitEventArgs>(OnPlayerTurnEnded),
+                GameEventPriority.Lowest);
+        }
+
+        private static void OnPlayerTurnStarting(UnitEventArgs args)
+        {
+            if (_rotatedThisTurn)
+                return;
+            _rotatedThisTurn = true;
+            RotateTurnLoss();
+        }
+
+        private static void OnPlayerTurnEnded(UnitEventArgs args)
+        {
+            _rotatedThisTurn = false;
         }
 
         public static int ConsumeAll(Unit unit)

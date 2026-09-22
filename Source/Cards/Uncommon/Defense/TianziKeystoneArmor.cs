@@ -4,23 +4,12 @@ using LBoL.ConfigData;
 using LBoL.Core;
 using LBoL.Core.Battle;
 using LBoL.Core.Battle.BattleActions;
-using LBoL.Core.Battle.Interactions;
 using LBoL.Core.Cards;
-using LBoL.Core.StatusEffects;
-using LBoL.Core.Units;
-using LBoL.EntityLib.StatusEffects.Basic;
 using LBoLEntitySideloader.Attributes;
 using TianziMod.Cards.Template;
-using TianziMod.Keywords;
-using TianziMod.StatusEffects;
 
 namespace TianziMod.Cards
 {
-    // ==================================================================================
-    //  罕见 · 防御牌（3 张）
-    // ==================================================================================
-
-    // ------------------------------------------------------------------ 要石覆体
     public sealed class TianziKeystoneArmorDef : TianziCardTemplate
     {
         public override CardConfig MakeConfig()
@@ -57,12 +46,24 @@ namespace TianziMod.Cards
 
     /// <summary>
     /// 要石覆体：获得 {Block} 点格挡和 {Shield} 点护盾。
-    /// 若本回合已打出过其他防御牌，护盾额外 +{Value1}。
+    /// 本场战斗每多打出一次，护盾额外 +{Value1}（体现在卡面数字上）。
     /// </summary>
     [EntityLogic(typeof(TianziKeystoneArmorDef))]
     public sealed class TianziKeystoneArmor : TianziCard
     {
         private int _plays;
+
+        protected override void OnEnterBattle(BattleController battle)
+        {
+            base.OnEnterBattle(battle);
+            this._plays = 0;
+            this.NotifyChanged();
+        }
+
+        protected override int AdditionalShield
+        {
+            get { return this._plays * base.Value1; }
+        }
 
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector,
@@ -70,19 +71,9 @@ namespace TianziMod.Cards
             Interaction precondition
         )
         {
-            int block = base.HasBlock ? base.Block.Block : 0;
-            int shield = (base.HasShield ? base.Shield.Shield : 0) + this._plays * base.Value1;
+            yield return base.DefenseAction(true);
             this._plays++;
-
-            yield return new CastBlockShieldAction(
-                base.Battle.Player,
-                base.Battle.Player,
-                block,
-                shield,
-                BlockShieldType.Normal,
-                true
-            );
-            yield break;
+            this.NotifyChanged();
         }
     }
 }

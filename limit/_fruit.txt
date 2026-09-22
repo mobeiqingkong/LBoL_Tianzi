@@ -1,0 +1,66 @@
+﻿using System.Collections.Generic;
+using JetBrains.Annotations;
+using LBoL.Base;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Cards;
+using LBoL.Core.Units;
+using LBoL.EntityLib.StatusEffects.Cirno;
+
+namespace LBoL.EntityLib.Cards.Character.Cirno;
+
+[UsedImplicitly]
+public sealed class FruitShake : Card
+{
+	private List<Unit> _coldingEnemies;
+
+	public override bool Triggered => IsForceCost;
+
+	public override bool IsForceCost => base.Battle?.PlayerSummonAFriendThisTurn ?? false;
+
+	protected override void OnEnterBattle(BattleController battle)
+	{
+		HandleBattleEvent(base.Battle.Player.TurnStarted, OnPlayerTurnStarted);
+		HandleBattleEvent(base.Battle.Player.DamageDealt, OnPlayerDamageDealt);
+		_coldingEnemies = new List<Unit>();
+	}
+
+	private void OnPlayerTurnStarted(UnitEventArgs args)
+	{
+		if (base.Zone == CardZone.Hand)
+		{
+			NotifyChanged();
+		}
+	}
+
+	private void OnPlayerDamageDealt(DamageEventArgs args)
+	{
+		if (args.ActionSource == this && !args.DamageInfo.IsGrazed)
+		{
+			Unit target = args.Target;
+			_coldingEnemies.Add(target);
+		}
+	}
+
+	protected override IEnumerable<BattleAction> Actions(UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
+	{
+		yield return AttackAction(selector);
+		if (base.Battle.BattleShouldEnd || _coldingEnemies.Count == 0)
+		{
+			yield break;
+		}
+		foreach (Unit coldingEnemy in _coldingEnemies)
+		{
+			if (coldingEnemy.IsAlive)
+			{
+				yield return DebuffAction<Cold>(coldingEnemy, 0, 0, 0, 0, startAutoDecreasing: true, 0.03f);
+			}
+		}
+		_coldingEnemies.Clear();
+	}
+}
+
+====
+LBoL.EntityLib.StatusEffects.Basic.NextTurnGainFire:Could not find type definition LBoL.EntityLib.StatusEffects.Basic.NextTurnGainFire in type system.
+LBoL.EntityLib.StatusEffects.Cirno.SummerFlowerSe:Index and length must refer to a location within the string. (Parameter 'length')
+LBoL.EntityLib.StatusEffects.Neutral.Blue.TempMana:Could not find type definition LBoL.EntityLib.StatusEffects.Neutral.Blue.TempMana in type system.

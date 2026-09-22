@@ -1,0 +1,430 @@
+﻿--- @28610 ---
+Template;
+				if (pt != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						pt.Consume(pt.LoadPackIcon());
+					}, value2, "LoadPackIcon", value);
+				}
+			}
+		}
+	}
+
+	internal void LoadLocalization(SideloaderUsers sideloaderUsers)
+	{
+		//IL_05ed: Unknown result type (might be due to invalid IL or missing references)
+		//IL_04e9: Unknown result type (might be due to invalid IL or missing references)
+		foreach (KeyValuePair<Assembly, UserInfo> userInfo in sideloaderUsers.userInfos)
+		{
+			UserInfo value = userInfo.Value;
+			UniqueTracker.Instance.typesToLocalize[value.assembly] = new Dictionary<Type, LocalizationInfo>();
+			foreach (KeyValuePair<Type, EntityDefinition> definitionInstance in value.definitionInstances)
+			{
+				EntityDefinition value2 = definitionI
+--- @29364 ---
+		{
+				EntityDefinition value2 = definitionInstance.Value;
+				CardTemplate ct = value2 as CardTemplate;
+				if (ct != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						ct.Consume(ct.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				StatusEffectTemplate st = value2 as StatusEffectTemplate;
+				if (st != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						st.Consume(st.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				ExhibitTemplate et = value2 as ExhibitTemplate;
+				if (et != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						et.Consume(et.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				JadeBoxTemplate jt = value2 
+--- @29403 ---
+nitionInstance.Value;
+				CardTemplate ct = value2 as CardTemplate;
+				if (ct != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						ct.Consume(ct.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				StatusEffectTemplate st = value2 as StatusEffectTemplate;
+				if (st != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						st.Consume(st.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				ExhibitTemplate et = value2 as ExhibitTemplate;
+				if (et != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						et.Consume(et.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				JadeBoxTemplate jt = value2 as JadeBoxTemplate;
+				if (jt != null
+--- @29608 ---
+ocalization", value);
+					continue;
+				}
+				StatusEffectTemplate st = value2 as StatusEffectTemplate;
+				if (st != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						st.Consume(st.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				ExhibitTemplate et = value2 as ExhibitTemplate;
+				if (et != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						et.Consume(et.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				JadeBoxTemplate jt = value2 as JadeBoxTemplate;
+				if (jt != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						jt.Consume(jt.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				EnemyUnitTemplate eut = value2 as Enem
+--- @29647 ---
+				}
+				StatusEffectTemplate st = value2 as StatusEffectTemplate;
+				if (st != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						st.Consume(st.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				ExhibitTemplate et = value2 as ExhibitTemplate;
+				if (et != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						et.Consume(et.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				JadeBoxTemplate jt = value2 as JadeBoxTemplate;
+				if (jt != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						jt.Consume(jt.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				EnemyUnitTemplate eut = value2 as EnemyUnitTemplate;
+				if (eut != null)
+	
+--- @29842 ---
+e2, "LoadLocalization", value);
+					continue;
+				}
+				ExhibitTemplate et = value2 as ExhibitTemplate;
+				if (et != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						et.Consume(et.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				JadeBoxTemplate jt = value2 as JadeBoxTemplate;
+				if (jt != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						jt.Consume(jt.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				EnemyUnitTemplate eut = value2 as EnemyUnitTemplate;
+				if (eut != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						eut.Consume(eut.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				UltimateSkillTemplate ust = va
+--- @29881 ---
+ontinue;
+				}
+				ExhibitTemplate et = value2 as ExhibitTemplate;
+				if (et != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						et.Consume(et.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				JadeBoxTemplate jt = value2 as JadeBoxTemplate;
+				if (jt != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						jt.Consume(jt.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				EnemyUnitTemplate eut = value2 as EnemyUnitTemplate;
+				if (eut != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						eut.Consume(eut.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				UltimateSkillTemplate ust = value2 as UltimateSkillTemplate;
+				if 
+--- @30076 ---
+e2, "LoadLocalization", value);
+					continue;
+				}
+				JadeBoxTemplate jt = value2 as JadeBoxTemplate;
+				if (jt != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						jt.Consume(jt.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				EnemyUnitTemplate eut = value2 as EnemyUnitTemplate;
+				if (eut != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						eut.Consume(eut.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				UltimateSkillTemplate ust = value2 as UltimateSkillTemplate;
+				if (ust != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						ust.Consume(ust.LoadLocalization());
+						UniqueTracker.Instance.ultimateSkillTemplates.TryAdd(ust.userAssembly, new Dicti
+--- @30115 ---
+ontinue;
+				}
+				JadeBoxTemplate jt = value2 as JadeBoxTemplate;
+				if (jt != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						jt.Consume(jt.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				EnemyUnitTemplate eut = value2 as EnemyUnitTemplate;
+				if (eut != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						eut.Consume(eut.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				UltimateSkillTemplate ust = value2 as UltimateSkillTemplate;
+				if (ust != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						ust.Consume(ust.LoadLocalization());
+						UniqueTracker.Instance.ultimateSkillTemplates.TryAdd(ust.userAssembly, new Dictionary<string, UltimateSkillTemplate>())
+--- @30318 ---
+dLocalization", value);
+					continue;
+				}
+				EnemyUnitTemplate eut = value2 as EnemyUnitTemplate;
+				if (eut != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						eut.Consume(eut.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				UltimateSkillTemplate ust = value2 as UltimateSkillTemplate;
+				if (ust != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						ust.Consume(ust.LoadLocalization());
+						UniqueTracker.Instance.ultimateSkillTemplates.TryAdd(ust.userAssembly, new Dictionary<string, UltimateSkillTemplate>());
+						UniqueTracker.Instance.ultimateSkillTemplates[ust.userAssembly].AlwaysAdd((string)ust.GetId(), ust);
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				UnitModelTemplate um
+--- @30357 ---
+
+				}
+				EnemyUnitTemplate eut = value2 as EnemyUnitTemplate;
+				if (eut != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						eut.Consume(eut.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				UltimateSkillTemplate ust = value2 as UltimateSkillTemplate;
+				if (ust != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						ust.Consume(ust.LoadLocalization());
+						UniqueTracker.Instance.ultimateSkillTemplates.TryAdd(ust.userAssembly, new Dictionary<string, UltimateSkillTemplate>());
+						UniqueTracker.Instance.ultimateSkillTemplates[ust.userAssembly].AlwaysAdd((string)ust.GetId(), ust);
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				UnitModelTemplate umT = value2 as UnitModelTemplate;
+				i
+--- @30568 ---
+ation", value);
+					continue;
+				}
+				UltimateSkillTemplate ust = value2 as UltimateSkillTemplate;
+				if (ust != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						ust.Consume(ust.LoadLocalization());
+						UniqueTracker.Instance.ultimateSkillTemplates.TryAdd(ust.userAssembly, new Dictionary<string, UltimateSkillTemplate>());
+						UniqueTracker.Instance.ultimateSkillTemplates[ust.userAssembly].AlwaysAdd((string)ust.GetId(), ust);
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				UnitModelTemplate umT = value2 as UnitModelTemplate;
+				if (umT != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						umT.Consume(umT.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				PlayerUnitTemplate puT = val
+--- @30843 ---
+ryAdd(ust.userAssembly, new Dictionary<string, UltimateSkillTemplate>());
+						UniqueTracker.Instance.ultimateSkillTemplates[ust.userAssembly].AlwaysAdd((string)ust.GetId(), ust);
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				UnitModelTemplate umT = value2 as UnitModelTemplate;
+				if (umT != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						umT.Consume(umT.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				PlayerUnitTemplate puT = value2 as PlayerUnitTemplate;
+				if (puT != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						puT.Consume(puT.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				SpellTemplate spT = value2 as SpellTemplate;
+				if (spT !
+--- @31046 ---
+dLocalization", value);
+					continue;
+				}
+				UnitModelTemplate umT = value2 as UnitModelTemplate;
+				if (umT != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						umT.Consume(umT.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				PlayerUnitTemplate puT = value2 as PlayerUnitTemplate;
+				if (puT != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						puT.Consume(puT.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				SpellTemplate spT = value2 as SpellTemplate;
+				if (spT != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						spT.Consume(spT.LoadLocalization());
+						UniqueTracker.Instance.spellTemplates.TryAdd(spT.userAssembly, new Dictionary<string, SpellTem
+--- @31085 ---
+
+				}
+				UnitModelTemplate umT = value2 as UnitModelTemplate;
+				if (umT != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						umT.Consume(umT.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				PlayerUnitTemplate puT = value2 as PlayerUnitTemplate;
+				if (puT != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						puT.Consume(puT.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				SpellTemplate spT = value2 as SpellTemplate;
+				if (spT != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						spT.Consume(spT.LoadLocalization());
+						UniqueTracker.Instance.spellTemplates.TryAdd(spT.userAssembly, new Dictionary<string, SpellTemplate>());
+						UniqueTracker.Instanc

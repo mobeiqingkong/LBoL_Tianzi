@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using LBoL.Base;
 using LBoL.ConfigData;
 using LBoL.Core;
@@ -11,7 +10,6 @@ using LBoL.Core.Units;
 using LBoLEntitySideloader.Attributes;
 using TianziMod.Cards.Template;
 using TianziMod.GunName;
-using TianziMod.Keywords;
 using TianziMod.StatusEffects;
 
 namespace TianziMod.Cards
@@ -36,7 +34,7 @@ namespace TianziMod.Cards
             config.UpgradedValue2 = 2;
             config.Mana = new ManaGroup() { Philosophy = 1 };
             config.UpgradedMana = new ManaGroup() { Philosophy = 2 };
-            config.RelativeEffects = new List<string>() { nameof(Weak), nameof(TianziNextTurnPhilSe) };
+            config.RelativeEffects = new List<string>() { nameof(Weak) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
@@ -61,11 +59,9 @@ namespace TianziMod.Cards
                     continue;
                 yield return base.DebuffAction<Weak>(enemy, 1, base.Value1, 0, 0, true, 0.2f);
             }
+            // 与夏日冰沙相同：GainTurnManaAction = 下回合开始获得费用
             if (paid)
-            {
-                yield return new ApplyStatusEffectAction<TianziNextTurnPhilSe>(
-                    base.Battle.Player, null, null, base.Value2, null, 0.1f);
-            }
+                yield return new GainTurnManaAction(base.Mana);
             yield return new DrawManyCardAction(1);
         }
     }

@@ -16,8 +16,12 @@ namespace TianziMod.Cards
             CardConfig config = GetDefaultCardConfig();
             config.IsPooled = false;
             config.FindInBattle = false;
+            config.HideMesuem = true;
+            config.IsUpgradable = false;
             config.Type = CardType.Status;
             config.TargetType = TargetType.Self;
+            config.Colors = new List<ManaColor>() { ManaColor.Colorless };
+            config.Cost = ManaGroup.Empty;
             config.Rarity = Rarity.Common;
             config.Keywords = Keyword.Ethereal | Keyword.Forbidden;
             config.UpgradedKeywords = config.Keywords;

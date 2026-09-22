@@ -1,0 +1,75 @@
+﻿--- OnTurnStartedInHand @ 27929 ---
+OnTurnStartedInHand()
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnTurnEndingInHand()
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnExile(CardZone srcZone)
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnMove(CardZone srcZone, CardZone dstZone)
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnRetain()
+
+
+--- OnTurnEndingInHand @ 28020 ---
+OnTurnEndingInHand()
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnExile(CardZone srcZone)
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnMove(CardZone srcZone, CardZone dstZone)
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnRetain()
+	{
+		return null;
+	}
+
+	public virtual void OnRemove()
+	{
+	}
+
+	public virtual void O
+
+--- TurnStarted @ 27931 ---
+TurnStartedInHand()
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnTurnEndingInHand()
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnExile(CardZone srcZone)
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnMove(CardZone srcZone, CardZone dstZone)
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnRetain()
+	{
+

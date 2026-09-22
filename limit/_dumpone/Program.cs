@@ -1,14 +1,12 @@
 ﻿using System;
-using System.Linq;
+using System.IO;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.CSharp;
 using ICSharpCode.Decompiler.TypeSystem;
-var path = @"D:\software\steam\steamapps\common\LBoL\LBoL_Data\Managed\LBoL.EntityLib.dll";
+var path = @"D:\software\steam\steamapps\common\LBoL\LBoL_Data\Managed\LBoL.Presentation.dll";
 var d = new CSharpDecompiler(path, new DecompilerSettings { ThrowOnAssemblyResolveErrors = false });
-foreach (var name in new[] {
-  "LBoL.EntityLib.StatusEffects.Basic.Amulet",
-  "LBoL.EntityLib.StatusEffects.Basic.AmuletForCard",
-}) {
-  try { Console.WriteLine(d.DecompileTypeAsString(new FullTypeName(name))); Console.WriteLine("---"); }
-  catch (Exception ex) { Console.WriteLine(name + ": " + ex.Message); }
-}
+var s = d.DecompileTypeAsString(new FullTypeName("LBoL.Presentation.UI.Widgets.HealthBar"));
+File.WriteAllText(@"D:\riderProject\Hinanawi-Tenshi\limit\_healthbar.txt", s);
+Console.WriteLine("len="+s.Length);
+int i = s.IndexOf("TweenHp");
+Console.WriteLine(s.Substring(i, Math.Min(2500, s.Length-i)));

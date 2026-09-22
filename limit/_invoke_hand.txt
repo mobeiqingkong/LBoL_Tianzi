@@ -1,0 +1,112 @@
+﻿FOUND in LBoL.Core.Cards.Card
+Enumerable<BattleAction> OnDraw()
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnDiscard(CardZone srcZone)
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnTurnStartedInHand()
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnTurnEndingInHand()
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnExile(CardZone srcZone)
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnMove(CardZone srcZone, CardZone dstZone)
+	{
+		return null;
+	}
+
+	public virtual IEnumerable<BattleAction> OnRetain()
+
+====
+FOUND in LBoL.Core.Battle.BattleActions.EndPlayerTurnAction
+});
+		List<Card> list = base.Battle.HandZone.ToList();
+		foreach (Card card in list)
+		{
+			if (card.Zone != CardZone.Hand)
+			{
+				continue;
+			}
+			IEnumerable<BattleAction> reactor = card.OnTurnEndingInHand();
+			if (reactor == null)
+			{
+				continue;
+			}
+			List<DamageAction> damageActions = new List<DamageAction>();
+			yield return CreatePhase("SpecialHandInTurnEnding", delegate
+			{
+				React(new Reactor(StatisticalTotalDamageAction.WrapReactorWithStats(reactor, damageActions)), card, ActionCause.Card);
+			});
+			if (damageActions.NotEmpty())
+			{
+				yield return 
+====
+FOUND in LBoL.Core.Battle.BattleActions.StartPlayerTurnAction
+se;
+		List<Card> list = base.Battle.HandZone.ToList();
+		foreach (Card card in list)
+		{
+			if (card.Zone != CardZone.Hand)
+			{
+				continue;
+			}
+			IEnumerable<BattleAction> reactor = card.OnTurnStartedInHand();
+			if (reactor == null)
+			{
+				continue;
+			}
+			List<DamageAction> damageActions = new List<DamageAction>();
+			yield return CreatePhase("SpecialHandInTurnStarted", delegate
+			{
+				React(new Reactor(StatisticalTotalDamageAction.WrapReactorWithStats(reactor, damageActions)), card, ActionCause.Card);
+			});
+			if (damageActions.NotEmpty())
+			{
+				yield retur
+====
+====MANAGROUP====
+multiplier;
+		return result;
+	}
+
+	public bool CanAffordExact(ManaGroup cost)
+	{
+		if (Any != 0)
+		{
+			throw new InvalidOperationException(string.Format("{0}.{1} invoked with any = {2}, which mustn't be available mana.", "ManaGroup", "CanAffordExact", Any));
+		}
+		return (this - cost).IsValid;
+	}
+
+	public bool CanAfford(ManaGroup cost)
+	{
+		if (Any != 0)
+		{
+			throw new InvalidOperationException(string.Format("{0}.{1} invoked with any = {2}, which mustn't be available mana.", "ManaGroup", "CanAfford", Any));
+		}
+		if (Hybrid != 0)
+		{
+			throw new InvalidOperationException(string.Format("{0}.{1} invoked with hybrid = {2}, which mustn't be available mana.", "ManaGroup", "CanAfford", Hybrid));
+		}
+		ManaGroup manaGroup = this - cost;
+		manaGroup.Any = 0;
+		if (manaGroup.Amount < cost.Any)
+		{
+			return false;
+		}
+		int num = manaGroup.Philosophy;
+		foreach (M

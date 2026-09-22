@@ -1,17 +1,13 @@
 using System.Collections.Generic;
-using System.Linq;
 using LBoL.Base;
 using LBoL.ConfigData;
 using LBoL.Core;
 using LBoL.Core.Battle;
 using LBoL.Core.Battle.BattleActions;
 using LBoL.Core.Cards;
-using LBoL.Core.StatusEffects;
-using LBoL.Core.Units;
 using LBoLEntitySideloader.Attributes;
 using TianziMod.Cards.Template;
 using TianziMod.GunName;
-using TianziMod.Keywords;
 using TianziMod.StatusEffects;
 
 namespace TianziMod.Cards
@@ -47,18 +43,18 @@ namespace TianziMod.Cards
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
-            base.CardGuns = new Guns(base.GunName, 1, false);
+            int bonus = TianziTempHp.Get(base.Battle.Player) * 2;
             yield return base.AttackAllAliveEnemyAction();
-            int temp = TianziTempHp.Get(base.Battle.Player);
-            if (temp > 0)
-            {
-                yield return new DamageAction(
-                    base.Battle.Player,
-                    base.Battle.AllAliveEnemies,
-                    DamageInfo.Attack(temp * 2f, false),
-                    base.GunName,
-                    GunType.Single);
-            }
+            if (bonus <= 0 || base.Battle.BattleShouldEnd)
+                yield break;
+
+            // 第二段用固定 Attack 伤害；不走本卡 Damage，避免吃两次火力/加成
+            yield return new DamageAction(
+                base.Battle.Player,
+                base.Battle.AllAliveEnemies,
+                DamageInfo.Attack(bonus, base.IsAccuracy),
+                base.GunName,
+                GunType.Single);
         }
     }
 }

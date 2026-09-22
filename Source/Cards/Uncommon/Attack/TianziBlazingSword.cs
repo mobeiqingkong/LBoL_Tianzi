@@ -24,8 +24,10 @@ namespace TianziMod.Cards
             config.GunName = GunNameID.GetGunFromId(510);
             config.GunNameBurst = GunNameID.GetGunFromId(510);
             config.Colors = new List<ManaColor>() { ManaColor.Red };
+            // X 费的最低需求不能含 Any：BattleManaPanel 会对 XCostRequiredMana 调 CanAfford，
+            // 而 CanAfford 禁止 receiver 带 Any（升级「任意1」会直接报错）。
             config.Cost = new ManaGroup() { Red = 1 };
-            config.UpgradedCost = new ManaGroup() { Any = 1 };
+            config.UpgradedCost = ManaGroup.Empty;
             config.IsXCost = true;
             config.Rarity = Rarity.Uncommon;
             config.Type = CardType.Attack;
@@ -51,7 +53,12 @@ namespace TianziMod.Cards
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
-            int extra = base.SynergyAmount(consumingMana, ManaColor.Any, 1);
+            // 额外支付的费用点数（不计颜色）：超出 X 费最低需求的每一费 +1 段
+            int paid = consumingMana.Amount;
+            int required = base.XCostRequiredMana.Amount;
+            int extra = paid - required;
+            if (extra < 0)
+                extra = 0;
             int hits = 1 + extra;
             base.CardGuns = new Guns(base.GunName, hits, true);
             foreach (GunPair gunPair in base.CardGuns.GunPairs)

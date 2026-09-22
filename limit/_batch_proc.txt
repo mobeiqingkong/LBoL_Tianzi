@@ -1,0 +1,116 @@
+﻿==== at 33886 ====
+batchLocalization.ContainsKey(value.assembly))
+			{
+				continue;
+			}
+			foreach (KeyValuePair<Type, HashSet<BatchLocalization>> item2 in UniqueTracker.Instance.batchLocalization[value.assembly])
+			{
+				if (item2.Key == typeof(SpellTemplate))
+				{
+					continue;
+				}
+				foreach (BatchLocalization item3 in item2.Value)
+				{
+					try
+					{
+						LocalizationFiles localizationFiles = item3.localizationFiles;
+						if (item3.templateType == typeof(UnitModelTemplate))
+						{
+							Log.log.LogDebug((object)"unit model batch loc");
+							LocalizationOption.FillUnitNameTable(localizationFiles.Load(Localization.CurrentLocale), localizationFiles.mergeTerms, item3.entityIds);
+						}
+						else if (item3.templateType == typeof(PackTemplate))
+						{
+							PackTemplate.FillPacksLocTable(localizationFiles.LoadLocTable(item3.entityIds, addEmptyDic: false), localizationFiles.mergeTerms);
+						}
+						else
+						{
+							LocalizationOption.FillLocalizationTables(localizationFiles.LoadLocTable(item3.entityIds), item3.factoryType, localizationFiles.mergeTerms);
+						}
+					}
+					catch (Exception ex3)
+					{
+						log.LogError((object)ex3);
+					}
+				}
+			}
+		}
+	}
+
+	internal void LoadAll(SideloaderUsers sideloaderUsers, string onRegistrationCompleteMsg = "All sideloader users registered!", string onCompleteMsg = "Finished loading custom resources.", bool loadLoc = true)
+	{
+		try
+		{
+			Instance.RegisterUsers(sideloaderUsers, onRegistrationCompleteMsg);
+			Instance.LoadAssetsForResourceHelper(sideloaderUsers);
+			if (loadLoc)
+			{
+				Instance.LoadLocalization(sideloaderUsers);
+			}
+		}
+		catch (Exception ex)
+		{
+			log.LogError((object)ex);
+		}
+		log.LogInfo((object)onCompleteMsg);
+	}
+
+	internal void PostAllLoadProces
+==== at 34052 ====
+batchLocalization[value.assembly])
+			{
+				if (item2.Key == typeof(SpellTemplate))
+				{
+					continue;
+				}
+				foreach (BatchLocalization item3 in item2.Value)
+				{
+					try
+					{
+						LocalizationFiles localizationFiles = item3.localizationFiles;
+						if (item3.templateType == typeof(UnitModelTemplate))
+						{
+							Log.log.LogDebug((object)"unit model batch loc");
+							LocalizationOption.FillUnitNameTable(localizationFiles.Load(Localization.CurrentLocale), localizationFiles.mergeTerms, item3.entityIds);
+						}
+						else if (item3.templateType == typeof(PackTemplate))
+						{
+							PackTemplate.FillPacksLocTable(localizationFiles.LoadLocTable(item3.entityIds, addEmptyDic: false), localizationFiles.mergeTerms);
+						}
+						else
+						{
+							LocalizationOption.FillLocalizationTables(localizationFiles.LoadLocTable(item3.entityIds), item3.factoryType, localizationFiles.mergeTerms);
+						}
+					}
+					catch (Exception ex3)
+					{
+						log.LogError((object)ex3);
+					}
+				}
+			}
+		}
+	}
+
+	internal void LoadAll(SideloaderUsers sideloaderUsers, string onRegistrationCompleteMsg = "All sideloader users registered!", string onCompleteMsg = "Finished loading custom resources.", bool loadLoc = true)
+	{
+		try
+		{
+			Instance.RegisterUsers(sideloaderUsers, onRegistrationCompleteMsg);
+			Instance.LoadAssetsForResourceHelper(sideloaderUsers);
+			if (loadLoc)
+			{
+				Instance.LoadLocalization(sideloaderUsers);
+			}
+		}
+		catch (Exception ex)
+		{
+			log.LogError((object)ex);
+		}
+		log.LogInfo((object)onCompleteMsg);
+	}
+
+	internal void PostAllLoadProcessing()
+	{
+		foreach (KeyValuePair<Assembly, Dictionary<string, UltimateSkillTemplate>> ultimateSkillTemplate in UniqueTracker.Instance.ultimateSkillTemplates)
+		{
+

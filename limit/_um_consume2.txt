@@ -1,0 +1,75 @@
+﻿public void Consume(LocalizationOption locOption)
+	{
+		//IL_00f6: Unknown result type (might be due to invalid IL or missing references)
+		//IL_010d: Unknown result type (might be due to invalid IL or missing references)
+		//IL_0114: Expected O, but got Unknown
+		//IL_0171: Unknown result type (might be due to invalid IL or missing references)
+		//IL_0154: Unknown result type (might be due to invalid IL or missing references)
+		//IL_0165: Expected O, but got Unknown
+		if (locOption == null)
+		{
+			return;
+		}
+		if (locOption is GlobalLocalization globalLocalization)
+		{
+			if (CollectionsExtensions.NotEmpty<KeyValuePair<Locale, Func<YamlMappingNode>>>((IReadOnlyCollection<KeyValuePair<Locale, Func<YamlMappingNode>>>)globalLocalization.LocalizationFiles.locTable) && !UniqueTracker.Instance.unitNamesGlobalLocalizationFiles.TryAdd(userAssembly, globalLocalization.LocalizationFiles))
+			{
+				ManualLogSource obj = Log.LogDev();
+				if (obj != null)
+				{
+					obj.LogWarning((object)$"{userAssembly.GetName().Name}: {GetType()} tries to set global unit name localization files but they've already been set by another {TemplateType().Name}.");
+				}
+			}
+			UniqueTracker.Instance.unitIdsToLocalize.TryAdd(userAssembly, new HashSet<IdContainer>());
+			UniqueTracker.Instance.unitIdsToLocalize[userAssembly].Add(GetId());
+		}
+		else if (locOption is LocalizationFiles localizationFiles)
+		{
+			YamlMappingNode val = localizationFiles.Load(Localization.CurrentLocale);
+			YamlScalarNode key = new YamlScalarNode((string)GetId());
+			if (((IDictionary<YamlNode, YamlNode>)val.Children).TryGetValue((YamlNode)(object)key, out YamlNode value))
+			{
+				YamlMappingNode val2 = (YamlMappingNode)(object)((value is YamlMappingNode) ? value : null);
+				if (val2 != null)
+				{
+					LocalizationOption.FillUnitNameTable(new YamlMappingNode(new KeyValuePair<YamlNode, YamlNode>[1]
+					{
+						new KeyValuePair<YamlNode, YamlNode>((YamlNode)(object)key, (YamlNode)(object)val2)
+					}), localizationFiles.mergeTerms);
+					return;
+				}
+			}
+			localizationFiles.fileNames.TryGetValue(localizationFiles.GetAvailableLocale(), out var value2);
+			Log.log.LogWarning((object)$"{GetId()} not found in {value2}");
+		}
+		else if (locOption is DirectLocalization directLocalization)
+		{
+			Dictionary<string, Dictionary<string, object>> termDic = directLocalization.WrapTermDic(base.UniqueId);
+			LocalizationOption.FillUnitNameTable(LocalizationOption.TermDic2YamlMapping(termDic), directLocalization.mergeTerms);
+		}
+		else if (locOption is BatchLocalization batchLocalization)
+		{
+			batchLocalization.RegisterSelf(userAssembly);
+		}
+	}
+
+	private bool CheckModelOptions()
+	{
+		//IL_003e: Unknown result type (might be due to invalid IL or missing references)
+		//IL_0055: Unknown result type (might be due to invalid IL or missing references)
+		//IL_0077: Unknown result type (might be due to invalid IL or missing references)
+		//IL_0079: Unknown result type (might be due to invalid IL or missing references)
+		ModelOption modelOption = LoadModelOptions();
+		if (modelOption == null)
+		{
+			Log.LogDev().LogWarning((object)("ModelOption not provided by " + GetType().Name + "."));
+			return false;
+		}
+		ModelType val = (ModelType)0;
+		try
+		{
+			val = (ModelType)UnitModelConfig.FromName((string)base.UniqueId).Type;
+		}
+		catch (Exception arg)
+		{
+			Log.log.LogError((object)$"UnitModelConfig.Type should be number from 0 to 2

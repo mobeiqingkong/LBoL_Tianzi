@@ -6,7 +6,6 @@ using LBoL.Core;
 using LBoL.Core.Battle;
 using LBoL.Core.Battle.BattleActions;
 using LBoL.Core.Cards;
-using LBoL.Core.StatusEffects;
 using LBoL.Core.Units;
 using LBoLEntitySideloader.Attributes;
 using TianziMod.Cards.Template;
@@ -53,35 +52,50 @@ namespace TianziMod.Cards
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
             yield return base.AttackAction(selector);
+
             int consumed = TianziTempHp.ConsumeAll(base.Battle.Player);
             TianziTempHpSe leftover = base.Battle.Player.GetStatusEffect<TianziTempHpSe>();
-            if (leftover != null && leftover.Level <= 0)
+            if (leftover != null)
                 yield return new RemoveStatusEffectAction(leftover, true, 0.05f);
+
             if (consumed <= 0)
                 yield break;
 
-            IEnumerable<BattleAction> odd = this.OddExtra(selector, consumed);
-            IEnumerable<BattleAction> even = this.EvenExtra(selector, consumed);
-            foreach (BattleAction action in TianziParityPlay.Resolve(this, odd, even))
+            foreach (BattleAction action in TianziParityPlay.Resolve(
+                this, this.OddExtra(selector, consumed), this.EvenExtra(selector, consumed)))
                 yield return action;
         }
 
         private IEnumerable<BattleAction> OddExtra(UnitSelector selector, int consumed)
         {
-            float dmg = consumed * 2 + base.Value1;
+            // 消耗值×2，奇数时额外 +Value1
+            int dmg = consumed * 2 + base.Value1;
             foreach (Unit enemy in selector.GetUnits(base.Battle))
             {
+                if (!enemy.IsAlive)
+                    continue;
                 yield return new DamageAction(
-                    base.Battle.Player, enemy, DamageInfo.Attack(dmg, false), base.GunName, GunType.Single);
+                    base.Battle.Player,
+                    enemy,
+                    DamageInfo.Attack(dmg, base.IsAccuracy),
+                    base.GunName,
+                    GunType.Single);
             }
         }
 
         private IEnumerable<BattleAction> EvenExtra(UnitSelector selector, int consumed)
         {
+            int dmg = consumed * 2;
             foreach (Unit enemy in selector.GetUnits(base.Battle))
             {
+                if (!enemy.IsAlive)
+                    continue;
                 yield return new DamageAction(
-                    base.Battle.Player, enemy, DamageInfo.Attack(consumed * 2f, false), base.GunName, GunType.Single);
+                    base.Battle.Player,
+                    enemy,
+                    DamageInfo.Attack(dmg, base.IsAccuracy),
+                    base.GunName,
+                    GunType.Single);
             }
             yield return new CastBlockShieldAction(
                 base.Battle.Player, base.Battle.Player, 0, consumed, BlockShieldType.Direct, false);

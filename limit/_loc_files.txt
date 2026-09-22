@@ -1,0 +1,180 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using BepInEx.Logging;
+using HarmonyLib;
+using LBoL.Core;
+using YamlDotNet.Helpers;
+using YamlDotNet.RepresentationModel;
+
+namespace LBoLEntitySideloader.Resource;
+
+public class LocalizationFiles : LocalizationOption, IResourceProvider<YamlMappingNode>
+{
+	public Locale fallbackLoc = (Locale)0;
+
+	internal Dictionary<Locale, Func<YamlMappingNode>> locTable = new Dictionary<Locale, Func<YamlMappingNode>>();
+
+	public Dictionary<Locale, string> fileNames = new Dictionary<Locale, string>();
+
+	/// <summary>
+	/// should localization terms (Name, Description etc.) should be merged
+	/// </summary>
+	public bool mergeTerms = false;
+
+	public readonly IResourceSource source;
+
+	private Func<string, YamlMappingNode> loadingAction;
+
+	public LocalizationFiles(IResourceSource source)
+	{
+		//IL_0002: Unknown result type (might be due to invalid IL or missing references)
+		this.source = source;
+		loadingAction = (string id) => ResourceLoader.LoadYaml(id, this.source);
+	}
+
+	public LocalizationFiles(IResourceSource source, bool mergeTerms)
+		: this(source)
+	{
+		this.mergeTerms = mergeTerms;
+	}
+
+	public LocalizationFiles(IResourceSource source, Locale fallbackLoc)
+		: this(source)
+	{
+		//IL_000a: Unknown result type (might be due to invalid IL or missing references)
+		//IL_000b: Unknown result type (might be due to invalid IL or missing references)
+		this.fallbackLoc = fallbackLoc;
+	}
+
+	public LocalizationFiles(IResourceSource source, Locale fallbackLoc, bool mergeTerms)
+		: this(source, fallbackLoc)
+	{
+		//IL_0002: Unknown result type (might be due to invalid IL or missing references)
+		this.mergeTerms = mergeTerms;
+	}
+
+	public void AddLocaleFile(Locale locale, string fileName)
+	{
+		//IL_0031: Unknown result type (might be due to invalid IL or missing references)
+		//IL_007c: Unknown result type (might be due to invalid IL or missing references)
+		//IL_0061: Unknown result type (might be due to invalid IL or missing references)
+		fileName = Source.AddExtension(fileName, ".yaml");
+		if (!locTable.TryAdd(locale, () => loadingAction(fileName)))
+		{
+			ManualLogSource obj = Log.LogDev();
+			if (obj != null)
+			{
+				obj.LogWarning((object)$"{fileName}: LocalizationFiles already have {locale} registered");
+			}
+		}
+		else
+		{
+			fileNames.TryAdd(locale, fileName);
+		}
+	}
+
+	public Locale GetAvailableLocale()
+	{
+		//IL_0007: Unknown result type (might be due to invalid IL or missing references)
+		//IL_001b: Unknown result type (might be due to invalid IL or missing references)
+		//IL_0014: Unknown result type (might be due to invalid IL or missing references)
+		//IL_0020: Unknown result type (might be due to invalid IL or missing references)
+		//IL_0023: Unknown result type (might be due to invalid IL or missing references)
+		return locTable.ContainsKey(Localization.CurrentLocale) ? Localization.CurrentLocale : fallbackLoc;
+	}
+
+	public YamlMappingNode Load(Locale locale)
+	{
+		//IL_0007: Unknown result type (might be due to invalid IL or missing references)
+		//IL_0027: Unknown result type (might be due to invalid IL or missing references)
+		//IL_003f: Unknown result type (might be due to invalid IL or missing references)
+		//IL_00a1: Unknown result type (might be due to invalid IL or missing references)
+		//IL_005b: Unknown result type (might be due to invalid IL or missing references)
+		//IL_0066: Unknown result type (might be due to invalid IL or missing references)
+		if (locTable.TryGetValue(locale, out var value))
+		{
+			return value();
+		}
+		if (locTable.TryGetValue(fallbackLoc, out value))
+		{
+			string valueSafe = GeneralExtensions.GetValueSafe<Locale, string>(fileNames, fallbackLoc);
+			ManualLogSource obj = Log.LogDev();
+			if (obj != null)
+			{
+				obj.LogInfo((object)$"Localization for {Localization.CurrentLocale} not found. Trying to use {fallbackLoc} fallback option from file: {valueSafe}.");
+			}
+			return value();
+		}
+		ManualLogSource obj2 = Log.LogDev();
+		if (obj2 != null)
+		{
+			obj2.LogWarning((object)$"{GetType().Name}: {locale} locale option does not have a file set.");
+		}
+		return null;
+	}
+
+	internal Dictionary<string, Dictionary<string, object>> LoadLocTable(Type entityType, Type[] entityLogicTypes)
+	{
+		//IL_0002: Unknown result type (might be due to invalid IL or missing references)
+		YamlMappingNode val = Load(Localization.CurrentLocale);
+		if (val != null)
+		{
+			return Localization.InternalLoadTypeLocalizationTable(val, entityType, (IEnumerable<Type>)entityLogicTypes);
+		}
+		Log.log.LogWarning((object)(entityType.Assembly.GetName().Name + ": No localization found for " + entityType.Name + " types."));
+		return null;
+	}
+
+	internal Dictionary<string, Dictionary<string, object>> LoadLocTable(IEnumerable<string> Ids, bool addEmptyDic = true)
+	{
+		//IL_0008: Unknown result type (might be due to invalid IL or missing references)
+		Dictionary<string, Dictionary<string, object>> dictionary = new Dictionary<string, Dictionary<string, object>>();
+		YamlMappingNode val = Load(Localization.CurrentLocale);
+		if (val == null)
+		{
+			Log.log.LogWarning((object)"LocalizationFiles: No localization file found.");
+			return dictionary;
+		}
+		IOrderedDictionary<YamlNode, YamlNode> children = val.Children;
+		foreach (string Id in Ids)
+		{
+			if (((IDictionary<YamlNode, YamlNode>)children).TryGetValue(YamlNode.op_Implicit(Id), out YamlNode value))
+			{
+				YamlMappingNode val2 = (YamlMappingNode)(object)((value is YamlMappingNode) ? value : null);
+				if (val2 != null)
+				{
+					dictionary.Add(Id, Localization.CreatePropertyLocalizeTable(Id, val2));
+					continue;
+				}
+			}
+			if (addEmptyDic)
+			{
+				dictionary.Add(Id, new Dictionary<string, object>());
+			}
+		}
+		return dictionary;
+	}
+
+	internal Dictionary<string, Dictionary<string, object>> LoadLocTable(IEnumerable<IdContainer> idContainers, bool addEmptyDic = true)
+	{
+		return LoadLocTable(idContainers.Select((IdContainer id) => id.ToString()), addEmptyDic);
+	}
+
+	public static void MissingValueError(string enityLogicId)
+	{
+		Log.log.LogWarning((object)(enityLogicId + " entity was registered but localization file contains no values for " + enityLogicId + ". Did you forget to add \"" + enityLogicId + ":\" entry to .yaml file?"));
+	}
+
+	public YamlMappingNode Load()
+	{
+		//IL_0002: Unknown result type (might be due to invalid IL or missing references)
+		return Load(fallbackLoc);
+	}
+
+	public Dictionary<string, YamlMappingNode> LoadMany()
+	{
+		return null;
+	}
+}
+

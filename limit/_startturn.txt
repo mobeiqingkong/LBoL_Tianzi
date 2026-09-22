@@ -1,0 +1,117 @@
+using System.Collections.Generic;
+using System.Linq;
+using LBoL.Base.Extensions;
+using LBoL.Core.Cards;
+using LBoL.Core.StatusEffects;
+using LBoL.Core.Units;
+
+namespace LBoL.Core.Battle.BattleActions;
+
+public sealed class StartPlayerTurnAction : SimpleAction
+{
+	public UnitEventArgs Args { get; }
+
+	public Unit Unit { get; }
+
+	public bool IsExtra { get; }
+
+	public override bool IsModified => Args.IsModified;
+
+	public override string[] Modifiers => Args.Modifiers;
+
+	public override bool IsCanceled => false;
+
+	internal StartPlayerTurnAction(Unit unit, bool isExtra)
+	{
+		Unit = unit;
+		IsExtra = isExtra;
+		Args = new UnitEventArgs
+		{
+			Unit = unit,
+			CanCancel = false
+		};
+	}
+
+	internal override IEnumerable<Phase> GetPhases()
+	{
+		yield return CreatePhase("Viewer", delegate
+		{
+		}, hasViewer: true);
+		yield return CreatePhase("LoseBlockGraze", delegate
+		{
+			SuperExtraTurn statusEffect = Unit.GetStatusEffect<SuperExtraTurn>();
+			if (statusEffect == null || !statusEffect.IsInExtraTurnByThis)
+			{
+				TurnStartDontLoseBlock statusEffect2 = Unit.GetStatusEffect<TurnStartDontLoseBlock>();
+				if (statusEffect2 != null)
+				{
+					int level = statusEffect2.Level - 1;
+					statusEffect2.Level = level;
+					if (statusEffect2.Level == 0)
+					{
+						React(new RemoveStatusEffectAction(statusEffect2));
+					}
+				}
+				else
+				{
+					React(new LoseBlockShieldAction(Unit, Unit.Block, 0), null, ActionCause.TurnStart);
+				}
+				if (!Unit.IsExtraTurn && !Unit.HasStatusEffect<WindGirl>())
+				{
+					Unit.GetStatusEffect<Graze>()?.LoseGraze();
+				}
+			}
+		});
+		yield return CreateEventPhase("TurnStarting", Args, base.Battle.Player.TurnStarting);
+		yield return CreatePhase("DecreaseDuration", delegate
+		{
+			base.Battle.TurnStartDecreaseDuration(base.Battle.Player);
+		});
+		yield return CreatePhase("Main", delegate
+		{
+			base.Battle.StartPlayerTurn();
+		});
+		base.Battle.StartTurnDrawing = false;
+		List<Card> list = base.Battle.HandZone.ToList();
+		foreach (Card card in list)
+		{
+			if (card.Zone != CardZone.Hand)
+			{
+				continue;
+			}
+			IEnumerable<BattleAction> reactor = card.OnTurnStartedInHand();
+			if (reactor == null)
+			{
+				continue;
+			}
+			List<DamageAction> damageActions = new List<DamageAction>();
+			yield return CreatePhase("SpecialHandInTurnStarted", delegate
+			{
+				React(new Reactor(StatisticalTotalDamageAction.WrapReactorWithStats(reactor, damageActions)), card, ActionCause.Card);
+			});
+			if (damageActions.NotEmpty())
+			{
+				yield return CreatePhase("Statistics", delegate
+				{
+					base.Battle.React(new StatisticalTotalDamageAction(damageActions), card, ActionCause.Card);
+				});
+			}
+		}
+		base.Battle.PlayerSummonAFriendThisTurn = false;
+		yield return CreateEventPhase("TurnStarted", Args, base.Battle.Player.TurnStarted);
+		yield return CreatePhase("InTurn", delegate
+		{
+			base.Battle.Player.IsInTurn = true;
+		});
+	}
+
+	public override void ClearModifiers()
+	{
+		Args.ClearModifiers();
+	}
+
+	public override string ExportDebugDetails()
+	{
+		return Args.ExportDebugDetails();
+	}
+}

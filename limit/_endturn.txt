@@ -1,0 +1,99 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using LBoL.Base.Extensions;
+using LBoL.Core.Cards;
+using LBoL.Core.Units;
+
+namespace LBoL.Core.Battle.BattleActions;
+
+public sealed class EndPlayerTurnAction : BattleAction
+{
+	public UnitEventArgs Args { get; }
+
+	public Unit Unit { get; }
+
+	public override bool IsModified => Args.IsModified;
+
+	public override string[] Modifiers => Array.Empty<string>();
+
+	public override bool IsCanceled => false;
+
+	public override CancelCause CancelCause => CancelCause.None;
+
+	internal EndPlayerTurnAction(Unit unit)
+	{
+		Unit = unit;
+		Args = new UnitEventArgs
+		{
+			Unit = unit,
+			CanCancel = false
+		};
+	}
+
+	internal override IEnumerable<Phase> GetPhases()
+	{
+		yield return CreatePhase("OutTurn", delegate
+		{
+			base.Battle.Player.IsInTurn = false;
+		});
+		List<Card> list = base.Battle.HandZone.ToList();
+		foreach (Card card in list)
+		{
+			if (card.Zone != CardZone.Hand)
+			{
+				continue;
+			}
+			IEnumerable<BattleAction> reactor = card.OnTurnEndingInHand();
+			if (reactor == null)
+			{
+				continue;
+			}
+			List<DamageAction> damageActions = new List<DamageAction>();
+			yield return CreatePhase("SpecialHandInTurnEnding", delegate
+			{
+				React(new Reactor(StatisticalTotalDamageAction.WrapReactorWithStats(reactor, damageActions)), card, ActionCause.Card);
+			});
+			if (damageActions.NotEmpty())
+			{
+				yield return CreatePhase("Statistics", delegate
+				{
+					base.Battle.React(new StatisticalTotalDamageAction(damageActions), card, ActionCause.Card);
+				});
+			}
+		}
+		yield return CreateEventPhase("TurnEnding", Args, base.Battle.Player.TurnEnding);
+		yield return CreatePhase("Main", base.Battle.EndPlayerTurn, hasViewer: true);
+		if (base.Battle.DrawAfterDiscard > 0)
+		{
+			int draw = base.Battle.DrawAfterDiscard;
+			base.Battle.DrawAfterDiscard = 0;
+			yield return CreatePhase("SpecialDrawInTurnEnded", delegate
+			{
+				base.Battle.React(new DrawManyCardAction(draw), null, ActionCause.TurnEnd);
+			});
+		}
+		yield return CreatePhase("DecreaseDuration", delegate
+		{
+			base.Battle.TurnEndDecreaseDuration(Unit);
+		});
+		yield return CreateEventPhase("TurnEnded", Args, base.Battle.Player.TurnEnded);
+		foreach (Card item in base.Battle.EnumerateAllCards())
+		{
+			if (item.IsPlentiful)
+			{
+				item.PlentifulHappenThisTurn = false;
+			}
+		}
+	}
+
+	public override void ClearModifiers()
+	{
+		Args.ClearModifiers();
+	}
+
+	public override string ExportDebugDetails()
+	{
+		return Args.ExportDebugDetails();
+	}
+}

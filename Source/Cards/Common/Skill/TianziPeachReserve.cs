@@ -41,30 +41,15 @@ namespace TianziMod.Cards
     [EntityLogic(typeof(TianziPeachReserveDef))]
     public sealed class TianziPeachReserve : TianziCard
     {
-        private static bool _handledStart;
-        private static bool _handledEnd;
-
         protected override void OnEnterBattle(BattleController battle)
         {
             base.OnEnterBattle(battle);
-            _handledStart = false;
-            _handledEnd = false;
-            base.HandleBattleEvent<UnitEventArgs>(
-                battle.Player.TurnStarting,
-                new GameEventHandler<UnitEventArgs>(this.OnTurnStarting));
-        }
-
-        private void OnTurnStarting(UnitEventArgs args)
-        {
-            _handledStart = false;
-            _handledEnd = false;
+            // 绝壁被清空后 SE 会移除，必须在卡牌侧保证每回合轮转 LostLastTurn
+            TianziTempHp.EnsureBattleHooks(battle);
         }
 
         public override IEnumerable<BattleAction> OnTurnStartedInHand()
         {
-            if (_handledStart)
-                yield break;
-            _handledStart = true;
             int lost = TianziTempHp.LostLastTurn;
             int threshold = base.Value1 > 0 ? base.Value1 : 1;
             int times = lost / threshold;
@@ -80,9 +65,6 @@ namespace TianziMod.Cards
 
         public override IEnumerable<BattleAction> OnTurnEndingInHand()
         {
-            if (_handledEnd)
-                yield break;
-            _handledEnd = true;
             BattleAction gain = TianziTempHp.GainAction(base.Battle.Player, 2, 0.1f);
             if (gain != null)
                 yield return gain;

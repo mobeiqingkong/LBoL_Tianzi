@@ -62,8 +62,11 @@ namespace TianziMod.Cards.Template
                 ? 0
                 : (int)(config.Rarity + 1) * 100000;
 
-            //Color
-            int color = config.Colors.Count > 1 ? 9 : (int)config.Colors[0];
+            //Color（无色/空 Colors 的状态牌等）
+            int color =
+                config.Colors == null || config.Colors.Count == 0
+                    ? 0
+                    : (config.Colors.Count > 1 ? 9 : (int)config.Colors[0]);
             id += color * 10000;
 
             //Cost

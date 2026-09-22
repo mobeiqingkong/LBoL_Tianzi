@@ -1,0 +1,83 @@
+﻿using LBoL.Core;
+using LBoLEntitySideloader.Entities;
+using LBoLEntitySideloader.Resource;
+
+namespace EternalWinterMod.Localization;
+
+public sealed class SampleCharacterLocalization
+{
+	public static string EnemiesUnit = "EnemyUnit";
+
+	public static string StatusEffects = "StatusEffects";
+
+	public static string Cards = "Cards";
+
+	public static string Exhibits = "Exhibits";
+
+	public static string UnitModel = "UnitModel";
+
+	public static BatchLocalization EnemiesUnitBatchLoc = new BatchLocalization((IResourceSource)(object)BepinexPlugin.directorySource, typeof(EnemyUnitTemplate), EnemiesUnit, (Locale)0, false);
+
+	public static BatchLocalization StatusEffectsBatchLoc = new BatchLocalization((IResourceSource)(object)BepinexPlugin.directorySource, typeof(StatusEffectTemplate), StatusEffects, (Locale)0, false);
+
+	public static BatchLocalization CardsBatchLoc = new BatchLocalization((IResourceSource)(object)BepinexPlugin.directorySource, typeof(CardTemplate), Cards, (Locale)0, false);
+
+	public static BatchLocalization ExhibitsBatchLoc = new BatchLocalization((IResourceSource)(object)BepinexPlugin.directorySource, typeof(ExhibitTemplate), Exhibits, (Locale)0, false);
+
+	public static BatchLocalization UnitModelBatchLoc = new BatchLocalization((IResourceSource)(object)BepinexPlugin.directorySource, typeof(UnitModelTemplate), UnitModel, (Locale)0, false);
+
+	public static void Init()
+	{
+		EnemiesUnitBatchLoc.DiscoverAndLoadLocFiles(EnemiesUnit);
+		StatusEffectsBatchLoc.DiscoverAndLoadLocFiles(StatusEffects);
+		CardsBatchLoc.DiscoverAndLoadLocFiles(Cards);
+		ExhibitsBatchLoc.DiscoverAndLoadLocFiles(Exhibits);
+		UnitModelBatchLoc.DiscoverAndLoadLocFiles(UnitModel);
+	}
+}
+
+==== MODEL ====
+using Cysharp.Threading.Tasks;
+using EternalWinterMod.Localization;
+using LBoL.ConfigData;
+using LBoL.Presentation;
+using LBoLEntitySideloader.Entities;
+using LBoLEntitySideloader.Resource;
+using UnityEngine;
+
+namespace EternalWinterMod.Model;
+
+public abstract class EWEnemyUnitModelTemplate : UnitModelTemplate
+{
+	public abstract string VanillaModelName { get; }
+
+	public override LocalizationOption LoadLocalization()
+	{
+		return (LocalizationOption)(object)SampleCharacterLocalization.UnitModelBatchLoc.AddEntity((EntityDefinition)(object)this);
+	}
+
+	public override ModelOption LoadModelOptions()
+	{
+		//IL_0007: Unknown result type (might be due to invalid IL or missing references)
+		//IL_000c: Unknown result type (might be due to invalid IL or missing references)
+		//IL_0012: Expected O, but got Unknown
+		return new ModelOption(ResourcesHelper.LoadSpineUnitAsync(VanillaModelName));
+	}
+
+	public override UniTask<Sprite> LoadSpellSprite()
+	{
+		//IL_0007: Unknown result type (might be due to invalid IL or missing references)
+		//IL_000c: Unknown result type (might be due to invalid IL or missing references)
+		//IL_000f: Unknown result type (might be due to invalid IL or missing references)
+		return ResourcesHelper.LoadSpellPortraitAsync(VanillaModelName);
+	}
+
+	public override UnitModelConfig MakeConfig()
+	{
+		UnitModelConfig val = UnitModelConfig.FromName(VanillaModelName);
+		UnitModelConfig val2 = ((val != null) ? val : ((UnitModelTemplate)this).DefaultConfig());
+		val2.Flip = true;
+		return val2;
+	}
+}
+

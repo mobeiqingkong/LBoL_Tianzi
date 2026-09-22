@@ -1,0 +1,102 @@
+﻿--- @28987 ---
+typesToLocalize[value.assembly] = new Dictionary<Type, LocalizationInfo>();
+			foreach (KeyValuePair<Type, EntityDefinition> definitionInstance in value.definitionInstances)
+			{
+				EntityDefinition value2 = definitionInstance.Value;
+				CardTemplate ct = value2 as CardTemplate;
+				if (ct != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						ct.Consume(ct.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				StatusEffectTemplate st = value2 as StatusEffectTemplate;
+				if (st != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						st.Consume(st.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				ExhibitTemplate et = value2 as ExhibitTemplate;
+				if (et != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						et.Consume(et.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				JadeBoxTemplate jt = value2 as JadeBoxTemplate;
+				if (jt != null)
+				{
+					HandleOverwriteWrap(delegate
+					{
+						jt.Consume(jt.LoadLocalization());
+					}, value2, "LoadLocalization", value);
+					continue;
+				}
+				EnemyUnitTemplate
+--- @32312 ---
+typesToLocalize.ContainsKey(value.assembly))
+			{
+				foreach (KeyValuePair<Type, LocalizationInfo> item in UniqueTracker.Instance.typesToLocalize[value.assembly])
+				{
+					try
+					{
+						Type key = item.Key;
+						LocalizationInfo value3 = item.Value;
+						if (value3.locFiles == null)
+						{
+							Log.log.LogError((object)(value.assembly.GetName().Name + ": localization files parameter was never initialized for global localization option of " + key.Name));
+							continue;
+						}
+						if (CollectionsExtensions.Empty<KeyValuePair<Locale, Func<YamlMappingNode>>>((IReadOnlyCollection<KeyValuePair<Locale, Func<YamlMappingNode>>>)value3.locFiles.locTable))
+						{
+							Log.log.LogError((object)(value.GUID + ": no files were given for global localization option of " + key.Name));
+							continue;
+						}
+						Dictionary<string, Dictionary<string, object>> termDic = value3.locFiles.LoadLocTable(key, value3.entityLogicTypes.ToArray());
+						LocalizationOption.FillLocalizationTables(termDic, key, value3.locFiles.mergeTerms);
+					}
+					catch (Exception ex)
+					{
+						log.LogError((object)ex);
+					}
+				}
+			}
+			if (UniqueTracker.Instance.unitNam
+--- @32445 ---
+typesToLocalize[value.assembly])
+				{
+					try
+					{
+						Type key = item.Key;
+						LocalizationInfo value3 = item.Value;
+						if (value3.locFiles == null)
+						{
+							Log.log.LogError((object)(value.assembly.GetName().Name + ": localization files parameter was never initialized for global localization option of " + key.Name));
+							continue;
+						}
+						if (CollectionsExtensions.Empty<KeyValuePair<Locale, Func<YamlMappingNode>>>((IReadOnlyCollection<KeyValuePair<Locale, Func<YamlMappingNode>>>)value3.locFiles.locTable))
+						{
+							Log.log.LogError((object)(value.GUID + ": no files were given for global localization option of " + key.Name));
+							continue;
+						}
+						Dictionary<string, Dictionary<string, object>> termDic = value3.locFiles.LoadLocTable(key, value3.entityLogicTypes.ToArray());
+						LocalizationOption.FillLocalizationTables(termDic, key, value3.locFiles.mergeTerms);
+					}
+					catch (Exception ex)
+					{
+						log.LogError((object)ex);
+					}
+				}
+			}
+			if (UniqueTracker.Instance.unitNamesGlobalLocalizationFiles.TryGetValue(value.assembly, out var value4))
+			{
+				try
+				{
+					LocalizationOption.FillUnitNameTab
