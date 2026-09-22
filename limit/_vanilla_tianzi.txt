@@ -1,0 +1,142 @@
+﻿using System;
+using System.Collections.Generic;
+using JetBrains.Annotations;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.StatusEffects;
+using LBoL.Core.Units;
+using LBoL.EntityLib.StatusEffects.Enemy;
+
+namespace LBoL.EntityLib.EnemyUnits.Character;
+
+[UsedImplicitly]
+public sealed class Tianzi : EnemyUnit
+{
+	private enum MoveType
+	{
+		Shoot,
+		AttackAndDebuff,
+		DefendAndBuff,
+		SpellAttack
+	}
+
+	private const int EnergyUse = 100;
+
+	private bool _spellBuffShowed;
+
+	private MoveType Next { get; set; }
+
+	private string SpellBuff => GetSpellCardName(1, 2);
+
+	private string SpellAttack => GetSpellCardName(null, 0);
+
+	private int SpellAttackTimes { get; set; }
+
+	private int DebuffCountDown { get; set; }
+
+	protected override void OnEnterBattle(BattleController battle)
+	{
+		Next = MoveType.AttackAndDebuff;
+		DebuffCountDown = 4;
+		base.CountDown = 2;
+		SpellAttackTimes = 0;
+		ReactBattleEvent(base.Battle.BattleStarted, OnBattleStarted);
+	}
+
+	private IEnumerable<BattleAction> OnBattleStarted(GameEventArgs arg)
+	{
+		yield return new ApplyStatusEffectAction<FlatPeach>(this, base.Count1);
+		yield return new ApplyStatusEffectAction<EnemyEnergy>(this, 0);
+	}
+
+	private IEnumerable<BattleAction> DebuffActions()
+	{
+		PlayerUnit player = base.Battle.Player;
+		int? duration = 2;
+		yield return new ApplyStatusEffectAction<Vulnerable>(player, null, duration, null, null, 0f, startAutoDecreasing: false);
+		PlayerUnit player2 = base.Battle.Player;
+		duration = 2;
+		yield return new ApplyStatusEffectAction<Fragil>(player2, null, duration, null, null, 0f, startAutoDecreasing: false);
+	}
+
+	private IEnumerable<BattleAction> SpellBuffActions()
+	{
+		if (_spellBuffShowed)
+		{
+			yield return new EnemyMoveAction(this, SpellBuff);
+		}
+		else
+		{
+			yield return PerformAction.Spell(this, "鏃犲康鏃犳兂鐨勫鐣?);
+			_spellBuffShowed = true;
+		}
+		yield return PerformAction.Animation(this, "defend", 0.2f);
+		Tianzi target = this;
+		int? duration = 1;
+		yield return new ApplyStatusEffectAction<Invincible>(target, null, duration, null, null, 0.2f);
+		yield return new ApplyStatusEffectAction<Firepower>(this, base.Power, null, null, null, 0.2f);
+	}
+
+	private IEnumerable<BattleAction> SpellAttackActions()
+	{
+		yield return new ApplyStatusEffectAction<EnemyEnergyNegative>(this, 100);
+		foreach (BattleAction item in AttackActions(null, base.Gun3, base.Damage3 + base.Count2 * SpellAttackTimes, 1, isAccuracy: true))
+		{
+			yield return item;
+		}
+		int spellAttackTimes = SpellAttackTimes + 1;
+		SpellAttackTimes = spellAttackTimes;
+	}
+
+	protected override IEnumerable<IEnemyMove> GetTurnMoves()
+	{
+		switch (Next)
+		{
+		case MoveType.Shoot:
+			yield return AttackMove(GetMove(3), base.Gun1, base.Damage1, 3, isAccuracy: false, "Instant", withSpell: true);
+			break;
+		case MoveType.AttackAndDebuff:
+			yield return AttackMove(GetMove(4), base.Gun2, base.Damage2, 2, isAccuracy: false, "Instant", withSpell: true);
+			yield return new SimpleEnemyMove(Intention.NegativeEffect(), DebuffActions());
+			break;
+		case MoveType.DefendAndBuff:
+			yield return new SimpleEnemyMove(Intention.SpellCard(SpellBuff), SpellBuffActions());
+			break;
+		case MoveType.SpellAttack:
+			yield return new SimpleEnemyMove(Intention.SpellCard(SpellAttack, base.Damage3 + base.Count2 * SpellAttackTimes, isAccuracy: true), SpellAttackActions());
+			break;
+		default:
+			throw new ArgumentOutOfRangeException();
+		}
+	}
+
+	protected override void UpdateMoveCounters()
+	{
+		int countDown = base.CountDown - 1;
+		base.CountDown = countDown;
+		countDown = DebuffCountDown - 1;
+		DebuffCountDown = countDown;
+		if (base.CountDown <= 0)
+		{
+			Next = MoveType.DefendAndBuff;
+			base.CountDown = 5;
+			return;
+		}
+		EnemyEnergy statusEffect = GetStatusEffect<EnemyEnergy>();
+		if (statusEffect != null && statusEffect.Level >= 100)
+		{
+			Next = MoveType.SpellAttack;
+		}
+		else if (DebuffCountDown <= 0)
+		{
+			Next = MoveType.AttackAndDebuff;
+			DebuffCountDown = 4;
+		}
+		else
+		{
+			Next = MoveType.Shoot;
+		}
+	}
+}
+

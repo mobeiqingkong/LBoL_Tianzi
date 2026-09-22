@@ -8,6 +8,14 @@ TianziExhibitA:
     有顶天桃园里结出的第一颗果实，据说吃下去能续三千年寿命。天子把它揣在怀里带下了凡间，理由是「路上无聊，可以用来垫肚子」。
     「仙桃当然要留给重要的时候！……什么算重要的时候？唔，心情好的时候就算吧。」
 
+TianziBossKeepsake:
+  Name: 天子的纪念品
+  Description: |-
+    击败第一章的天子后留下的信物。
+    若携带此纪念品进入第二章，Boss 战将必定遭遇比那名居天子。
+  FlavorText: |-
+    「把我的道具还给我！」
+
 TianziExhibitB:
   Name: 绯想之剑
   Description: |-

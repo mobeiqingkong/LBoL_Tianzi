@@ -10,7 +10,6 @@ using LBoLEntitySideloader.Attributes;
 using TianziMod.Cards.Template;
 using TianziMod.Keywords;
 using TianziMod.Patches;
-using UnityEngine;
 
 namespace TianziMod.Cards
 {
@@ -27,37 +26,38 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.Block = 8;
             config.UpgradedBlock = 12;
+            config.Scry = 3;
+            config.UpgradedScry = 3;
             config.RelativeCards = new List<string>() { nameof(TianziPlayChoice), nameof(TianziExileChoice) };
             config.UpgradedRelativeCards = config.RelativeCards;
             config.Illustrator = "";
-            config.RelativeKeyword = Keyword.Block | Keyword.Exile;
-            config.UpgradedRelativeKeyword = Keyword.Block | Keyword.Exile;
+            config.RelativeKeyword = Keyword.Block | Keyword.Scry | Keyword.Exile;
+            config.UpgradedRelativeKeyword = Keyword.Block | Keyword.Scry | Keyword.Exile;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }
     }
 
-
+    /// <summary>
+    /// 无念无想：占卜 {Scry}，获得格挡，抽取抽牌堆顶一张牌后可选打出或放逐。
+    /// </summary>
     [EntityLogic(typeof(TianziMushinDef))]
     public sealed class TianziMushin : TianziCard
     {
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
+            yield return new ScryAction(base.Scry);
             yield return base.DefenseAction(true);
-            if (base.Battle.BattleShouldEnd)
+            if (base.Battle.BattleShouldEnd || base.Battle.DrawZone.Count == 0)
                 yield break;
 
-            List<Card> defenses = new List<Card>();
-            foreach (Card c in base.Battle.DrawZone)
-            {
-                if (c != null && c.CardType == CardType.Defense)
-                    defenses.Add(c);
-            }
-            if (defenses.Count == 0)
+            DrawManyCardAction draw = new DrawManyCardAction(1);
+            yield return draw;
+            if (draw.DrawnCards.Count == 0)
                 yield break;
 
-            Card pick = defenses[Random.Range(0, defenses.Count)];
+            Card drawn = draw.DrawnCards[0];
             MiniSelectCardInteraction choice = new MiniSelectCardInteraction(
                 TianziMiniSelectSkin.BindAll(
                     this,
@@ -69,9 +69,9 @@ namespace TianziMod.Cards
             };
             yield return new InteractionAction(choice, false);
             if (choice.SelectedCard is TianziExileChoice)
-                yield return new ExileCardAction(pick);
+                yield return new ExileCardAction(drawn);
             else
-                yield return new PlayCardAction(pick);
+                yield return new PlayCardAction(drawn);
         }
     }
 }

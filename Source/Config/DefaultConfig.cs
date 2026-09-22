@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using LBoL.Base;
 using LBoL.ConfigData;
 using LBoLEntitySideloader.Entities;
+using static LBoLEntitySideloader.Entities.EnemyGroupTemplate;
 using TianziMod.GunName;
 using UnityEngine;
 
@@ -151,6 +152,76 @@ namespace TianziMod.Config
                 VFX: "Default",
                 VFXloop: "Default",
                 SFX: "Default"
+            );
+        }
+
+        public static EnemyUnitConfig EnemyUnitDefaultConfig()
+        {
+            return new EnemyUnitConfig(
+                Id: "",
+                RealName: false,
+                OnlyLore: false,
+                BaseManaColor: new List<ManaColor>() { ManaColor.White, ManaColor.Red },
+                Order: 10,
+                ModleName: BepinexPlugin.modelName,
+                NarrativeColor: "#d7567b",
+                Type: EnemyType.Boss,
+                IsPreludeOpponent: false,
+                HpLength: null,
+                MaxHpAdd: null,
+                MaxHp: 240,
+                Damage1: 5,
+                Damage2: 7,
+                Damage3: 10,
+                Damage4: 30,
+                Power: 1,
+                Defend: 6,
+                Count1: 3,
+                Count2: 2,
+                MaxHpHard: 250,
+                Damage1Hard: 5,
+                Damage2Hard: 7,
+                Damage3Hard: 12,
+                Damage4Hard: 30,
+                PowerHard: 1,
+                DefendHard: 8,
+                Count1Hard: 3,
+                Count2Hard: 2,
+                MaxHpLunatic: 260,
+                Damage1Lunatic: 6,
+                Damage2Lunatic: 8,
+                Damage3Lunatic: 14,
+                Damage4Lunatic: 35,
+                PowerLunatic: 1,
+                DefendLunatic: 10,
+                Count1Lunatic: 3,
+                Count2Lunatic: 2,
+                PowerLoot: new MinMax(100, 100),
+                BluePointLoot: new MinMax(0, 0),
+                Gun1: new List<string> { GunNameID.GetGunFromId(4122) },
+                Gun2: new List<string> { GunNameID.GetGunFromId(4121) },
+                Gun3: new List<string> { GunNameID.GetGunFromId(7300) },
+                Gun4: new List<string> { GunNameID.GetGunFromId(511) }
+            );
+        }
+
+        public static EnemyGroupConfig EnemyGroupDefaultConfig()
+        {
+            return new EnemyGroupConfig(
+                Id: "",
+                Hidden: false,
+                Environment: null,
+                IsSub: false,
+                Subs: new List<string>() { },
+                Name: "",
+                FormationName: VanillaFormations.Single,
+                Enemies: new List<string>() { },
+                EnemyType: EnemyType.Boss,
+                DebutTime: 1f,
+                RollBossExhibit: true,
+                PlayerRoot: new Vector2(-4f, 0.5f),
+                PreBattleDialogName: "",
+                PostBattleDialogName: ""
             );
         }
 

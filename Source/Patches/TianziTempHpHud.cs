@@ -13,7 +13,7 @@ using UnityEngine.UI;
 namespace TianziMod.Patches
 {
     /// <summary>
-    /// 仙体：格挡同款数字 + 在原版血/盾/格挡之外再往外延伸一段黄条。
+    /// 绝壁：格挡同款数字 + 在原版血/盾/格挡之外再往外延伸一段黄条。
     /// 绝不改写 health/shield/block 的 fillAmount。
     /// </summary>
     public static class TianziTempHpHud
@@ -47,7 +47,7 @@ namespace TianziMod.Patches
             int temp = TianziTempHp.Get(unit);
             UpdateBadge(bar, temp);
 
-            // 先让原版画出生命/护盾/格挡，再只叠仙体外圈
+            // 先让原版画出生命/护盾/格挡，再只叠绝壁外圈
             bar.TweenHp(unit.Hp, unit.MaxHp, unit.Shield, unit.Block, instant: true);
         }
 

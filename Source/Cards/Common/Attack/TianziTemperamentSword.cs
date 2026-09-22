@@ -31,7 +31,7 @@ namespace TianziMod.Cards
             config.UpgradedDamage = 12;
             config.Value1 = 1;
             config.UpgradedValue1 = 2;
-            config.RelativeEffects = new List<string>() { nameof(Vulnerable), nameof(Weak), nameof(TianziKarmaKwSe) };
+            config.RelativeEffects = new List<string>() { nameof(Vulnerable), nameof(Weak) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
@@ -47,19 +47,21 @@ namespace TianziMod.Cards
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
-            yield return base.AttackAction(selector);
             Card previous = this.PreviousPlayedCard;
-            if (previous == null)
-                yield break;
-            foreach (BattleAction action in TianziKarmaPlay.Resolve(
-                this,
-                previous.CardType,
-                this.DebuffAll(selector, true),
-                this.DebuffAll(selector, false),
-                this.DebuffAll(selector, false),
-                null,
-                null))
-                yield return action;
+            if (previous != null)
+            {
+                if (previous.CardType == CardType.Attack)
+                {
+                    foreach (BattleAction action in this.DebuffAll(selector, true))
+                        yield return action;
+                }
+                else if (previous.CardType == CardType.Defense || previous.CardType == CardType.Skill)
+                {
+                    foreach (BattleAction action in this.DebuffAll(selector, false))
+                        yield return action;
+                }
+            }
+            yield return base.AttackAction(selector);
         }
 
         private IEnumerable<BattleAction> DebuffAll(UnitSelector selector, bool vuln)

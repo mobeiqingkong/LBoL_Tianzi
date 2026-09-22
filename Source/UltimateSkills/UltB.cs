@@ -8,6 +8,7 @@ using LBoL.Core.Cards;
 using LBoL.Core.Units;
 using LBoLEntitySideloader.Attributes;
 using TianziMod.StatusEffects;
+using UnityEngine;
 
 namespace TianziMod.TianziUlt
 {
@@ -62,21 +63,25 @@ namespace TianziMod.TianziUlt
             int extra = this._usedInThisBattle ? 0 : base.Value1;
             this._usedInThisBattle = true;
 
+            float mistMult = base.Battle.Player.GetStatusEffect<TianziWeatherMist>() != null ? 1.25f : 1f;
+            int mainDamage = Mathf.RoundToInt(base.Config.Damage * mistMult);
+            int extraDamage = extra > 0 ? Mathf.RoundToInt(extra * mistMult) : 0;
+
             foreach (Unit enemy in selector.GetUnits(base.Battle))
             {
                 yield return new DamageAction(
                     base.Owner,
                     enemy,
-                    DamageInfo.Attack(base.Config.Damage, true),
+                    DamageInfo.Attack(mainDamage, true),
                     base.GunName,
                     GunType.Single
                 );
-                if (extra > 0)
+                if (extraDamage > 0)
                 {
                     yield return new DamageAction(
                         base.Owner,
                         enemy,
-                        DamageInfo.Attack(extra, true),
+                        DamageInfo.Attack(extraDamage, true),
                         base.GunName,
                         GunType.Single
                     );

@@ -47,6 +47,15 @@
     <Publicize Include="LBoL.Core:LBoL.Core.Units.EnemyUnit.React" />
     <Publicize Include="LBoL.Core:LBoL.Core.Units.PlayerUnit.React" />
     <Publicize Include="LBoL.Core:LBoL.Core.Battle.BattleAction.GetPhases" />
+    <Publicize Include="LBoL.Core:LBoL.Core.Stage.GetBoss" />
+    <Publicize Include="LBoL.Core:LBoL.Core.Stage.InitBoss" />
+    <Publicize Include="LBoL.Core:LBoL.Core.Stage.get_Level" />
+    <Publicize Include="LBoL.Core:LBoL.Core.Stage.get_BossPool" />
+    <Publicize Include="LBoL.Core:LBoL.Core.Stage.SetBoss" />
+    <Publicize Include="LBoL.Core:LBoL.Core.Exhibit.OnAdded" />
+    <Publicize Include="LBoL.Core:LBoL.Core.Exhibit.OnRemoved" />
+    <Publicize Include="LBoL.Core:LBoL.Core.Battle.BattleController.TurnEndDecreaseDuration" />
+    <Publicize Include="LBoL.Core:LBoL.Core.Stage.GetBossExhibits" />
   </ItemGroup>
 
   <!--Don't publicize virtual members which are meant to be overwritten in concrete entity logic types-->
@@ -57,9 +66,7 @@
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.Name" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.Initialize" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.InitExtraFlags" />
-    <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.InitBoss" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.CreateMap" />
-    <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.SetBoss" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.GetAdventure" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.GetShopNormalCards" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.GetShopToolCards" />
@@ -68,14 +75,12 @@
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.GetSupplyExhibit" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.GetNeutralShiningExhibit" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.RollExhibitInAdventure" />
-    <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.GetBossExhibits" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.GetDrinkTeaCardReward" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.GetEnemyCardReward" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.GetEliteEnemyCardReward" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.GetBossCardReward" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.GetEnemies" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.GetEliteEnemies" />
-    <DoNotPublicize Include="LBoL.Core:LBoL.Core.Stage.GetBoss" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.GameEntity.DebugName" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.GameEntity.LocalizeProperty" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.GameEntity.GetBaseDescription" />
@@ -134,6 +139,7 @@
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Cards.Card.NotifyActivating" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Cards.Card.ShouldPreventOtherCardUsage" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Cards.Card.PreventCardUsageMessage" />
+    <DoNotPublicize Include="LBoL.Core:LBoL.Core.Cards.Card.OnTurnStartedInHand" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Units.UltimateSkill.LocalizeProperty" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Units.UltimateSkill.LocalizeListProperty" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Units.UltimateSkill.DefaultEventPriority" />
@@ -153,12 +159,8 @@
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Exhibit.Initialize" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Exhibit.ShowCounter" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Exhibit.OnAdding" />
-    <DoNotPublicize Include="LBoL.Core:LBoL.Core.Exhibit.OnAdded" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Exhibit.OnRemoving" />
-    <DoNotPublicize Include="LBoL.Core:LBoL.Core.Exhibit.OnRemoved" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Exhibit.SpecialGain" />
-    <DoNotPublicize Include="LBoL.Core:LBoL.Core.Exhibit.OnGain" />
-    <DoNotPublicize Include="LBoL.Core:LBoL.Core.Exhibit.OnLose" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Exhibit.OnEnterBattle" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Exhibit.OnLeaveBattle" />
     <DoNotPublicize Include="LBoL.Core:LBoL.Core.Exhibit.NotifyActivating" />

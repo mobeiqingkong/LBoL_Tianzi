@@ -63,9 +63,18 @@ namespace TianziMod
         // add this for audio loading
         internal static DirectorySource directorySource = new DirectorySource(TianziMod.PInfo.GUID, "");
 
+        /// <summary>是否在第一章启用 mod 专属 Boss。</summary>
+        public static ConfigEntry<bool> enableAct1Boss;
+
         private void Awake()
         {
             log = Logger;
+
+            enableAct1Boss = Config.Bind(
+                "Boss",
+                "EnableAct1Boss",
+                true,
+                "是否在第一章启用比那名居天子 Boss（默认开启）");
 
             // very important. Without this the entry point MonoBehaviour gets destroyed
             DontDestroyOnLoad(gameObject);

@@ -1,0 +1,84 @@
+﻿===== LBoL.EntityLib.StatusEffects.Enemy.EnemyEnergy =====
+using System;
+using System.Collections.Generic;
+using JetBrains.Annotations;
+using LBoL.Base.Extensions;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.StatusEffects;
+using LBoL.Core.Units;
+
+namespace LBoL.EntityLib.StatusEffects.Enemy;
+
+[UsedImplicitly]
+public sealed class EnemyEnergy : StatusEffect, IOpposing<EnemyEnergyNegative>
+{
+	protected override void OnAdded(Unit unit)
+	{
+		ReactOwnerEvent(base.Owner.DamageReceived, OnDamageReceived);
+	}
+
+	private IEnumerable<BattleAction> OnDamageReceived(DamageEventArgs args)
+	{
+		int num = args.DamageInfo.Damage.RoundToInt();
+		if (num > 0)
+		{
+			NotifyActivating();
+			yield return new ApplyStatusEffectAction<EnemyEnergy>(base.Owner, num);
+		}
+	}
+
+	public OpposeResult Oppose(EnemyEnergyNegative other)
+	{
+		base.Level = Math.Max(0, base.Level - other.Level);
+		return OpposeResult.KeepSelf;
+	}
+}
+
+===== LBoL.EntityLib.StatusEffects.Enemy.FlatPeach =====
+using System.Collections.Generic;
+using JetBrains.Annotations;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.StatusEffects;
+using LBoL.Core.Units;
+
+namespace LBoL.EntityLib.StatusEffects.Enemy;
+
+[UsedImplicitly]
+public sealed class FlatPeach : StatusEffect
+{
+	protected override void OnAdded(Unit unit)
+	{
+		ReactOwnerEvent(base.Owner.DamageReceived, OnDamageReceived);
+	}
+
+	private IEnumerable<BattleAction> OnDamageReceived(DamageEventArgs args)
+	{
+		if (args.DamageInfo.Damage > 0f)
+		{
+			NotifyActivating();
+			yield return new HealAction(base.Owner, base.Owner, base.Level);
+		}
+	}
+}
+
+===== LBoL.EntityLib.StatusEffects.Enemy.EnemyEnergyNegative =====
+using System;
+using JetBrains.Annotations;
+using LBoL.Core.StatusEffects;
+
+namespace LBoL.EntityLib.StatusEffects.Enemy;
+
+[UsedImplicitly]
+public sealed class EnemyEnergyNegative : StatusEffect, IOpposing<EnemyEnergy>
+{
+	public OpposeResult Oppose(EnemyEnergy other)
+	{
+		other.Level = Math.Max(0, other.Level - base.Level);
+		return OpposeResult.KeepOther;
+	}
+}
+

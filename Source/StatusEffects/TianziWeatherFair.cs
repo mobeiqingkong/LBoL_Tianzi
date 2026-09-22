@@ -76,7 +76,9 @@ namespace TianziMod.StatusEffects
         {
             if (args.DamageInfo.DamageType != DamageType.Attack)
                 return;
-            if (args.Cause != ActionCause.Us && args.Cause != ActionCause.UsUse)
+            if (args.Cause != ActionCause.Us
+                && args.Cause != ActionCause.UsUse
+                && args.Cause != ActionCause.Player)
                 return;
             base.NotifyActivating();
             args.DamageInfo = args.DamageInfo.MultiplyBy(1.25f);

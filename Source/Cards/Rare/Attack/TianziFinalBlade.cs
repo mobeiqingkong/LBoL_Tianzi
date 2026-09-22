@@ -40,7 +40,7 @@ namespace TianziMod.Cards
             config.Damage = 9;
             config.UpgradedDamage = 12;
 
-            config.Value1 = 2; // 每失去 5% 生命值提高的伤害百分比
+            config.Value1 = 2; // 每失去 4% 生命，额外 + 目标最大生命 Value1%
             config.UpgradedValue1 = 3;
 
             config.Keywords = Keyword.Exile | Keyword.Retain;
@@ -55,7 +55,7 @@ namespace TianziMod.Cards
 
     /// <summary>
     /// 终绝的一剑：造成 {Damage} 点伤害。
-    /// 目标每失去 5% 生命值，此牌伤害提高 {Value1}%。（放逐 / 保留）
+    /// 目标每失去 4% 生命值，此牌伤害额外提高目标最大生命值 {Value1}% 的伤害。（放逐 / 保留）
     /// </summary>
     [EntityLogic(typeof(TianziFinalBladeDef))]
     public sealed class TianziFinalBlade : TianziCard
@@ -66,16 +66,17 @@ namespace TianziMod.Cards
             Interaction precondition
         )
         {
-            float base6 = base.Damage.Damage;
+            float baseDamage = base.Damage.Damage;
             foreach (Unit enemy in selector.GetUnits(base.Battle))
             {
                 int steps = 0;
                 if (enemy.MaxHp > 0)
                 {
-                    float lost = 1f - (float)enemy.Hp / enemy.MaxHp;
-                    steps = (int)Math.Floor(lost * 20f);
+                    float lostRatio = 1f - (float)enemy.Hp / enemy.MaxHp;
+                    steps = (int)Math.Floor(lostRatio * 100f / 4f);
                 }
-                float damage = base6 * (1f + steps * base.Value1 / 100f);
+                float extra = steps * enemy.MaxHp * base.Value1 / 100f;
+                float damage = baseDamage + extra;
 
                 yield return new DamageAction(
                     base.Battle.Player,

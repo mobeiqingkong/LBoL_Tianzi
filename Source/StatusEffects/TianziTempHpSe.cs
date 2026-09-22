@@ -28,7 +28,7 @@ namespace TianziMod.StatusEffects
     }
 
     /// <summary>
-    /// 临时生命值：独立于生命值上限的战斗内生命池，上限 15。
+    /// 绝壁：独立于生命值上限的战斗内生命池，上限 15。
     /// 受击时【优先于格挡与护盾】被扣减（因此挂在 DamageReceiving —— 早于 MeasureDamage）。
     /// </summary>
     [EntityLogic(typeof(TianziTempHpSeDef))]
