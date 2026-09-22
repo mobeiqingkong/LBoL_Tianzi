@@ -165,14 +165,16 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziDoubleAttackSeDef))]
     public sealed class TianziDoubleAttackSe : StatusEffect
     {
-        private bool _armed;
+        /// <summary>施加本状态的那张牌的 CardUsed 已过，开始对「下一张」生效。</summary>
+        private bool _started;
 
         protected override void OnAdded(Unit unit)
         {
+            this._started = false;
             base.HandleOwnerEvent<DamageDealingEventArgs>(
                 base.Battle.Player.DamageDealing,
                 new GameEventHandler<DamageDealingEventArgs>(this.OnPlayerDamageDealing));
-            // 手牌打出走 UseCardAction → CardUsed（不是 CardPlayed）
+            // 手牌打出走 UseCardAction → CardUsed
             base.ReactOwnerEvent<CardUsingEventArgs>(
                 base.Battle.CardUsed,
                 new EventSequencedReactor<CardUsingEventArgs>(this.OnCardUsed));
@@ -183,19 +185,24 @@ namespace TianziMod.StatusEffects
 
         private void OnPlayerDamageDealing(DamageDealingEventArgs args)
         {
-            if (args.DamageInfo.DamageType != DamageType.Attack)
+            // 未过施加牌的 CardUsed 前不生效（避免误伤本张）
+            if (!this._started || args.DamageInfo.DamageType != DamageType.Attack)
                 return;
             base.NotifyActivating();
-            this._armed = true;
             args.DamageInfo = args.DamageInfo.MultiplyBy(2f);
             args.AddModifier(this);
         }
 
         private IEnumerable<BattleAction> OnCardUsed(CardUsingEventArgs args)
         {
-            // 绯色狂想先攻击再上 buff：本张牌的 CardUsed 时 _armed 仍为 false，不会误卸
-            // 下一张攻击造成伤害后 _armed=true，CardUsed 时移除
-            if (this._armed && args.Card != null && args.Card.CardType == CardType.Attack)
+            if (!this._started)
+            {
+                // 第一次：绯色狂想自己的 CardUsed，只武装，不移除
+                this._started = true;
+                yield break;
+            }
+            // 之后打出的下一张攻击牌结束时移除
+            if (args.Card != null && args.Card.CardType == CardType.Attack)
                 yield return new RemoveStatusEffectAction(this, true, 0.1f);
         }
 
