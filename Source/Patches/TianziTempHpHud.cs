@@ -3,6 +3,7 @@ using System.Runtime.CompilerServices;
 using DG.Tweening;
 using HarmonyLib;
 using LBoL.Base;
+using LBoL.Base.Extensions;
 using LBoL.Core.StatusEffects;
 using LBoL.Core.Units;
 using LBoL.Presentation.UI.Widgets;
@@ -14,8 +15,8 @@ using UnityEngine.UI;
 namespace TianziMod.Patches
 {
     /// <summary>
-    /// 绝壁：格挡同款数字 + 在原版血/盾/格挡之外再往外延伸一段黄条。
-    /// 绝不改写 health/shield/block 的 fillAmount。
+    /// 绝壁血条：完全复用原版 HealthBar.TweenHp 的护盾/格挡外延算法，
+    /// 把绝壁当作格挡之后的下一段（health → shield → block → temp）。
     /// </summary>
     public static class TianziTempHpHud
     {
@@ -66,23 +67,12 @@ namespace TianziMod.Patches
             if (bar == null || unit == null)
                 return;
             Bind(bar, unit);
-
-            int temp = TianziTempHp.Get(unit);
-            UpdateBadge(bar, temp);
-
-            // 先让原版画出生命/护盾/格挡，再只叠绝壁外圈
+            UpdateBadge(bar, TianziTempHp.Get(unit));
+            // 走我们接管后的 TweenHp（Prefix 会计入绝壁）
             bar.TweenHp(unit.Hp, unit.MaxHp, unit.Shield, unit.Block, instant: true);
         }
 
-        public static void AfterVanillaTween(
-            HealthBar bar, int hp, int maxHp, int shield, int block, bool instant)
-        {
-            int temp = TempOf(bar);
-            UpdateBadge(bar, temp);
-            ExtendTempOnly(bar, hp, maxHp, shield, block, temp, instant);
-        }
-
-        private static void UpdateBadge(HealthBar bar, int temp)
+        public static void UpdateBadge(HealthBar bar, int temp)
         {
             Transform badge = EnsureBadge(bar);
             if (badge == null)
@@ -94,35 +84,41 @@ namespace TianziMod.Patches
         }
 
         /// <summary>
-        /// 绝壁黄条：与原版护盾/格挡同一套外延算法，接在格挡之后。
-        /// health → shield → block → temp；总量变化时各段重新分配并整体后移。
+        /// 与原版 TweenHp 相同公式，仅把总量从 (shield+block) 扩成 (shield+block+temp)，
+        /// 并多画一段黄条：healthEnd → shieldEnd → blockEnd → tempEnd。
         /// </summary>
-        private static void ExtendTempOnly(
-            HealthBar bar, int hp, int maxHp, int shield, int block, int temp, bool instant)
+        public static bool TryTweenWithTemp(
+            HealthBar bar, int hp, int maxHp, int shield, int block, bool instant)
         {
-            Image tempImage = EnsureFill(bar);
-            if (tempImage == null)
-                return;
+            int temp = TempOf(bar);
+            UpdateBadge(bar, temp);
+            if (temp <= 0 || maxHp <= 0)
+            {
+                Image idle = FindFill(bar);
+                if (idle != null)
+                {
+                    idle.DOKill(complete: true);
+                    idle.fillAmount = 0f;
+                    idle.gameObject.SetActive(false);
+                }
+                return false; // 走原版
+            }
 
             Traverse tr = Traverse.Create(bar);
             Image healthImage = tr.Field("healthImage").GetValue<Image>();
             Image shieldImage = tr.Field("shieldImage").GetValue<Image>();
             Image blockImage = tr.Field("blockImage").GetValue<Image>();
-            if (healthImage == null || shieldImage == null || blockImage == null)
-                return;
+            Image tempImage = EnsureFill(bar, healthImage, shieldImage, blockImage);
+            if (healthImage == null || shieldImage == null || blockImage == null || tempImage == null)
+                return false;
 
-            if (temp <= 0 || maxHp <= 0)
-            {
-                tempImage.DOKill(complete: true);
-                tempImage.fillAmount = 0f;
-                tempImage.gameObject.SetActive(false);
-                return;
-            }
+            // 叠层：最底（先画/最外）→ 最上（后画/最内）= temp, block, shield, health
+            // 与原版「格挡在护盾外延」同一视觉：外圈不被内圈盖住，内圈盖住外圈中心
+            EnsureDrawOrder(tempImage, blockImage, shieldImage, healthImage);
 
-            // 覆盖原版（未计入绝壁）的填充；顺带停掉 HealthBar 上的 Tween 序列
-            bar.DOKill(complete: true);
+            int curHp = tr.Field("_hp").GetValue<int>();
 
-            // 与 HealthBar.TweenHp 相同的 budget，把绝壁并入 shield+block 那一层总量
+            // ---- 以下逐行对应 HealthBar.TweenHp，只把 total 扩了 temp ----
             float hpRatio = (float)hp / (float)maxHp;
             float budget = 0.3f;
             if (1f - hpRatio > 0.3f)
@@ -130,11 +126,11 @@ namespace TianziMod.Patches
             if (1f - hpRatio > 0.6f)
                 budget = 0.6f;
 
-            int total = shield + block + temp;
             float healthEnd = hpRatio;
             float shieldEnd = 0f;
             float blockEnd = 0f;
             float tempEnd = 0f;
+            int total = shield + block + temp;
             if (total != 0)
             {
                 float span = budget * (float)total / ((float)total + 20f);
@@ -148,24 +144,88 @@ namespace TianziMod.Patches
                 tempEnd = blockEnd + tempPart;
             }
 
-            ApplyFill(healthImage, healthEnd, instant);
-            ApplyFill(shieldImage, shieldEnd, instant);
-            ApplyFill(blockImage, blockEnd, instant);
+            bar.DOKill(complete: true);
             tempImage.gameObject.SetActive(true);
-            ApplyFill(tempImage, tempEnd, instant);
-        }
 
-        private static void ApplyFill(Image image, float amount, bool instant)
-        {
-            if (image == null)
-                return;
-            image.DOKill(complete: true);
             if (instant)
             {
-                image.fillAmount = amount;
-                return;
+                healthImage.fillAmount = healthEnd;
+                shieldImage.fillAmount = shieldEnd;
+                blockImage.fillAmount = blockEnd;
+                tempImage.fillAmount = tempEnd;
+                bar.SetHp(hp, maxHp);
+                bar.SetShield(shield, block);
+                return true;
             }
-            image.DOFillAmount(amount, 0.2f).SetUpdate(isIndependentUpdate: true);
+
+            bar.SetShield(shield, block);
+            float lerp = 0f;
+            DOTween.Sequence()
+                .Insert(0f, tempImage.DOFillAmount(tempEnd, 0.2f))
+                .Insert(0f, blockImage.DOFillAmount(blockEnd, 0.2f))
+                .Insert(0.05f, shieldImage.DOFillAmount(shieldEnd, 0.2f))
+                .Insert(0.1f, healthImage.DOFillAmount(healthEnd, 0.2f))
+                .Insert(0f, DOTween.To(
+                    () => lerp,
+                    delegate (float v)
+                    {
+                        lerp = v;
+                        bar.SetHp(v.Lerp(curHp, hp).RoundToInt(), maxHp);
+                    },
+                    1f,
+                    0.5f))
+                .SetUpdate(isIndependentUpdate: true)
+                .SetTarget(bar);
+            return true;
+        }
+
+        /// <summary>
+        /// Unity UI：siblingIndex 越大越靠上。
+        /// 要让外延段可见，fill 越大的必须越靠下：temp &lt; block &lt; shield &lt; health。
+        /// </summary>
+        private static void EnsureDrawOrder(
+            Image tempImage, Image blockImage, Image shieldImage, Image healthImage)
+        {
+            Transform parent = blockImage.transform.parent;
+            // 先收集当前顺序，再按目标重排到 parent 下连续四层
+            Transform[] ordered = new Transform[]
+            {
+                tempImage.transform,
+                blockImage.transform,
+                shieldImage.transform,
+                healthImage.transform,
+            };
+            int baseIndex = parent.childCount;
+            for (int i = 0; i < ordered.Length; i++)
+            {
+                int idx = ordered[i].GetSiblingIndex();
+                if (idx < baseIndex)
+                    baseIndex = idx;
+            }
+            // 从下到上设置，避免互相顶开
+            for (int i = 0; i < ordered.Length; i++)
+                ordered[i].SetSiblingIndex(baseIndex + i);
+        }
+
+        private static Image EnsureFill(
+            HealthBar bar, Image healthImage, Image shieldImage, Image blockImage)
+        {
+            Image existing = FindFill(bar);
+            if (existing != null)
+                return existing;
+
+            GameObject clone = Object.Instantiate(blockImage.gameObject, blockImage.transform.parent);
+            clone.name = FillName;
+            // 先插到格挡位置（之下），随后 EnsureDrawOrder 会再排一次
+            clone.transform.SetSiblingIndex(blockImage.transform.GetSiblingIndex());
+            Image img = clone.GetComponent<Image>();
+            if (img != null)
+            {
+                img.color = Yellow;
+                img.fillAmount = 0f;
+            }
+            clone.SetActive(false);
+            return img;
         }
 
         private static Transform EnsureBadge(HealthBar bar)
@@ -189,31 +249,6 @@ namespace TianziMod.Patches
                 g.color = Yellow;
             clone.SetActive(false);
             return clone.transform;
-        }
-
-        private static Image EnsureFill(HealthBar bar)
-        {
-            Image existing = FindFill(bar);
-            if (existing != null)
-                return existing;
-
-            Traverse tr = Traverse.Create(bar);
-            Image blockImage = tr.Field("blockImage").GetValue<Image>();
-            if (blockImage == null)
-                return null;
-
-            GameObject clone = Object.Instantiate(blockImage.gameObject, blockImage.transform.parent);
-            clone.name = FillName;
-            // 接在格挡之后：与护盾→格挡的叠层顺序一致，绝壁为最外一圈
-            clone.transform.SetSiblingIndex(blockImage.transform.GetSiblingIndex() + 1);
-            Image img = clone.GetComponent<Image>();
-            if (img != null)
-            {
-                img.color = Yellow;
-                img.fillAmount = 0f;
-            }
-            clone.SetActive(false);
-            return img;
         }
 
         private static Image FindFill(HealthBar bar)
@@ -254,12 +289,13 @@ namespace TianziMod.Patches
         }
     }
 
+    /// <summary>有绝壁时完全接管 TweenHp；否则放行原版。</summary>
     [HarmonyPatch(typeof(HealthBar), nameof(HealthBar.TweenHp))]
     internal static class HealthBarTweenHpPatch
     {
-        private static void Postfix(HealthBar __instance, int hp, int maxHp, int shield, int block, bool instant)
+        private static bool Prefix(HealthBar __instance, int hp, int maxHp, int shield, int block, bool instant)
         {
-            TianziTempHpHud.AfterVanillaTween(__instance, hp, maxHp, shield, block, instant);
+            return !TianziTempHpHud.TryTweenWithTemp(__instance, hp, maxHp, shield, block, instant);
         }
     }
 

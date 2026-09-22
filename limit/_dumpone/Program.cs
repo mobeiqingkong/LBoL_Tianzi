@@ -1,12 +1,15 @@
 ﻿using System;
-using System.IO;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.CSharp;
 using ICSharpCode.Decompiler.TypeSystem;
-var path = @"D:\software\steam\steamapps\common\LBoL\LBoL_Data\Managed\LBoL.Presentation.dll";
-var d = new CSharpDecompiler(path, new DecompilerSettings { ThrowOnAssemblyResolveErrors = false });
-var s = d.DecompileTypeAsString(new FullTypeName("LBoL.Presentation.UI.Widgets.HealthBar"));
-File.WriteAllText(@"D:\riderProject\Hinanawi-Tenshi\limit\_healthbar.txt", s);
-Console.WriteLine("len="+s.Length);
-int i = s.IndexOf("TweenHp");
-Console.WriteLine(s.Substring(i, Math.Min(2500, s.Length-i)));
+var core = @"D:\software\steam\steamapps\common\LBoL\LBoL_Data\Managed\LBoL.Core.dll";
+var d = new CSharpDecompiler(core, new DecompilerSettings { ThrowOnAssemblyResolveErrors = false });
+int count = 0;
+foreach (var t in d.TypeSystem.GetAllTypeDefinitions()) {
+  string s;
+  try { s = d.DecompileTypeAsString(new FullTypeName(t.FullName)); } catch { continue; }
+  if (s.Contains("new UseCardAction") || s.Contains("new PlayCardAction")) {
+    Console.WriteLine(t.FullName);
+    if (++count > 20) break;
+  }
+}

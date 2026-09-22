@@ -35,9 +35,10 @@ namespace TianziMod.StatusEffects
             base.HandleOwnerEvent<DamageDealingEventArgs>(
                 base.Battle.Player.DamageDealing,
                 new GameEventHandler<DamageDealingEventArgs>(this.OnPlayerDamageDealing));
+            // 手牌打出走 UseCardAction → CardUsed（不是 CardPlayed）
             base.ReactOwnerEvent<CardUsingEventArgs>(
-                base.Battle.CardPlayed,
-                new EventSequencedReactor<CardUsingEventArgs>(this.OnCardPlayed));
+                base.Battle.CardUsed,
+                new EventSequencedReactor<CardUsingEventArgs>(this.OnCardUsed));
             base.ReactOwnerEvent<UnitEventArgs>(
                 base.Battle.Player.TurnEnding,
                 new EventSequencedReactor<UnitEventArgs>(this.OnTurnEnding));
@@ -53,7 +54,7 @@ namespace TianziMod.StatusEffects
             args.AddModifier(this);
         }
 
-        private IEnumerable<BattleAction> OnCardPlayed(CardUsingEventArgs args)
+        private IEnumerable<BattleAction> OnCardUsed(CardUsingEventArgs args)
         {
             if (this._armed && args.Card != null && args.Card.CardType == CardType.Attack)
                 yield return new RemoveStatusEffectAction(this, true, 0.1f);
@@ -164,22 +165,17 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziDoubleAttackSeDef))]
     public sealed class TianziDoubleAttackSe : StatusEffect
     {
-        private bool _ready;
-        private Card _targetCard;
+        private bool _armed;
 
         protected override void OnAdded(Unit unit)
         {
-            // 施加时这张攻击牌尚未 CardPlayed：第一次 CardPlayed 只用于“武装”，不移除
-            this._ready = false;
             base.HandleOwnerEvent<DamageDealingEventArgs>(
                 base.Battle.Player.DamageDealing,
                 new GameEventHandler<DamageDealingEventArgs>(this.OnPlayerDamageDealing));
+            // 手牌打出走 UseCardAction → CardUsed（不是 CardPlayed）
             base.ReactOwnerEvent<CardUsingEventArgs>(
                 base.Battle.CardUsed,
                 new EventSequencedReactor<CardUsingEventArgs>(this.OnCardUsed));
-            base.ReactOwnerEvent<CardUsingEventArgs>(
-                base.Battle.CardPlayed,
-                new EventSequencedReactor<CardUsingEventArgs>(this.OnCardPlayed));
             base.ReactOwnerEvent<UnitEventArgs>(
                 base.Battle.Player.TurnEnding,
                 new EventSequencedReactor<UnitEventArgs>(this.OnTurnEnding));
@@ -187,35 +183,19 @@ namespace TianziMod.StatusEffects
 
         private void OnPlayerDamageDealing(DamageDealingEventArgs args)
         {
-            if (!this._ready || args.DamageInfo.DamageType != DamageType.Attack)
+            if (args.DamageInfo.DamageType != DamageType.Attack)
                 return;
-            Card src = args.ActionSource as Card;
-            if (this._targetCard != null && src != this._targetCard)
-                return;
-            if (this._targetCard == null && src != null && src.CardType == CardType.Attack)
-                this._targetCard = src;
             base.NotifyActivating();
+            this._armed = true;
             args.DamageInfo = args.DamageInfo.MultiplyBy(2f);
             args.AddModifier(this);
         }
 
         private IEnumerable<BattleAction> OnCardUsed(CardUsingEventArgs args)
         {
-            if (!this._ready)
-                yield break;
-            if (args.Card != null && args.Card.CardType == CardType.Attack && this._targetCard == null)
-                this._targetCard = args.Card;
-            yield break;
-        }
-
-        private IEnumerable<BattleAction> OnCardPlayed(CardUsingEventArgs args)
-        {
-            if (!this._ready)
-            {
-                this._ready = true;
-                yield break;
-            }
-            if (args.Card != null && args.Card.CardType == CardType.Attack)
+            // 绯色狂想先攻击再上 buff：本张牌的 CardUsed 时 _armed 仍为 false，不会误卸
+            // 下一张攻击造成伤害后 _armed=true，CardUsed 时移除
+            if (this._armed && args.Card != null && args.Card.CardType == CardType.Attack)
                 yield return new RemoveStatusEffectAction(this, true, 0.1f);
         }
 

@@ -1,0 +1,235 @@
+using System;
+using System.Collections.Generic;
+using LBoL.Base;
+using LBoL.Core.Cards;
+using LBoL.Core.Units;
+
+namespace LBoL.Core.Battle.BattleActions;
+
+public sealed class PlayCardAction : BattleAction
+{
+	private Interaction _precondition;
+
+	private Card _twiceTokenCard;
+
+	public CardUsingEventArgs Args { get; }
+
+	public CardZone SourceZone { get; }
+
+	public override bool IsModified => Args.IsModified;
+
+	public override string[] Modifiers => Args.Modifiers;
+
+	public override CancelCause CancelCause => Args.CancelCause;
+
+	public override bool IsCanceled => Args.IsCanceled;
+
+	public PlayCardAction(Card card)
+	{
+		Args = new CardUsingEventArgs
+		{
+			Card = card,
+			Selector = UnitSelector.Nobody
+		};
+		SourceZone = card.Zone;
+	}
+
+	public PlayCardAction(Card card, UnitSelector selector)
+	{
+		Args = new CardUsingEventArgs
+		{
+			Card = card,
+			Selector = selector
+		};
+		SourceZone = card.Zone;
+	}
+
+	public PlayCardAction(Card card, UnitSelector selector, ManaGroup consumingMana)
+	{
+		Args = new CardUsingEventArgs
+		{
+			Card = card,
+			Selector = selector,
+			ConsumingMana = consumingMana
+		};
+		SourceZone = card.Zone;
+	}
+
+	public override BattleAction SetCause(ActionCause cause)
+	{
+		base.SetCause(cause);
+		Args.Cause = cause;
+		return this;
+	}
+
+	public override BattleAction SetSource(GameEntity source)
+	{
+		base.SetSource(source);
+		Args.ActionSource = base.Source;
+		return this;
+	}
+
+	public override void ClearModifiers()
+	{
+		Args.ClearModifiers();
+	}
+
+	internal override IEnumerable<Phase> GetPhases()
+	{
+		Card card = Args.Card;
+		yield return CreateEventPhase("CardPlaying", Args, base.Battle.CardPlaying);
+		if (Args.PlayTwice)
+		{
+			_twiceTokenCard = Args.Card.CloneTwiceToken();
+			_twiceTokenCard.IsPlayTwiceToken = true;
+			_twiceTokenCard.PlayTwiceSourceCard = Args.Card;
+		}
+		yield return CreatePhase("CardPlay/Canceled", delegate
+		{
+			Args.CanCancel = false;
+			card.PlayInTriggered = card.Triggered;
+			switch (card.Zone)
+			{
+			case CardZone.Draw:
+			case CardZone.Hand:
+			case CardZone.Discard:
+			case CardZone.Exile:
+				base.Battle.MoveCardToFollowArea(card);
+				break;
+			case CardZone.None:
+				base.Battle.AddCardToFollowArea(card);
+				break;
+			default:
+				throw new ArgumentOutOfRangeException();
+			case CardZone.FollowArea:
+				break;
+			}
+		}, hasViewer: true);
+		yield return CreatePhase("Precondition", delegate
+		{
+			_precondition = Args.Card.Precondition();
+			if (_precondition != null)
+			{
+				_precondition.Source = Args.Card;
+				React(new InteractionAction(_precondition));
+			}
+		});
+		bool played = false;
+		if (!card.IsForbidden && card.CanUse)
+		{
+			int? moneyCost = card.Config.MoneyCost;
+			if (moneyCost.HasValue)
+			{
+				int valueOrDefault = moneyCost.GetValueOrDefault();
+				if (base.Battle.GameRun.Money < valueOrDefault)
+				{
+					goto IL_0328;
+				}
+			}
+			if (!card.Summoned || card.Loyalty >= card.MinLoyaltyToUseSkill)
+			{
+				played = true;
+				moneyCost = card.Config.MoneyCost;
+				if (moneyCost.HasValue)
+				{
+					int mc = moneyCost.GetValueOrDefault();
+					yield return CreatePhase("MoneyCost", delegate
+					{
+						base.Battle.React(new ConsumeMoneyAction(mc), card, ActionCause.CardUse);
+					});
+				}
+				List<DamageAction> damageActions = new List<DamageAction>();
+				yield return CreatePhase("CardAction", delegate
+				{
+					if (card.CardType == CardType.Friend)
+					{
+						card.Summoning = !card.Summoned;
+					}
+					ReTargeting();
+					base.Battle.React(new Reactor(card.GetActions(Args.Selector, Args.ConsumingMana, _precondition, Args.Kicker, card.Summoning, damageActions)), card, ActionCause.Card);
+				});
+				if (damageActions.Count > 0)
+				{
+					yield return CreatePhase("Statistics", delegate
+					{
+						base.Battle.React(new StatisticalTotalDamageAction(damageActions), Args.Card, ActionCause.Card);
+					});
+				}
+			}
+		}
+		goto IL_0328;
+		IL_0328:
+		yield return CreatePhase("AfterPlay", delegate
+		{
+			if (played)
+			{
+				IEnumerable<BattleAction> enumerable = Args.Card.AfterFollowPlayAction();
+				if (enumerable != null)
+				{
+					base.Battle.React(new Reactor(enumerable), card, ActionCause.CardUse);
+				}
+			}
+			else if (Args.Card.IsPlayTwiceToken)
+			{
+				IEnumerable<BattleAction> enumerable2 = Args.Card.AfterFollowPlayAction();
+				if (enumerable2 != null)
+				{
+					base.Battle.React(new Reactor(enumerable2), card, ActionCause.CardUse);
+				}
+			}
+			else
+			{
+				MoveCardAction action = new MoveCardAction(Args.Card, CardZone.Discard);
+				base.Battle.React(new Reactor(action), card, ActionCause.CardUse);
+			}
+		});
+		yield return CreatePhase("Record", delegate
+		{
+			base.Battle.RecordCardPlay(Args.Card);
+		});
+		if (Args.PlayTwice && _twiceTokenCard != null && !base.Battle.BattleShouldEnd)
+		{
+			yield return CreatePhase("PlayTwice", delegate
+			{
+				React(new PlayTwiceAction(_twiceTokenCard, Args));
+			});
+		}
+		yield return CreateEventPhase("CardPlayed", Args, base.Battle.CardPlayed);
+	}
+
+	private void ReTargeting()
+	{
+		Card card = Args.Card;
+		if (card.Config.TargetType == TargetType.SingleEnemy)
+		{
+			if (Args.Selector.Type == TargetType.SingleEnemy)
+			{
+				EnemyUnit selectedEnemy = Args.Selector.SelectedEnemy;
+				if (selectedEnemy != null && selectedEnemy.IsAlive)
+				{
+					Args.Selector = new UnitSelector(Args.Selector.SelectedEnemy);
+					return;
+				}
+			}
+			Args.Selector = new UnitSelector(base.Battle.RandomAliveEnemy);
+		}
+		else
+		{
+			CardUsingEventArgs args = Args;
+			args.Selector = card.Config.TargetType switch
+			{
+				TargetType.Nobody => UnitSelector.Nobody, 
+				TargetType.AllEnemies => UnitSelector.AllEnemies, 
+				TargetType.RandomEnemy => UnitSelector.RandomEnemy, 
+				TargetType.Self => UnitSelector.Self, 
+				TargetType.All => UnitSelector.All, 
+				_ => throw new ArgumentOutOfRangeException(), 
+			};
+		}
+	}
+
+	public override string ExportDebugDetails()
+	{
+		return Args.ExportDebugDetails();
+	}
+}

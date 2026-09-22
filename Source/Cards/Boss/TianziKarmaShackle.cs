@@ -18,6 +18,7 @@ namespace TianziMod.Cards
             config.FindInBattle = false;
             config.HideMesuem = true;
             config.IsUpgradable = false;
+            config.Owner = null;
             config.Type = CardType.Status;
             config.TargetType = TargetType.Self;
             config.Colors = new List<ManaColor>() { ManaColor.Colorless };

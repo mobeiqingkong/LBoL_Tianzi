@@ -141,8 +141,8 @@ TianziPeachNectar:
 TianziPeachReserve:
   Name: 仙桃储备
   Description: |-
-    |手牌中，回合结束时|：获得 |e:2| 点|绝壁|。
-    |手牌中，回合开始时|：上回合每减少 {Value1} 点|绝壁|，获得 {Value2} 点|格挡|并抽 |e:1| 张牌，一回合最多生效 |e:2| 次。
+    |回合结束时|：如果{SelfName}在手牌中，获得 |e:2| 点|绝壁|。
+    |回合开始时|：如果{SelfName}在手牌中，上回合每减少 {Value1} 点|绝壁|，获得 {Value2} 点|格挡|并抽 |e:1| 张牌，一回合最多生效 |e:2| 次。
   FlavorText: 她把仙桃掰成小块收进袖子里，说是路上万一饿了可以垫一垫。
 
 TianziBlazingSword:
