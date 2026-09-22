@@ -140,7 +140,7 @@ namespace TianziMod.StatusEffects
     }
 
     // ================================================================
-    //  天人的耐性：回合开始只失去一半格挡；≤5 点未被格挡攻击伤害降为 1
+    //  天人的耐性：参考「保留格挡」，回合开始保留至多 10 点格挡；并获得灵力（最多 3）
     // ================================================================
     public sealed class TianziEnduranceSeDef : TianziStatusEffectTemplate
     {
@@ -151,6 +151,7 @@ namespace TianziMod.StatusEffects
             config.HasLevel = false;
             config.IsStackable = false;
             config.HasCount = true;
+            config.RelativeEffects = new List<string>() { nameof(TurnStartDontLoseBlock) };
             return config;
         }
     }
@@ -158,40 +159,54 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziEnduranceSeDef))]
     public sealed class TianziEnduranceSe : StatusEffect
     {
-
-        private int _blockBeforeTurn;
+        private const int MaxKeepBlock = 10;
 
         protected override void OnAdded(Unit unit)
         {
+            // 回合结束时挂上「保留格挡」，跳过下回合开始的清空
+            base.ReactOwnerEvent<UnitEventArgs>(
+                base.Battle.Player.TurnEnding,
+                new EventSequencedReactor<UnitEventArgs>(this.OnTurnEnding)
+            );
+            // LoseBlockGraze 之后立刻把超额格挡削到 10
             base.ReactOwnerEvent<UnitEventArgs>(
                 base.Battle.Player.TurnStarting,
-                new EventSequencedReactor<UnitEventArgs>(this.OnTurnStarting)
+                new EventSequencedReactor<UnitEventArgs>(this.OnTurnStarting),
+                GameEventPriority.Highest
             );
             base.ReactOwnerEvent<UnitEventArgs>(
                 base.Battle.Player.TurnStarted,
                 new EventSequencedReactor<UnitEventArgs>(this.OnTurnStarted)
             );
+        }
 
+        private IEnumerable<BattleAction> OnTurnEnding(UnitEventArgs args)
+        {
+            if (base.Battle.BattleShouldEnd)
+                yield break;
+            if (base.Battle.Player.Block <= 0)
+                yield break;
+            TurnStartDontLoseBlock existing = base.Battle.Player.GetStatusEffect<TurnStartDontLoseBlock>();
+            if (existing != null)
+                yield break;
+            yield return new ApplyStatusEffectAction<TurnStartDontLoseBlock>(
+                base.Battle.Player, 1, null, null, null, 0.05f);
         }
 
         private IEnumerable<BattleAction> OnTurnStarting(UnitEventArgs args)
         {
-            this._blockBeforeTurn = base.Battle.Player.Block;
-            yield break;
+            if (base.Battle.BattleShouldEnd)
+                yield break;
+            int block = base.Battle.Player.Block;
+            int excess = block - MaxKeepBlock;
+            if (excess <= 0)
+                yield break;
+            base.NotifyActivating();
+            yield return new LoseBlockShieldAction(base.Battle.Player, excess, 0);
         }
 
         private IEnumerable<BattleAction> OnTurnStarted(UnitEventArgs args)
         {
-            int keep = this._blockBeforeTurn;
-            if (keep > 10)
-                keep = 10;
-            int now = base.Battle.Player.Block;
-            if (keep > 0 && now < keep)
-            {
-                base.NotifyActivating();
-                yield return new CastBlockShieldAction(
-                    base.Battle.Player, base.Battle.Player, keep - now, 0, BlockShieldType.Direct, false);
-            }
             if (base.Count < 3)
             {
                 base.Count += 1;
@@ -201,7 +216,7 @@ namespace TianziMod.StatusEffects
     }
 
     // ================================================================
-    //  清霖之愿：每回合前 {Level} 次抽到状态/厄运牌时，将其放逐并抽 1 张牌
+    //  清霖之愿：每回合前 {Level} 次（剩余 {Count}）抽到状态/厄运牌时放逐并抽 1
     // ================================================================
     public sealed class TianziPureWishSeDef : TianziStatusEffectTemplate
     {
@@ -212,6 +227,8 @@ namespace TianziMod.StatusEffects
             config.HasLevel = true;
             config.LevelStackType = StackType.Max;
             config.IsStackable = true;
+            config.HasCount = true;
+            config.CountStackType = StackType.Keep;
             return config;
         }
     }
@@ -219,10 +236,10 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziPureWishSeDef))]
     public sealed class TianziPureWishSe : StatusEffect
     {
-        private int _usedThisTurn;
-
         protected override void OnAdded(Unit unit)
         {
+            if (base.Count <= 0)
+                base.Count = base.Level > 0 ? base.Level : 1;
             base.ReactOwnerEvent<UnitEventArgs>(
                 base.Battle.Player.TurnStarted,
                 new EventSequencedReactor<UnitEventArgs>(this.OnTurnStarted)
@@ -231,34 +248,50 @@ namespace TianziMod.StatusEffects
                 base.Battle.CardDrawn,
                 new EventSequencedReactor<CardEventArgs>(this.OnCardDrawn)
             );
-            // 庇护（AmuletForCard）拦截加入弃牌/抽牌堆的状态牌时，同样计次并抽 1
+            // 必须比 AmuletForCard 更早入队，否则庇护扣完层后这里会读到 Level<=0
             base.ReactOwnerEvent<CardsEventArgs>(
                 base.Battle.CardsAddedToDiscard,
-                new EventSequencedReactor<CardsEventArgs>(this.OnAmuletCards));
+                new EventSequencedReactor<CardsEventArgs>(this.OnAmuletCards),
+                GameEventPriority.Highest);
+            base.ReactOwnerEvent<CardsEventArgs>(
+                base.Battle.CardsAddedToHand,
+                new EventSequencedReactor<CardsEventArgs>(this.OnAmuletCards),
+                GameEventPriority.Highest);
             base.ReactOwnerEvent<CardsAddingToDrawZoneEventArgs>(
                 base.Battle.CardsAddedToDrawZone,
-                new EventSequencedReactor<CardsAddingToDrawZoneEventArgs>(this.OnAmuletDrawZone));
+                new EventSequencedReactor<CardsAddingToDrawZoneEventArgs>(this.OnAmuletDrawZone),
+                GameEventPriority.Highest);
+            // 必须比 Amulet 更早：庇护 Cancel 之后再检查 IsCanceled 会直接跳过
             base.ReactOwnerEvent<StatusEffectApplyEventArgs>(
                 unit.StatusEffectAdding,
-                new EventSequencedReactor<StatusEffectApplyEventArgs>(this.OnStatusAdding));
+                new EventSequencedReactor<StatusEffectApplyEventArgs>(this.OnStatusAdding),
+                GameEventPriority.Highest);
+        }
+
+        public override bool Stack(StatusEffect other)
+        {
+            bool handled = base.Stack(other);
+            if (base.Count < base.Level)
+                base.Count = base.Level;
+            return handled;
         }
 
         private IEnumerable<BattleAction> OnTurnStarted(UnitEventArgs args)
         {
-            this._usedThisTurn = 0;
+            base.Count = base.Level > 0 ? base.Level : 1;
             yield break;
         }
 
         private IEnumerable<BattleAction> OnCardDrawn(CardEventArgs args)
         {
-            if (base.Battle.BattleShouldEnd || this._usedThisTurn >= base.Level)
+            if (base.Battle.BattleShouldEnd || base.Count <= 0)
                 yield break;
             Card card = args.Card;
             if (card == null)
                 yield break;
             if (card.CardType != CardType.Status && card.CardType != CardType.Misfortune)
                 yield break;
-            this._usedThisTurn += 1;
+            base.Count -= 1;
             base.NotifyActivating();
             yield return new ExileCardAction(card);
             yield return new DrawManyCardAction(1);
@@ -276,22 +309,26 @@ namespace TianziMod.StatusEffects
 
         private IEnumerable<BattleAction> TryAmuletTriggers(IEnumerable<Card> cards)
         {
-            if (base.Battle.BattleShouldEnd || this._usedThisTurn >= base.Level)
+            if (base.Battle.BattleShouldEnd || base.Count <= 0)
                 yield break;
             AmuletForCard amulet = base.Owner.GetStatusEffect<AmuletForCard>();
             if (amulet == null || amulet.Level <= 0)
                 yield break;
-            int triggers = 0;
+            int statusCount = 0;
             foreach (Card card in cards)
             {
                 if (card != null && card.CardType == CardType.Status)
-                    triggers++;
+                    statusCount++;
             }
+            // 与庇护实际会放逐的次数对齐
+            int triggers = statusCount;
+            if (triggers > amulet.Level)
+                triggers = amulet.Level;
             if (triggers <= 0)
                 yield break;
-            while (triggers > 0 && this._usedThisTurn < base.Level)
+            while (triggers > 0 && base.Count > 0)
             {
-                this._usedThisTurn += 1;
+                base.Count -= 1;
                 triggers -= 1;
                 base.NotifyActivating();
                 yield return new DrawManyCardAction(1);
@@ -300,14 +337,17 @@ namespace TianziMod.StatusEffects
 
         private IEnumerable<BattleAction> OnStatusAdding(StatusEffectApplyEventArgs args)
         {
-            if (base.Battle.BattleShouldEnd || this._usedThisTurn >= base.Level)
+            if (base.Battle.BattleShouldEnd || base.Count <= 0)
                 yield break;
-            if (args.Effect == null || args.Effect.Type != StatusEffectType.Negative || args.IsCanceled)
+            if (args.Effect == null || args.Effect.Type != StatusEffectType.Negative)
+                yield break;
+            // Highest 下先于庇护执行；此时尚未 Cancel，层数也还在
+            if (args.IsCanceled)
                 yield break;
             Amulet amulet = base.Owner.GetStatusEffect<Amulet>();
             if (amulet == null || amulet.Level <= 0)
                 yield break;
-            this._usedThisTurn += 1;
+            base.Count -= 1;
             base.NotifyActivating();
             yield return new DrawManyCardAction(1);
         }
@@ -369,7 +409,7 @@ namespace TianziMod.StatusEffects
     }
 
     // ================================================================
-    //  凡间之游：每打出 {Level} 张牌，获得 1 点白色法力并抽 1 张牌
+    //  凡间之游：每打出 {Level} 张牌触发；Count = 还需打出几张
     // ================================================================
     public sealed class TianziMortalJourneySeDef : TianziStatusEffectTemplate
     {
@@ -380,6 +420,8 @@ namespace TianziMod.StatusEffects
             config.HasLevel = true;
             config.LevelStackType = StackType.Min;
             config.IsStackable = true;
+            config.HasCount = true;
+            config.CountStackType = StackType.Keep;
             return config;
         }
     }
@@ -392,25 +434,34 @@ namespace TianziMod.StatusEffects
             get { return new ManaGroup() { White = 1 }; }
         }
 
-        private int _counter;
-
         protected override void OnAdded(Unit unit)
         {
+            if (base.Count <= 0)
+                base.Count = Math.Max(base.Level, 1);
             base.ReactOwnerEvent<CardUsingEventArgs>(
                 base.Battle.CardUsed,
                 new EventSequencedReactor<CardUsingEventArgs>(this.OnCardUsed)
             );
         }
 
+        public override bool Stack(StatusEffect other)
+        {
+            bool handled = base.Stack(other);
+            int need = Math.Max(base.Level, 1);
+            if (base.Count <= 0 || base.Count > need)
+                base.Count = need;
+            return handled;
+        }
+
         private IEnumerable<BattleAction> OnCardUsed(CardUsingEventArgs args)
         {
             if (base.Battle.BattleShouldEnd)
                 yield break;
-            this._counter += 1;
             int need = Math.Max(base.Level, 1);
-            if (this._counter < need)
+            base.Count -= 1;
+            if (base.Count > 0)
                 yield break;
-            this._counter = 0;
+            base.Count = need;
             base.NotifyActivating();
             yield return new GainManaAction(new ManaGroup() { White = 1 });
             yield return new DrawManyCardAction(1);

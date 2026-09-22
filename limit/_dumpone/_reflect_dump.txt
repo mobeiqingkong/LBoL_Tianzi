@@ -1,0 +1,9 @@
+﻿D:\riderProject\Hinanawi-Tenshi\limit\_dumpone\sefind\Program.cs(13,24): error CS0246: The type or namespace name 'UniversalAssemblyResolver' could not be found (are you missing a using directive or an assembly reference?) [D:\riderProject\Hinanawi-Tenshi\limit\_dumpone\sefind\sefind.csproj]
+dotnet : 
+所在位置 C:\Users\taole\AppData\Local\Temp\ps-script-c2b519a2-036e-4d1c-b8f6-3d54740a8d12.ps1:132 字符: 1
++ dotnet run --project "$dir\sefind\sefind.csproj" -c Release 2>&1 | Ou ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+The build failed. Fix the build errors and run again.

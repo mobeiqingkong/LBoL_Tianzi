@@ -58,32 +58,32 @@ TianziWeatherTyphoon:
 TianziWeatherCalm:
   Name: 无风
   Description: |-
-    最后造成未被格挡伤害的一方获得 |e:2| 层|自愈|。
+    最后一次造成未被格挡伤害的单位获得 |e:2| 层|自愈|。
   Brief: 造成未被格挡伤害的一方获得|自愈|。
 
 TianziPeachBoostSe:
-  Name: 桃增
+  Name: 仙桃增幅
   Description: |-
     {OwnerName}获得|绝壁|时，额外获得 |e:1| 点|绝壁|。
   Brief: "获得|绝壁|时额外增加 |e:1|。"
 
 TianziPeachGardenSe:
-  Name: 桃园
+  Name: 漫漫桃园
   Description: |-
     {OwnerName}的|绝壁|减少时，获得 |e:1| 点|绝壁|。
   Brief: "|绝壁|减少时获得 |e:1| 点|绝壁|。"
 
 TianziScarletRadianceSe:
-  Name: 威光
+  Name: 绯想的威光
   Description: |-
     每当一张牌被放逐，对所有敌人造成 {Level} 点攻击伤害。
   Brief: "放逐牌时对所有敌人造成 {Level} 点伤害。"
 
 TianziScarletWaveSe:
-  Name: 斩波
+  Name: 绯想剑斩波
   Description: |-
-    {OwnerName}每回合前 {Level} 张攻击牌造成攻击伤害时，获得等量的|格挡|。
-  Brief: 每回合前 {Level} 次攻击伤害转为等量|格挡|。
+    {OwnerName}每回合前 {Level} 次（剩余 {Count} 次）攻击造成伤害时，获得等量的|格挡|。
+  Brief: "每回合前 {Level} 次（剩 {Count}）攻击伤害转|格挡|。"
 
 TianziKeystoneMatrixSe:
   Name: 石阵
@@ -109,12 +109,12 @@ TianziKarmaKwSe:
   Brief: 按卡牌种类触发效果。
 
 TianziKarmaSe:
-  Name: 因果选
+  Name: 因果之剑
   Description: 带有|因果|关键字的牌打出时，因果效果改为自行选择触发。
   Brief: 因果效果改为自行选择。
 
 TianziOddEvenSe:
-  Name: 奇偶
+  Name: 天人之气
   Description: |-
     手牌张数的「奇数 / 偶数」分支效果改为由{OwnerName}选择触发。
   Brief: 奇偶分支改为自行选择。
@@ -131,50 +131,51 @@ TianziMeditationSe:
     回合开始时，可将一张手牌与弃牌堆内的一张牌互换。
   Brief: "每回合多抽 |e:1| 张；可互换手牌与弃牌堆。"
 TianziEnduranceSe:
-  Name: 耐性
+  Name: 天人的耐性
   Description: |-
-    {OwnerName}回合开始时保留上回合至多 |e:10| 点|格挡|，
+    {OwnerName}回合开始时通过|保留格挡|保留上回合至多 |e:10| 点|格挡|，
     并获得 |e:1| 点|灵力|（最多累计 |e:3| 点）。
-  Brief: 保留格挡并获得|灵力|。
+  Brief: 保留至多|e:10|格挡并获得|灵力|。
 TianziPureWishSe:
-  Name: 清霖
+  Name: 清霖之愿
   Description: |-
-    {OwnerName}每回合前 {Level} 次抽到诅咒或状态牌时，
+    {OwnerName}每回合前 {Level} 次（剩余 {Count} 次）抽到诅咒或状态牌时，
     将其放逐并抽 |e:1| 张牌；|庇护|触发时此效果也会生效。
-  Brief: "前 {Level} 次抽到诅咒/状态牌时放逐并补抽。"
+  Brief: "每回合前 {Level} 次（剩 {Count}）放逐诅咒/状态并补抽。"
 
 TianziHeavenShieldSe:
-  Name: 庇护
+  Name: 天界之庇护
   Description: |-
     {OwnerName}的回合开始时获得{Mana}。
-    {OwnerName}的普通回合结束时获得 |e:1| 层|庇护|。
+    {OwnerName}的回合结束时获得 |e:1| 层|庇护|。
   Brief: "回合开始获得{Mana}，回合结束获得|庇护|。"
 
 TianziMortalJourneySe:
-  Name: 凡游
+  Name: 凡间之游
   Description: |-
     {OwnerName}每打出 {Level} 张牌，获得{Mana}并抽 |e:1| 张牌。
-  Brief: "每 {Level} 张牌获得{Mana}并抽牌。"
+    还需打出 {Count} 张牌。
+  Brief: "还需 {Count}/{Level} 张牌触发。"
 
 TianziPeachTalismanSe:
-  Name: 桃符
+  Name: 桃符「固若金汤的仙桃」
   Description: |-
     每 |e:4| 个回合，{OwnerName}获得 |e:1| 回合|天衣无缝|，
     并立即获得 {Level} 点|绝壁|。
   Brief: "每 |e:4| 回合获得|天衣无缝|与|绝壁|。"
 
 TianziHeavenlyTempoSe:
-  Name: 天人
+  Name: 天人永不落俗
   Description: |-
-    奇数回合开始时获得 |e:1| 点|火力|。
-    偶数回合开始时获得当前|火力|的{Level}/|e:10|倍的|格挡|。
+    奇数回合开始时获得 {Count} 点|火力|。
+    偶数回合开始时获得当前|火力|的 {Level} 倍的|格挡|。
   Brief: 奇数|火力|，偶数|格挡|。
 TianziPeachEternitySe:
-  Name: 桃久
+  Name: “野生桃奶”
   Description: |-
     {OwnerName}的|绝壁|上限提高 {Level}；
-    每回合开始获得 |e:2| 点|绝壁|。
-  Brief: "|绝壁|上限增加 {Level}，每回合增加 |e:2|。"
+    每回合开始获得 {Count} 点|绝壁|。
+  Brief: "|绝壁|上限 +{Level}，每回合 +{Count}。"
 
 TianziScarletChargeSe:
   Name: 绯充
@@ -206,34 +207,34 @@ TianziShrugSe:
   Brief: 回合内受伤获得|格挡|。
 
 TianziProbeSe:
-  Name: 探查
+  Name: 气质探查
   Description: "{OwnerName}每打出一张|奇偶数|牌，抽 |e:1| 张牌。"
   Brief: 打出奇偶牌时抽牌。
 
 TianziEarthDelaySe:
   Name: 镇石
-  Description: "持续 {Duration} 回合，每回合开始获得 {Level} 层|自愈|。"
-  Brief: 持续获得|自愈|。
+  Description: "后续 {Count} 个回合开始时，获得 {Level} 层|自愈|。"
+  Brief: 后续回合获得|自愈|。
 
 TianziFeastSe:
-  Name: 庆功
+  Name: 庆功宴
   Description: "每当一名敌人被打败，恢复 |e:2| 点生命值，获得{Mana}并抽 |e:1| 张牌。"
   Brief: 击杀回血、得费、抽牌。
 
 TianziReflectSe:
-  Name: 对决
-  Description: 完全抵挡下一次敌人攻击伤害并完整返还。
+  Name: 境界对决
+  Description: 完全抵挡下 {Level} 次敌人攻击造成的生命损失，并原额返还。
   Brief: 抵挡并返还下一次攻击。
 
 TianziGraceSe:
-  Name: 恩宠
+  Name: 有顶天的恩宠
   Description: |-
-    回合结束时将剩余即将失去的|格挡|转化为|绝壁|。
+    回合开始失去|格挡|时，将剩余|格挡|转化为|绝壁|。
     每回合开始获得{Mana}。
-  Brief: 回合末|格挡|转为|绝壁|。
+  Brief: 回合开始|格挡|转为|绝壁|。
 
 TianziLethalSe:
-  Name: 致死
+  Name: 纯粹致死
   Description: "{OwnerName}在回合内获得{Mana}时，对所有敌人造成其最大生命值 |e:1|% 的伤害。"
   Brief: 获得无色法力时百分比伤害。
 

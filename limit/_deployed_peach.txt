@@ -1,0 +1,151 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.StatusEffects;
+using LBoL.Core.Units;
+using LBoLEntitySideloader.Attributes;
+
+namespace TianziMod.StatusEffects;
+
+[EntityLogic(typeof(TianziPeachGardenSeDef))]
+public sealed class TianziPeachGardenSe : StatusEffect
+{
+	[CompilerGenerated]
+	private sealed class <RefundOnce>d__3 : IEnumerable<BattleAction>, IEnumerable, IEnumerator<BattleAction>, IEnumerator, IDisposable
+	{
+		private int <>1__state;
+
+		private BattleAction <>2__current;
+
+		private int <>l__initialThreadId;
+
+		public TianziPeachGardenSe <>4__this;
+
+		private BattleAction <gain>5__1;
+
+		BattleAction IEnumerator<BattleAction>.Current
+		{
+			[DebuggerHidden]
+			get
+			{
+				return <>2__current;
+			}
+		}
+
+		object IEnumerator.Current
+		{
+			[DebuggerHidden]
+			get
+			{
+				return <>2__current;
+			}
+		}
+
+		[DebuggerHidden]
+		public <RefundOnce>d__3(int <>1__state)
+		{
+			this.<>1__state = <>1__state;
+			<>l__initialThreadId = Environment.CurrentManagedThreadId;
+		}
+
+		[DebuggerHidden]
+		void IDisposable.Dispose()
+		{
+			<gain>5__1 = null;
+			<>1__state = -2;
+		}
+
+		private bool MoveNext()
+		{
+			switch (<>1__state)
+			{
+			default:
+				return false;
+			case 0:
+				<>1__state = -1;
+				<gain>5__1 = TianziTempHp.GainAction(((StatusEffect)<>4__this).Owner, 1, 0.05f);
+				if (<gain>5__1 != null)
+				{
+					<>2__current = <gain>5__1;
+					<>1__state = 1;
+					return true;
+				}
+				break;
+			case 1:
+				<>1__state = -1;
+				break;
+			}
+			return false;
+		}
+
+		bool IEnumerator.MoveNext()
+		{
+			//ILSpy generated this explicit interface implementation from .override directive in MoveNext
+			return this.MoveNext();
+		}
+
+		[DebuggerHidden]
+		void IEnumerator.Reset()
+		{
+			throw new NotSupportedException();
+		}
+
+		[DebuggerHidden]
+		IEnumerator<BattleAction> IEnumerable<BattleAction>.GetEnumerator()
+		{
+			<RefundOnce>d__3 result;
+			if (<>1__state == -2 && <>l__initialThreadId == Environment.CurrentManagedThreadId)
+			{
+				<>1__state = 0;
+				result = this;
+			}
+			else
+			{
+				result = new <RefundOnce>d__3(0)
+				{
+					<>4__this = <>4__this
+				};
+			}
+			return result;
+		}
+
+		[DebuggerHidden]
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return ((IEnumerable<BattleAction>)this).GetEnumerator();
+		}
+	}
+
+	protected override void OnAdded(Unit unit)
+	{
+		TianziTempHp.Lost += OnTempHpLost;
+	}
+
+	protected override void OnRemoving(Unit unit)
+	{
+		TianziTempHp.Lost -= OnTempHpLost;
+	}
+
+	private void OnTempHpLost(Unit target, int amount)
+	{
+		if (target == ((StatusEffect)this).Owner && amount > 0 && ((StatusEffect)this).Battle != null && !((StatusEffect)this).Battle.BattleShouldEnd)
+		{
+			((StatusEffect)this).NotifyActivating();
+			((GameEntity)this).React(RefundOnce());
+		}
+	}
+
+	[IteratorStateMachine(typeof(<RefundOnce>d__3))]
+	private IEnumerable<BattleAction> RefundOnce()
+	{
+		//yield-return decompiler failed: Unexpected instruction in Iterator.Dispose()
+		return new <RefundOnce>d__3(-2)
+		{
+			<>4__this = this
+		};
+	}
+}

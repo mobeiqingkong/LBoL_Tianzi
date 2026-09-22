@@ -29,18 +29,18 @@ namespace TianziMod.StatusEffects
 
     /// <summary>
     /// 绝壁：独立于生命值上限的战斗内生命池，上限 15。
-    /// 受击时【优先于格挡与护盾】被扣减（因此挂在 DamageReceiving —— 早于 MeasureDamage）。
+    /// 结算顺序：绝壁 → 格挡 → 护盾 → 生命值（在 MeasureDamage 之前的 DamageReceiving 扣减）。
     /// </summary>
     [EntityLogic(typeof(TianziTempHpSeDef))]
     public sealed class TianziTempHpSe : StatusEffect
     {
         public const int MaxLevel = 15;
 
-        // 本次结算要扣掉的池量（DamageTaking 改伤害 → DamageReceived 才真正扣 Level）
         private int _pendingCost;
 
         protected override void OnAdded(Unit unit)
         {
+            // DamageReceiving 在 MeasureDamage(格挡/护盾) 之前，绝壁最优先
             base.HandleOwnerEvent<DamageEventArgs>(
                 base.Owner.DamageReceiving,
                 new GameEventHandler<DamageEventArgs>(this.OnOwnerDamageReceiving)
@@ -56,7 +56,6 @@ namespace TianziMod.StatusEffects
             TianziTempHp.EnsureBattleHooks(base.Battle);
         }
 
-        /// <summary>叠加时夹到上限（基础 15，可被「仙桃长久」提高）。</summary>
         public override bool Stack(StatusEffect other)
         {
             bool handled = base.Stack(other);
@@ -69,19 +68,19 @@ namespace TianziMod.StatusEffects
 
         private void OnOwnerDamageReceiving(DamageEventArgs args)
         {
-            // 预览计算（BattleController.CalculateDamage）也会走这条链路，必须排除，否则预览会白扣池子。
-            if (args.Cause == ActionCause.OnlyCalculate)
-                return;
             if (base.Level <= 0)
                 return;
-
             int incoming = (int)Math.Round(args.DamageInfo.Damage, MidpointRounding.AwayFromZero);
             if (incoming <= 0)
                 return;
 
             int cost = Math.Min(incoming, base.Level);
-            base.NotifyActivating();
-            this._pendingCost += cost;
+            if (args.Cause != ActionCause.OnlyCalculate)
+            {
+                base.NotifyActivating();
+                this._pendingCost += cost;
+            }
+            // Measure 之前必须用 ReduceBy（尚未 Blocked/Shielded）
             args.DamageInfo = args.DamageInfo.ReduceBy(cost);
             args.AddModifier(this);
         }
@@ -95,7 +94,9 @@ namespace TianziMod.StatusEffects
             this._pendingCost = 0;
             base.Level -= used;
             TianziTempHp.LostThisTurn += used;
-            TianziTempHp.RaiseLost(base.Owner, used);
+
+            foreach (BattleAction action in TianziTempHp.RaiseLost(base.Owner, used))
+                yield return action;
 
             if (base.Level <= 0)
                 yield return new RemoveStatusEffectAction(this, true, 0.1f);
@@ -110,9 +111,6 @@ namespace TianziMod.StatusEffects
         private static BattleController _hookedBattle;
         private static bool _rotatedThisTurn;
 
-        /// <summary>
-        /// 该单位的临时生命值上限 = 基础 15 + 「仙桃长久」等状态提供的加成。
-        /// </summary>
         public static int MaxOf(Unit unit)
         {
             if (unit == null)
@@ -130,21 +128,30 @@ namespace TianziMod.StatusEffects
             return se == null ? 0 : se.Level;
         }
 
-        /// <summary>“获得临时生命值时额外获得 N 点”这类效果的挂载点。</summary>
         public static event Func<Unit, int, int> GainModifier;
 
-        /// <summary>“临时生命值减少时”的挂载点，参数为 (单位, 实际减少量)。</summary>
-        public static event Action<Unit, int> Lost;
+        /// <summary>绝壁减少时的动作挂载点（须在战斗动作链内 yield，不可自行 React）。</summary>
+        public static event Func<Unit, int, IEnumerable<BattleAction>> LostActions;
 
-        /// <summary>层数变化时刷新黄色血条。</summary>
         public static event Action<Unit> Changed;
 
-        internal static void RaiseLost(Unit unit, int amount)
+        internal static IEnumerable<BattleAction> RaiseLost(Unit unit, int amount)
         {
-            Action<Unit, int> handler = Lost;
-            if (handler != null && amount > 0)
-                handler(unit, amount);
             RaiseChanged(unit);
+            Func<Unit, int, IEnumerable<BattleAction>> handler = LostActions;
+            if (handler == null || amount <= 0)
+                yield break;
+            foreach (Func<Unit, int, IEnumerable<BattleAction>> f in handler.GetInvocationList())
+            {
+                IEnumerable<BattleAction> seq = f(unit, amount);
+                if (seq == null)
+                    continue;
+                foreach (BattleAction action in seq)
+                {
+                    if (action != null)
+                        yield return action;
+                }
+            }
         }
 
         internal static void RaiseChanged(Unit unit)
@@ -164,7 +171,6 @@ namespace TianziMod.StatusEffects
             return amount;
         }
 
-        /// <summary>返回应该【追加】多少层（已含加成），已考虑上限。</summary>
         public static int ExtraAmount(Unit unit, int amount)
         {
             int cur = Get(unit);
@@ -172,7 +178,6 @@ namespace TianziMod.StatusEffects
             return Math.Max(target - cur, 0);
         }
 
-        /// <summary>获得临时生命值。返回 null 表示已满，无需执行。</summary>
         public static BattleAction GainAction(Unit unit, int amount, float wait = 0.2f)
         {
             int delta = ExtraAmount(unit, amount);
@@ -191,10 +196,6 @@ namespace TianziMod.StatusEffects
             LostThisTurn = 0;
         }
 
-        /// <summary>
-        /// 绝壁 SE 可能在清空后被移除，轮转 LostLastTurn 不能依赖 SE 存活。
-        /// 在战斗生命周期内挂一次 Player.TurnStarting。
-        /// </summary>
         public static void EnsureBattleHooks(BattleController battle)
         {
             if (battle == null || battle.Player == null)
@@ -231,6 +232,7 @@ namespace TianziMod.StatusEffects
             return Consume(unit, int.MaxValue);
         }
 
+        /// <summary>静默消耗层数并刷新 UI；不触发 LostActions。</summary>
         public static int Consume(Unit unit, int amount)
         {
             int cur = Get(unit);
@@ -242,8 +244,22 @@ namespace TianziMod.StatusEffects
                 return 0;
             se.Level -= used;
             LostThisTurn += used;
-            RaiseLost(unit, used);
+            RaiseChanged(unit);
             return used;
+        }
+
+        /// <summary>消耗并 yield 漫漫桃园等后续动作。</summary>
+        public static IEnumerable<BattleAction> ConsumeActions(Unit unit, int amount, out int used)
+        {
+            used = Consume(unit, amount);
+            if (used <= 0)
+                return EmptyActions();
+            return RaiseLost(unit, used);
+        }
+
+        private static IEnumerable<BattleAction> EmptyActions()
+        {
+            yield break;
         }
     }
 }

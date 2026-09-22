@@ -28,8 +28,6 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.Keywords = Keyword.Initial;
             config.UpgradedKeywords = Keyword.Initial;
-            config.RelativeEffects = new List<string>() { nameof(TianziMeditationSe) };
-            config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;

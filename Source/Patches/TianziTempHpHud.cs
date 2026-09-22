@@ -15,8 +15,8 @@ using UnityEngine.UI;
 namespace TianziMod.Patches
 {
     /// <summary>
-    /// 绝壁血条：完全复用原版 HealthBar.TweenHp 的护盾/格挡外延算法，
-    /// 把绝壁当作格挡之后的下一段（health → shield → block → temp）。
+    /// 绝壁血条：复用原版 HealthBar.TweenHp 外延算法。
+    /// 结算上绝壁优先于格挡，视觉上黄条画在最外层（health → shield → block → temp）。
     /// </summary>
     public static class TianziTempHpHud
     {

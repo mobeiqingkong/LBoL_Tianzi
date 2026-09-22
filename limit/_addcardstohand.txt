@@ -1,0 +1,70 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using LBoL.Core.Cards;
+
+namespace LBoL.Core.Battle.BattleActions;
+
+public class AddCardsToHandAction : EventBattleAction<CardsEventArgs>
+{
+	public AddCardsType PresentationType { get; }
+
+	public bool DontSetInstanceId { get; }
+
+	public AddCardsToHandAction(params Card[] cards)
+		: this(cards, AddCardsType.Normal, dontSetInstanceId: false)
+	{
+	}
+
+	public AddCardsToHandAction(IEnumerable<Card> cards, AddCardsType presentationType = AddCardsType.Normal, bool dontSetInstanceId = false)
+	{
+		base.Args = new CardsEventArgs
+		{
+			Cards = cards.ToArray()
+		};
+		PresentationType = presentationType;
+		DontSetInstanceId = dontSetInstanceId;
+	}
+
+	internal override IEnumerable<Phase> GetPhases()
+	{
+		while (base.Battle.HandZone.Count((Card card) => card.IsAutoExile) > 0 && base.Battle.HandZone.Count + base.Args.Cards.Length - base.Battle.MaxHand > 0)
+		{
+			List<Card> autoExiles = base.Battle.HandZone.Where((Card card) => card.IsAutoExile).ToList();
+			int count = base.Battle.HandZone.Count + base.Args.Cards.Length - base.Battle.MaxHand;
+			if (autoExiles.Count > 0 && count > 0)
+			{
+				yield return CreatePhase("AutoExile", delegate
+				{
+					base.Battle.React(new ExileManyCardAction(autoExiles.GetRange(0, Math.Min(autoExiles.Count, count))), base.Args.Cards.First(), ActionCause.AutoExile);
+				});
+			}
+		}
+		yield return CreatePhase("PreEvent", delegate
+		{
+			base.Battle.CardsAddingToHand.Execute(base.Args);
+		});
+		yield return CreatePhase("Main", delegate
+		{
+			List<Card> list = new List<Card>();
+			Card[] cards = base.Args.Cards;
+			foreach (Card card2 in cards)
+			{
+				if (base.Battle.AddCardToHand(card2, DontSetInstanceId) == CancelCause.None)
+				{
+					list.Add(card2);
+				}
+			}
+			if (!list.SequenceEqual(base.Args.Cards))
+			{
+				base.Args.Cards = list.ToArray();
+				base.Args.IsModified = true;
+			}
+			base.Args.CanCancel = false;
+		}, hasViewer: true);
+		yield return CreatePhase("PostEvent", delegate
+		{
+			base.Battle.CardsAddedToHand.Execute(base.Args);
+		});
+	}
+}

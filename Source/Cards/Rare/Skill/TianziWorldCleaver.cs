@@ -25,7 +25,8 @@ namespace TianziMod.Cards
         {
             CardConfig config = GetDefaultCardConfig();
             config.Colors = new List<ManaColor>() { ManaColor.White, ManaColor.Red };
-            config.Cost = new ManaGroup() { Hybrid = 1 };
+            // X 费最低需求不能含 Hybrid/Any：CanAfford 禁止把它们当作可用法力
+            config.Cost = ManaGroup.Empty;
             config.IsXCost = true;
             config.Rarity = Rarity.Rare;
             config.Type = CardType.Skill;
@@ -74,8 +75,9 @@ namespace TianziMod.Cards
 
             if (n > 0)
                 yield return new DrawManyCardAction(n);
+            // 返还超出可弃数量的费用：不能用 Any（会写入战斗法力池并触发 CanAfford 报错）
             if (x > n)
-                yield return new GainManaAction(ManaGroup.Anys(x - n));
+                yield return new GainManaAction(new ManaGroup() { Philosophy = x - n });
 
             HashSet<CardType> kinds = new HashSet<CardType>();
             foreach (Card c in dumped)

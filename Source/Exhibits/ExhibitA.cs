@@ -22,7 +22,7 @@ namespace TianziMod.Exhibits
             config.Value1 = 2;
             config.Value2 = 2;
             config.HasCounter = true;
-            config.InitialCounter = 0;
+            config.InitialCounter = 7;
             config.Keywords = Keyword.None;
             config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe) };
             return config;
@@ -46,7 +46,7 @@ namespace TianziMod.Exhibits
 
         protected override void OnEnterBattle()
         {
-            base.Counter = 0;
+            base.Counter = MaxTriggers;
             base.ReactBattleEvent<UnitEventArgs>(
                 base.Battle.Player.TurnStarted,
                 new EventSequencedReactor<UnitEventArgs>(this.OnPlayerTurnStarted)
@@ -63,7 +63,7 @@ namespace TianziMod.Exhibits
 
         private void OnBattleEnded(GameEventArgs args)
         {
-            base.Counter = 0;
+            base.Counter = MaxTriggers;
         }
 
         private IEnumerable<BattleAction> OnPlayerTurnStarted(UnitEventArgs args)
@@ -77,14 +77,14 @@ namespace TianziMod.Exhibits
 
         private IEnumerable<BattleAction> OnPlayerDamageReceived(DamageEventArgs args)
         {
-            if (base.Battle.BattleShouldEnd || base.Counter >= MaxTriggers)
+            if (base.Battle.BattleShouldEnd || base.Counter <= 0)
                 yield break;
 
             int damage = (int)Math.Round(args.DamageInfo.Damage, MidpointRounding.AwayFromZero);
             if (damage <= 0)
                 yield break;
 
-            base.Counter += 1;
+            base.Counter -= 1;
             base.NotifyActivating();
             yield return new HealAction(base.Owner, base.Owner, base.Value1, HealType.Normal, 0.1f);
             yield return new GainPowerAction(base.Value2);

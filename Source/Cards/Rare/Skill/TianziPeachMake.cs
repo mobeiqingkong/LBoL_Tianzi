@@ -50,7 +50,9 @@ namespace TianziMod.Cards
         {
             if (TianziTempHp.Get(base.Battle.Player) < 3)
                 yield break;
-            int used = TianziTempHp.Consume(base.Battle.Player, 3);
+            int used;
+            foreach (BattleAction action in TianziTempHp.ConsumeActions(base.Battle.Player, 3, out used))
+                yield return action;
             if (used < 3)
                 yield break;
             yield return new HealAction(base.Battle.Player, base.Battle.Player, 2, HealType.Normal, 0.2f);

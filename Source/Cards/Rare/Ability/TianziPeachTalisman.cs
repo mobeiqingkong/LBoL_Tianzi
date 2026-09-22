@@ -39,7 +39,6 @@ namespace TianziMod.Cards
 
             config.RelativeEffects = new List<string>()
             {
-                nameof(TianziPeachTalismanSe),
                 nameof(TianziTempHpSe),
                 nameof(Invincible),
             };

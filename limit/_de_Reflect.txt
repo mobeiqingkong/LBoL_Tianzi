@@ -1,0 +1,32 @@
+using System.Collections.Generic;
+using JetBrains.Annotations;
+using LBoL.Base;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.StatusEffects;
+using LBoL.Core.Units;
+
+namespace LBoL.EntityLib.StatusEffects.Basic;
+
+[UsedImplicitly]
+public sealed class Reflect : StatusEffect
+{
+	public string Gun { get; set; } = "Reflect";
+
+
+	protected override void OnAdded(Unit unit)
+	{
+		ReactOwnerEvent(base.Owner.DamageReceived, OnDamageReceived);
+	}
+
+	private IEnumerable<BattleAction> OnDamageReceived(DamageEventArgs args)
+	{
+		if (args.Source != base.Owner && args.Source.IsAlive && args.DamageInfo.DamageType == DamageType.Attack)
+		{
+			NotifyActivating();
+			yield return new DamageAction(base.Owner, args.Source, DamageInfo.Reaction(base.Level), Gun);
+			yield return new RemoveStatusEffectAction(this);
+		}
+	}
+}

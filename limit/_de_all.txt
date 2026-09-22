@@ -1,0 +1,177 @@
+﻿======== LBoL.EntityLib.StatusEffects.Basic.Reflect ========
+using System.Collections.Generic;
+using JetBrains.Annotations;
+using LBoL.Base;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.StatusEffects;
+using LBoL.Core.Units;
+
+namespace LBoL.EntityLib.StatusEffects.Basic;
+
+[UsedImplicitly]
+public sealed class Reflect : StatusEffect
+{
+	public string Gun { get; set; } = "Reflect";
+
+
+	protected override void OnAdded(Unit unit)
+	{
+		ReactOwnerEvent(base.Owner.DamageReceived, OnDamageReceived);
+	}
+
+	private IEnumerable<BattleAction> OnDamageReceived(DamageEventArgs args)
+	{
+		if (args.Source != base.Owner && args.Source.IsAlive && args.DamageInfo.DamageType == DamageType.Attack)
+		{
+			NotifyActivating();
+			yield return new DamageAction(base.Owner, args.Source, DamageInfo.Reaction(base.Level), Gun);
+			yield return new RemoveStatusEffectAction(this);
+		}
+	}
+}
+
+======== LBoL.EntityLib.StatusEffects.Neutral.TwoColor.YachieDefendSe ========
+using System.Collections.Generic;
+using JetBrains.Annotations;
+using LBoL.Base.Extensions;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.StatusEffects;
+using LBoL.Core.Units;
+
+namespace LBoL.EntityLib.StatusEffects.Neutral.TwoColor;
+
+[UsedImplicitly]
+public sealed class YachieDefendSe : StatusEffect
+{
+	private Queue<ReflectDamage> ReflectDamages { get; set; } = new Queue<ReflectDamage>();
+
+
+	private int ActiveTimes { get; set; }
+
+	protected override void OnAdded(Unit unit)
+	{
+		HandleOwnerEvent(base.Battle.Player.DamageTaking, OnPlayerDamageTaking);
+		ReactOwnerEvent(base.Battle.Player.DamageReceived, OnPlayerDamageReceived);
+	}
+
+	private void OnPlayerDamageTaking(DamageEventArgs args)
+	{
+		DamageInfo damageInfo = args.DamageInfo;
+		int num = damageInfo.Damage.RoundToInt();
+		if (num >= 1 && ActiveTimes < base.Level)
+		{
+			NotifyActivating();
+			int activeTimes = ActiveTimes + 1;
+			ActiveTimes = activeTimes;
+			args.DamageInfo = damageInfo.ReduceActualDamageBy(num);
+			args.AddModifier(this);
+			Unit source = args.Source;
+			if (source is EnemyUnit && source.IsAlive)
+			{
+				ReflectDamages.Enqueue(new ReflectDamage(args.Source, num));
+			}
+		}
+	}
+
+	private IEnumerable<BattleAction> OnPlayerDamageReceived(DamageEventArgs args)
+	{
+		while (ReflectDamages.Count > 0)
+		{
+			ReflectDamage reflectDamage = ReflectDamages.Dequeue();
+			if (reflectDamage.Target.IsAlive)
+			{
+				yield return new DamageAction(base.Battle.Player, reflectDamage.Target, DamageInfo.Reaction(reflectDamage.Damage));
+			}
+		}
+		base.Level -= ActiveTimes;
+		ActiveTimes = 0;
+		if (base.Level <= 0)
+		{
+			yield return new RemoveStatusEffectAction(this);
+		}
+	}
+}
+
+======== LBoL.EntityLib.Cards.Neutral.TwoColor.YachieDefend ========
+using System.Collections.Generic;
+using JetBrains.Annotations;
+using LBoL.Base;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Cards;
+using LBoL.EntityLib.StatusEffects.Neutral.TwoColor;
+
+namespace LBoL.EntityLib.Cards.Neutral.TwoColor;
+
+[UsedImplicitly]
+public sealed class YachieDefend : Card
+{
+	protected override IEnumerable<BattleAction> Actions(UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
+	{
+		yield return BuffAction<YachieDefendSe>(base.Value1);
+	}
+}
+
+======== LBoL.EntityLib.StatusEffects.Basic.TempElectric ========
+using System.Collections.Generic;
+using JetBrains.Annotations;
+using LBoL.Base;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.StatusEffects;
+using LBoL.Core.Units;
+
+namespace LBoL.EntityLib.StatusEffects.Basic;
+
+[UsedImplicitly]
+public sealed class TempElectric : StatusEffect
+{
+	public override string UnitEffectName => "ElectricLoop";
+
+	protected override void OnAdded(Unit unit)
+	{
+		ReactOwnerEvent(base.Owner.DamageReceived, OnDamageReceived);
+		ReactOwnerEvent(base.Owner.TurnStarted, OnOwnerTurnStarted);
+	}
+
+	private IEnumerable<BattleAction> OnDamageReceived(DamageEventArgs args)
+	{
+		if (args.Source != base.Owner && args.Source.IsAlive && args.DamageInfo.DamageType == DamageType.Attack && args.DamageInfo.Amount > 0f)
+		{
+			NotifyActivating();
+			yield return new DamageAction(base.Owner, args.Source, DamageInfo.Reaction(base.Level), "鐢靛嚮");
+		}
+	}
+
+	private IEnumerable<BattleAction> OnOwnerTurnStarted(UnitEventArgs args)
+	{
+		if (!base.Owner.IsExtraTurn)
+		{
+			yield return new RemoveStatusEffectAction(this);
+		}
+	}
+}
+
+======== LBoL.EntityLib.StatusEffects.Neutral.TwoColor.ReflectDamage ========
+using LBoL.Core.Units;
+
+namespace LBoL.EntityLib.StatusEffects.Neutral.TwoColor;
+
+public class ReflectDamage
+{
+	public Unit Target { get; }
+
+	public int Damage { get; }
+
+	public ReflectDamage(Unit target, int damage)
+	{
+		Target = target;
+		Damage = damage;
+	}
+}
+

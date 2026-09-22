@@ -144,31 +144,39 @@ namespace TianziMod.Keywords
             CardType chosen = actual;
             if (TianziMod.StatusEffects.TianziKarma.Forced)
             {
-                List<Card> options = TianziMiniSelectSkin.BindAll(
-                    source,
-                    new List<Card>
-                    {
-                        Library.CreateCard<TianziKarmaAttackChoice>(),
-                        Library.CreateCard<TianziKarmaDefenseChoice>(),
-                        Library.CreateCard<TianziKarmaSkillChoice>(),
-                        Library.CreateCard<TianziKarmaAbilityChoice>(),
-                        Library.CreateCard<TianziKarmaCurseChoice>(),
-                    });
-                MiniSelectCardInteraction pick = new MiniSelectCardInteraction(options, false, false, false)
+                // 只列出该卡实际拥有的因果分支
+                List<Card> raw = new List<Card>();
+                if (attack != null)
+                    raw.Add(Library.CreateCard<TianziKarmaAttackChoice>());
+                if (defense != null)
+                    raw.Add(Library.CreateCard<TianziKarmaDefenseChoice>());
+                if (skill != null)
+                    raw.Add(Library.CreateCard<TianziKarmaSkillChoice>());
+                if (ability != null)
+                    raw.Add(Library.CreateCard<TianziKarmaAbilityChoice>());
+                if (curse != null)
+                    raw.Add(Library.CreateCard<TianziKarmaCurseChoice>());
+
+                if (raw.Count == 0)
+                    yield break;
+
+                if (raw.Count == 1)
                 {
-                    Source = source,
-                };
-                yield return new InteractionAction(pick, false);
-                if (pick.SelectedCard is TianziKarmaDefenseChoice)
-                    chosen = CardType.Defense;
-                else if (pick.SelectedCard is TianziKarmaSkillChoice)
-                    chosen = CardType.Skill;
-                else if (pick.SelectedCard is TianziKarmaAbilityChoice)
-                    chosen = CardType.Ability;
-                else if (pick.SelectedCard is TianziKarmaCurseChoice)
-                    chosen = CardType.Misfortune;
+                    chosen = ChoiceToType(raw[0]);
+                }
                 else
-                    chosen = CardType.Attack;
+                {
+                    List<Card> options = TianziMiniSelectSkin.BindAll(source, raw);
+                    MiniSelectCardInteraction pick = new MiniSelectCardInteraction(options, false, false, false)
+                    {
+                        Source = source,
+                    };
+                    yield return new InteractionAction(pick, false);
+                    if (pick.SelectedCard != null)
+                        chosen = ChoiceToType(pick.SelectedCard);
+                    else
+                        chosen = ChoiceToType(options[0]);
+                }
             }
 
             IEnumerable<BattleAction> branch = attack;
@@ -187,11 +195,27 @@ namespace TianziMod.Keywords
                 case CardType.Misfortune:
                     branch = curse;
                     break;
+                default:
+                    branch = attack;
+                    break;
             }
             if (branch == null)
                 yield break;
             foreach (BattleAction action in branch)
                 yield return action;
+        }
+
+        private static CardType ChoiceToType(Card choice)
+        {
+            if (choice is TianziKarmaDefenseChoice)
+                return CardType.Defense;
+            if (choice is TianziKarmaSkillChoice)
+                return CardType.Skill;
+            if (choice is TianziKarmaAbilityChoice)
+                return CardType.Ability;
+            if (choice is TianziKarmaCurseChoice)
+                return CardType.Misfortune;
+            return CardType.Attack;
         }
     }
 

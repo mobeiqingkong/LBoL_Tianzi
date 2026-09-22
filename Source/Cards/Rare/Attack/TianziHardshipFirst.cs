@@ -76,7 +76,12 @@ namespace TianziMod.Cards
         private IEnumerable<BattleAction> EvenBranch()
         {
             foreach (Card c in new List<Card>(base.Battle.HandZone))
-                yield return new RetainAction(c);
+            {
+                if (c == null)
+                    continue;
+                c.IsTempRetain = true;
+            }
+            yield break;
         }
     }
 }

@@ -33,11 +33,9 @@ namespace TianziMod.Cards
             config.Value1 = 2;
             config.Keywords = Keyword.Initial | Keyword.Replenish;
             config.UpgradedKeywords = Keyword.Initial | Keyword.Replenish;
-            config.RelativeEffects = new List<string>() { nameof(TianziScarletRadianceSe) };
-            config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
             config.RelativeKeyword = Keyword.Exile;
             config.UpgradedRelativeKeyword = Keyword.Exile;
+            config.Illustrator = "";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

@@ -33,12 +33,11 @@ namespace TianziMod.Cards
 
             config.Value1 = 3;
             config.UpgradedValue1 = 5;
+            // 回合开始获得的绝壁；多次打出时 SE.Count 按 Add 叠加
+            config.Value2 = 2;
+            config.UpgradedValue2 = 2;
 
-            config.RelativeEffects = new List<string>()
-            {
-                nameof(TianziPeachEternitySe),
-                nameof(TianziTempHpSe),
-            };
+            config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe), nameof(TianziPeachEternitySe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
 
             config.Illustrator = "";
@@ -49,8 +48,7 @@ namespace TianziMod.Cards
 
 
     /// <summary>
-    /// 仙桃长久：{PlayerName}的临时生命值上限提高 {Value1}；
-    /// 每回合开始获得 {TianziPeachEternitySe:PerTurnTempHp} 点临时生命值。
+    /// 野生桃奶：绝壁上限 +{Value1}；每回合开始获得 {Value2} 点绝壁（叠层均可叠加）。
     /// </summary>
     [EntityLogic(typeof(TianziPeachEternityDef))]
     public sealed class TianziPeachEternity : TianziCard
@@ -61,7 +59,7 @@ namespace TianziMod.Cards
             Interaction precondition
         )
         {
-            yield return BuffAction<TianziPeachEternitySe>(base.Value1, 0, 0, 0, 0.2f);
+            yield return BuffAction<TianziPeachEternitySe>(base.Value1, 0, 0, base.Value2, 0.2f);
             yield break;
         }
     }

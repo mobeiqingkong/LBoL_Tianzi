@@ -28,11 +28,9 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.Value1 = 1;
             config.UpgradedValue1 = 2;
-            config.RelativeEffects = new List<string>() { nameof(TianziScarletWaveSe) };
-            config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
             config.RelativeKeyword = Keyword.Block;
             config.UpgradedRelativeKeyword = Keyword.Block;
+            config.Illustrator = "";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }
@@ -46,7 +44,7 @@ namespace TianziMod.Cards
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
-            yield return BuffAction<TianziScarletWaveSe>(base.Value1, 0, 0, 0, 0.2f);
+            yield return BuffAction<TianziScarletWaveSe>(base.Value1, 0, 0, base.Value1, 0.2f);
             yield break;
         }
     }

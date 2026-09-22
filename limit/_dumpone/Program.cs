@@ -1,15 +1,30 @@
 ﻿using System;
+using System.IO;
 using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.CSharp;
+using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
-var core = @"D:\software\steam\steamapps\common\LBoL\LBoL_Data\Managed\LBoL.Core.dll";
-var d = new CSharpDecompiler(core, new DecompilerSettings { ThrowOnAssemblyResolveErrors = false });
-int count = 0;
-foreach (var t in d.TypeSystem.GetAllTypeDefinitions()) {
-  string s;
-  try { s = d.DecompileTypeAsString(new FullTypeName(t.FullName)); } catch { continue; }
-  if (s.Contains("new UseCardAction") || s.Contains("new PlayCardAction")) {
-    Console.WriteLine(t.FullName);
-    if (++count > 20) break;
-  }
+
+var lib = @"D:\software\steam\steamapps\common\LBoL\LBoL_Data\Managed\LBoL.EntityLib.dll";
+var game = Path.GetDirectoryName(lib)!;
+var resolver = new UniversalAssemblyResolver(lib, false, null);
+resolver.AddSearchDirectory(game);
+var d = new CSharpDecompiler(lib, resolver, new DecompilerSettings { ThrowOnAssemblyResolveErrors = false });
+var outDir = @"D:\riderProject\Hinanawi-Tenshi\limit";
+foreach (var name in new[] {
+    "LBoL.EntityLib.StatusEffects.Basic.Reflect",
+    "LBoL.EntityLib.StatusEffects.Neutral.TwoColor.YachieDefendSe",
+    "LBoL.EntityLib.Cards.Neutral.TwoColor.YachieDefend",
+    "LBoL.EntityLib.StatusEffects.Basic.TempElectric",
+    "LBoL.EntityLib.StatusEffects.Neutral.TwoColor.ReflectDamage",
+})
+{
+    Console.WriteLine("======== " + name + " ========");
+    try
+    {
+        var code = d.DecompileTypeAsString(new FullTypeName(name));
+        Console.WriteLine(code);
+        File.WriteAllText(Path.Combine(outDir, "_de_" + name.Split('.').Last() + ".txt"), code);
+    }
+    catch (Exception ex) { Console.WriteLine(ex); }
 }

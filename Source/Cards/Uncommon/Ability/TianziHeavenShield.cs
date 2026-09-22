@@ -28,11 +28,7 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.Mana = new ManaGroup() { White = 1 };
             config.UpgradedMana = new ManaGroup() { White = 1 };
-            config.RelativeEffects = new List<string>()
-            {
-                nameof(TianziHeavenShieldSe),
-                nameof(AmuletForCard),
-            };
+            config.RelativeEffects = new List<string>() { nameof(AmuletForCard) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

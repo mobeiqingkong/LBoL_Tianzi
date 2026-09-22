@@ -28,11 +28,7 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.Keywords = Keyword.Initial;
             config.UpgradedKeywords = Keyword.Initial;
-            config.RelativeEffects = new List<string>()
-            {
-                nameof(TianziPeachGardenSe),
-                nameof(TianziTempHpSe),
-            };
+            config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

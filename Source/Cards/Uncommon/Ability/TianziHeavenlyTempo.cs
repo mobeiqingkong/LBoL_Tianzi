@@ -28,11 +28,7 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.Value1 = 10;
             config.UpgradedValue1 = 15;
-            config.RelativeEffects = new List<string>()
-            {
-                nameof(TianziHeavenlyTempoSe),
-                nameof(Firepower),
-            };
+            config.RelativeEffects = new List<string>() { nameof(Firepower) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "";
             config.RelativeKeyword = Keyword.Block;
@@ -53,7 +49,7 @@ namespace TianziMod.Cards
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
-            yield return BuffAction<TianziHeavenlyTempoSe>(base.Value1, 0, 0, 0, 0.2f);
+            yield return BuffAction<TianziHeavenlyTempoSe>(base.Value1, 0, 0, 1, 0.2f);
             yield break;
         }
     }

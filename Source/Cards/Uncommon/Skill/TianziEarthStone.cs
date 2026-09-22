@@ -32,7 +32,7 @@ namespace TianziMod.Cards
             config.UpgradedValue1 = 2;
             config.Keywords = Keyword.Replenish;
             config.UpgradedKeywords = Keyword.Replenish;
-            config.RelativeEffects = new List<string>() { nameof(TianziRegenSe) };
+            config.RelativeEffects = new List<string>() { nameof(TianziRegenSe), nameof(TianziEarthDelaySe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.RelativeKeyword = Keyword.Exile;
             config.UpgradedRelativeKeyword = Keyword.Exile;
@@ -45,40 +45,38 @@ namespace TianziMod.Cards
     [EntityLogic(typeof(TianziEarthStoneDef))]
     public sealed class TianziEarthStone : TianziCard
     {
-        public override IEnumerable<BattleAction> OnTurnStartedInHand()
-        {
-            yield break;
-        }
-
         protected override void OnEnterBattle(BattleController battle)
         {
             base.OnEnterBattle(battle);
-            base.HandleBattleEvent<CardsEventArgs>(
+            base.ReactBattleEvent<CardsEventArgs>(
                 battle.CardsAddedToHand,
-                new GameEventHandler<CardsEventArgs>(this.OnAdded));
+                new EventSequencedReactor<CardsEventArgs>(this.OnAddedToHand));
         }
 
-        private void OnAdded(CardsEventArgs args)
+        private IEnumerable<BattleAction> OnAddedToHand(CardsEventArgs args)
         {
-            if (args.Cards == null)
-                return;
+            if (args.Cards == null || base.Zone != CardZone.Hand)
+                yield break;
+            bool mine = false;
             foreach (Card c in args.Cards)
             {
-                if (c == this && this.Zone == CardZone.Hand)
-                    this.React(this.AutoExile());
+                if (c == this)
+                {
+                    mine = true;
+                    break;
+                }
             }
-        }
-
-        private IEnumerable<BattleAction> AutoExile()
-        {
+            if (!mine)
+                yield break;
             yield return new ExileCardAction(this);
-            yield return BuffAction<TianziEarthDelaySe>(2, base.Value1, 0, 0, 0.2f);
+            // Level=自愈层数；Count=后续回合数
+            yield return BuffAction<TianziEarthDelaySe>(2, 0, 0, base.Value1, 0.2f);
         }
 
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
-            yield return BuffAction<TianziEarthDelaySe>(2, base.Value1, 0, 0, 0.2f);
+            yield return BuffAction<TianziEarthDelaySe>(2, 0, 0, base.Value1, 0.2f);
         }
     }
 }

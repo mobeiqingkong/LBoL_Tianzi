@@ -51,7 +51,20 @@ namespace TianziMod.Cards
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
             yield return new AddCardsToHandAction(new Card[] { Library.CreateCard<TianziSplash>() });
-            foreach (BattleAction action in TianziParityPlay.Resolve(this, this.OddBranch(), this.EvenBranch()))
+
+            // 先加水花再判奇偶：按当前手牌数，不能用 IsOddAtPlay（会再 +1 导致反了）
+            bool odd;
+            if (TianziParity.Forced)
+            {
+                foreach (BattleAction action in TianziParityPlay.Resolve(
+                    this, this.OddBranch(), this.EvenBranch()))
+                    yield return action;
+                yield break;
+            }
+
+            odd = TianziParity.IsOdd(base.Battle);
+            IEnumerable<BattleAction> chosen = odd ? this.OddBranch() : this.EvenBranch();
+            foreach (BattleAction action in chosen)
                 yield return action;
         }
 

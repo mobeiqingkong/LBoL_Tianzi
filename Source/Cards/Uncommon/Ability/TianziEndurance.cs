@@ -8,7 +8,6 @@ using LBoL.Core.StatusEffects;
 using LBoL.EntityLib.StatusEffects.Basic;
 using LBoLEntitySideloader.Attributes;
 using TianziMod.Cards.Template;
-using TianziMod.GunName;
 using TianziMod.StatusEffects;
 
 namespace TianziMod.Cards
@@ -26,7 +25,7 @@ namespace TianziMod.Cards
             config.Rarity = Rarity.Uncommon;
             config.Type = CardType.Ability;
             config.TargetType = TargetType.Self;
-            config.RelativeEffects = new List<string>() { nameof(TianziEnduranceSe), nameof(Spirit) };
+            config.RelativeEffects = new List<string>() { nameof(Spirit), nameof(TurnStartDontLoseBlock) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "";
             config.RelativeKeyword = Keyword.Block;
@@ -38,8 +37,8 @@ namespace TianziMod.Cards
 
 
     /// <summary>
-    /// 天人的耐性：回合开始时只失去一半格挡；
-    /// 受到不高于 5 点的未被格挡攻击伤害时，将伤害降低为 1。
+    /// 天人的耐性：回合开始时保留上回合至多 10 点格挡，
+    /// 并获得 1 点灵力（最多累计 3 点）。
     /// </summary>
     [EntityLogic(typeof(TianziEnduranceDef))]
     public sealed class TianziEndurance : TianziCard

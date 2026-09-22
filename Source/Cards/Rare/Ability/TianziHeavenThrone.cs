@@ -33,7 +33,7 @@ namespace TianziMod.Cards
             config.UpgradedMana = new ManaGroup() { White = 1 };
             config.RelativeKeyword = Keyword.Block;
             config.UpgradedRelativeKeyword = Keyword.Block;
-            config.RelativeEffects = new List<string>() { nameof(TianziGraceSe), nameof(TianziTempHpSe) };
+            config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe), nameof(TianziGraceSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
 
             config.Illustrator = "";

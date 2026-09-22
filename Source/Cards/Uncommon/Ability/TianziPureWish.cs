@@ -27,7 +27,7 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.Value1 = 2;
             config.UpgradedValue1 = 3;
-            config.RelativeEffects = new List<string>() { nameof(TianziPureWishSe) };
+            config.RelativeEffects = new List<string>() { nameof(AmuletForCard) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "";
             config.RelativeKeyword = Keyword.Exile;
@@ -45,7 +45,7 @@ namespace TianziMod.Cards
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
-            yield return BuffAction<TianziPureWishSe>(base.Value1, 0, 0, 0, 0.2f);
+            yield return BuffAction<TianziPureWishSe>(base.Value1, 0, 0, base.Value1, 0.2f);
             yield break;
         }
     }

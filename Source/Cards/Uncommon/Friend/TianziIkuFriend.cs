@@ -35,8 +35,7 @@ namespace TianziMod.Cards
             config.UpgradedPassiveCost = 1;
             config.ActiveCost = -8;
             config.UpgradedActiveCost = -8;
-            config.UltimateCost = 99;
-            config.UpgradedUltimateCost = 99;
+            // 不可设正数 UltimateCost：MinActiveCost 取 Max 后会把主动门槛算成负数，3 点也能放主动
             config.Value1 = 4;
             config.Value2 = 3;
             config.Scry = 4;
@@ -54,6 +53,16 @@ namespace TianziMod.Cards
     [EntityLogic(typeof(TianziIkuFriendDef))]
     public sealed class TianziIkuFriend : TianziCard
     {
+        protected override void OnEnterBattle(BattleController battle)
+        {
+            base.OnEnterBattle(battle);
+            // TempElectric 会在 TurnStarted 移除；被动电击必须在那之后再挂
+            base.ReactBattleEvent<UnitEventArgs>(
+                battle.Player.TurnStarted,
+                new EventSequencedReactor<UnitEventArgs>(this.OnPlayerTurnStarted),
+                GameEventPriority.Lowest);
+        }
+
         public override IEnumerable<BattleAction> OnTurnStartedInHand()
         {
             return this.GetPassiveActions();
@@ -66,6 +75,13 @@ namespace TianziMod.Cards
             base.NotifyActivating();
             base.Loyalty += base.PassiveCost;
             yield return new ScryAction(base.Scry);
+        }
+
+        private IEnumerable<BattleAction> OnPlayerTurnStarted(UnitEventArgs args)
+        {
+            if (!base.Summoned || base.Zone != CardZone.Hand || base.Battle.BattleShouldEnd)
+                yield break;
+            base.NotifyActivating();
             yield return BuffAction<TempElectric>(base.Value2, 0, 0, 0, 0.2f);
         }
 

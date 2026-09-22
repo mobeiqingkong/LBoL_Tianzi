@@ -1,0 +1,196 @@
+using System;
+using System.Text;
+using LBoL.Base;
+using LBoL.Base.Extensions;
+
+namespace LBoL.Core;
+
+public struct DamageInfo : IEquatable<DamageInfo>
+{
+	public float Damage { get; set; }
+
+	public float DamageBlocked { get; set; }
+
+	public float DamageShielded { get; set; }
+
+	public DamageType DamageType { get; set; }
+
+	public bool IsGrazed { get; set; }
+
+	public bool IsAccuracy { get; set; }
+
+	public int OverDamage { get; set; }
+
+	public float Amount => Damage + DamageBlocked + DamageShielded;
+
+	public bool ZeroDamage
+	{
+		get
+		{
+			if (Damage == 0f && DamageBlocked == 0f)
+			{
+				return DamageShielded == 0f;
+			}
+			return false;
+		}
+	}
+
+	public bool DontBreakPerfect { get; set; }
+
+	internal DamageInfo(float damage, DamageType type, bool isGrazed = false, bool isAccuracy = false, bool dontBreakPerfect = false)
+	{
+		Damage = damage;
+		DamageBlocked = 0f;
+		DamageShielded = 0f;
+		DamageType = type;
+		IsGrazed = isGrazed;
+		IsAccuracy = isAccuracy;
+		OverDamage = 0;
+		DontBreakPerfect = dontBreakPerfect;
+	}
+
+	internal DamageInfo(float damage, float damageBlocked, float damageShielded, DamageType type, bool isGrazed = false, bool isAccuracy = false, bool dontBreakPerfect = false)
+	{
+		Damage = damage;
+		DamageBlocked = damageBlocked;
+		DamageShielded = damageShielded;
+		DamageType = type;
+		IsGrazed = isGrazed;
+		IsAccuracy = isAccuracy;
+		OverDamage = 0;
+		DontBreakPerfect = dontBreakPerfect;
+	}
+
+	internal DamageInfo ShieldBy(int shield)
+	{
+		if (!(Damage > (float)shield))
+		{
+			return new DamageInfo(0f, DamageBlocked, DamageShielded + Damage, DamageType, IsGrazed, IsAccuracy);
+		}
+		return new DamageInfo(Damage - (float)shield, DamageBlocked, DamageShielded + (float)shield, DamageType, IsGrazed, IsAccuracy);
+	}
+
+	internal DamageInfo BlockBy(int block)
+	{
+		if (!(Damage > (float)block))
+		{
+			return new DamageInfo(0f, DamageBlocked + Damage, DamageShielded, DamageType, IsGrazed, IsAccuracy);
+		}
+		return new DamageInfo(Damage - (float)block, DamageBlocked + (float)block, DamageShielded, DamageType, IsGrazed, IsAccuracy);
+	}
+
+	public DamageInfo IncreaseBy(int delta)
+	{
+		if (!DamageBlocked.Approximately(0f) || !DamageShielded.Approximately(0f) || IsGrazed)
+		{
+			throw new InvalidOperationException("Increasing DamageInfo which is already dealt");
+		}
+		return new DamageInfo(Damage + (float)delta, DamageType, isGrazed: false, IsAccuracy);
+	}
+
+	public DamageInfo ReduceBy(int delta)
+	{
+		if (!DamageBlocked.Approximately(0f) || !DamageShielded.Approximately(0f) || IsGrazed)
+		{
+			throw new InvalidOperationException("Reducing DamageInfo which is already dealt");
+		}
+		return new DamageInfo(Damage - (float)delta, DamageType, isGrazed: false, IsAccuracy);
+	}
+
+	public DamageInfo ReduceActualDamageBy(int delta)
+	{
+		return new DamageInfo(Math.Max(Damage - (float)delta, 0f), DamageBlocked, DamageShielded, DamageType, isAccuracy: IsAccuracy, isGrazed: IsGrazed);
+	}
+
+	public DamageInfo MultiplyBy(int multiplier)
+	{
+		if (multiplier < 0)
+		{
+			throw new ArgumentException($"Multiplier ({multiplier}) cannot be negative");
+		}
+		if (!DamageBlocked.Approximately(0f) || !DamageShielded.Approximately(0f) || IsGrazed)
+		{
+			throw new InvalidOperationException("Multiplying DamageInfo which is already dealt");
+		}
+		return new DamageInfo(Damage * (float)multiplier, DamageType, isGrazed: false, IsAccuracy);
+	}
+
+	public DamageInfo MultiplyBy(float multiplier)
+	{
+		if (multiplier < 0f)
+		{
+			throw new ArgumentException($"Multiplier ({multiplier}) cannot be negative");
+		}
+		if (!DamageBlocked.Approximately(0f) || !DamageShielded.Approximately(0f) || IsGrazed)
+		{
+			throw new InvalidOperationException("Multiplying DamageInfo which is already dealt");
+		}
+		return new DamageInfo(Damage * multiplier, DamageType, isGrazed: false, IsAccuracy);
+	}
+
+	public override string ToString()
+	{
+		StringBuilder stringBuilder = new StringBuilder();
+		stringBuilder.Append('{').Append(Damage);
+		if (!DamageBlocked.Approximately(0f))
+		{
+			stringBuilder.Append(" B: ").Append(DamageBlocked);
+		}
+		if (!DamageShielded.Approximately(0f))
+		{
+			stringBuilder.Append(" S: ").Append(DamageShielded);
+		}
+		if (IsGrazed)
+		{
+			stringBuilder.Append(", Grazed");
+		}
+		if (IsAccuracy)
+		{
+			stringBuilder.Append(", Accurary");
+		}
+		if (OverDamage > 0)
+		{
+			stringBuilder.Append(", Over: ").Append(OverDamage);
+		}
+		stringBuilder.Append('}');
+		return stringBuilder.ToString();
+	}
+
+	public bool Equals(DamageInfo other)
+	{
+		if (Damage.Approximately(other.Damage) && DamageBlocked.Approximately(other.DamageBlocked) && DamageShielded.Approximately(other.DamageShielded) && DamageType == other.DamageType && IsGrazed == other.IsGrazed && IsAccuracy == other.IsAccuracy)
+		{
+			return OverDamage == other.OverDamage;
+		}
+		return false;
+	}
+
+	public override bool Equals(object obj)
+	{
+		if (obj is DamageInfo other)
+		{
+			return Equals(other);
+		}
+		return false;
+	}
+
+	public override int GetHashCode()
+	{
+		return HashCode.Combine(Damage, DamageBlocked, DamageShielded, DamageType, IsGrazed, IsAccuracy, OverDamage);
+	}
+
+	public static DamageInfo HpLose(float damage, bool dontBreakPerfect = false)
+	{
+		return new DamageInfo(damage, DamageType.HpLose, isGrazed: false, isAccuracy: false, dontBreakPerfect);
+	}
+
+	public static DamageInfo Reaction(float damage, bool dontBreakPerfect = false)
+	{
+		return new DamageInfo(damage, DamageType.Reaction, isGrazed: false, isAccuracy: false, dontBreakPerfect);
+	}
+
+	public static DamageInfo Attack(float damage, bool isAccuracy = false)
+	{
+		return new DamageInfo(damage, DamageType.Attack, isGrazed: false, isAccuracy);
+	}
+}

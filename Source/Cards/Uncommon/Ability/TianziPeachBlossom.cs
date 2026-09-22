@@ -26,7 +26,7 @@ namespace TianziMod.Cards
             config.Rarity = Rarity.Uncommon;
             config.Type = CardType.Ability;
             config.TargetType = TargetType.Self;
-            config.RelativeEffects = new List<string>() { nameof(TianziKarmaSe) };
+            config.RelativeEffects = new List<string>() { nameof(TianziKarmaKwSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

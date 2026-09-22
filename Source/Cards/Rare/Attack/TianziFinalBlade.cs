@@ -17,11 +17,6 @@ using TianziMod.StatusEffects;
 
 namespace TianziMod.Cards
 {
-    // ==================================================================================
-    //  稀有 · 攻击牌（7 张）
-    // ==================================================================================
-
-    // ------------------------------------------------------------------ 终绝的一剑
     public sealed class TianziFinalBladeDef : TianziCardTemplate
     {
         public override CardConfig MakeConfig()
@@ -40,7 +35,7 @@ namespace TianziMod.Cards
             config.Damage = 9;
             config.UpgradedDamage = 12;
 
-            config.Value1 = 2; // 每失去 4% 生命，额外 + 目标最大生命 Value1%
+            config.Value1 = 2;
             config.UpgradedValue1 = 3;
 
             config.Keywords = Keyword.Exile | Keyword.Retain | Keyword.Accuracy;
@@ -60,33 +55,28 @@ namespace TianziMod.Cards
     [EntityLogic(typeof(TianziFinalBladeDef))]
     public sealed class TianziFinalBlade : TianziCard
     {
+        protected override int AdditionalDamage
+        {
+            get
+            {
+                Unit target = base.PendingTarget;
+                if (target == null || !target.IsAlive || target.MaxHp <= 0)
+                    return 0;
+                float lostRatio = 1f - (float)target.Hp / target.MaxHp;
+                int steps = (int)Math.Floor(lostRatio * 100f / 4f);
+                if (steps <= 0)
+                    return 0;
+                return (int)Math.Round(steps * target.MaxHp * base.Value1 / 100f, MidpointRounding.AwayFromZero);
+            }
+        }
+
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector,
             ManaGroup consumingMana,
             Interaction precondition
         )
         {
-            float baseDamage = base.Damage.Damage;
-            foreach (Unit enemy in selector.GetUnits(base.Battle))
-            {
-                int steps = 0;
-                if (enemy.MaxHp > 0)
-                {
-                    float lostRatio = 1f - (float)enemy.Hp / enemy.MaxHp;
-                    steps = (int)Math.Floor(lostRatio * 100f / 4f);
-                }
-                float extra = steps * enemy.MaxHp * base.Value1 / 100f;
-                float damage = baseDamage + extra;
-
-                yield return new DamageAction(
-                    base.Battle.Player,
-                    enemy,
-                    DamageInfo.Attack(damage, false),
-                    base.GunName,
-                    GunType.Single
-                );
-            }
-            yield break;
+            yield return base.AttackAction(selector);
         }
     }
 }

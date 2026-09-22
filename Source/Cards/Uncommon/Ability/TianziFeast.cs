@@ -32,8 +32,6 @@ namespace TianziMod.Cards
             config.UpgradedKeywords = Keyword.Initial | Keyword.Replenish;
             config.Mana = new ManaGroup() { Philosophy = 1 };
             config.UpgradedMana = new ManaGroup() { Philosophy = 1 };
-            config.RelativeEffects = new List<string>() { nameof(TianziFeastSe) };
-            config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

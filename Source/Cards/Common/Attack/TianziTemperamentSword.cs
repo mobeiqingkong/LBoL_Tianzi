@@ -31,7 +31,12 @@ namespace TianziMod.Cards
             config.UpgradedDamage = 12;
             config.Value1 = 1;
             config.UpgradedValue1 = 2;
-            config.RelativeEffects = new List<string>() { nameof(Vulnerable), nameof(Weak) };
+            config.RelativeEffects = new List<string>()
+            {
+                nameof(Vulnerable),
+                nameof(Weak),
+                nameof(TianziKarmaKwSe),
+            };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
@@ -47,21 +52,27 @@ namespace TianziMod.Cards
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
-            Card previous = this.PreviousPlayedCard;
-            if (previous != null)
-            {
-                if (previous.CardType == CardType.Attack)
-                {
-                    foreach (BattleAction action in this.DebuffAll(selector, true))
-                        yield return action;
-                }
-                else if (previous.CardType == CardType.Defense || previous.CardType == CardType.Skill)
-                {
-                    foreach (BattleAction action in this.DebuffAll(selector, false))
-                        yield return action;
-                }
-            }
             yield return base.AttackAction(selector);
+
+            Card previous = this.PreviousPlayedCard;
+            CardType kind = previous == null ? CardType.Unknown : previous.CardType;
+            // 无上一张牌时不触发因果；有因果之剑时可自行选择分支
+            if (previous == null && !TianziKarma.Forced)
+                yield break;
+
+            // 气质之剑只有「攻击→易伤 / 防御&技能→虚弱」两支；技能并入防御分支
+            if (kind == CardType.Skill)
+                kind = CardType.Defense;
+
+            foreach (BattleAction action in TianziKarmaPlay.Resolve(
+                this,
+                kind,
+                this.DebuffAll(selector, true),
+                this.DebuffAll(selector, false),
+                null,
+                null,
+                null))
+                yield return action;
         }
 
         private IEnumerable<BattleAction> DebuffAll(UnitSelector selector, bool vuln)

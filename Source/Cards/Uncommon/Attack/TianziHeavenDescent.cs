@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using LBoL.Base;
 using LBoL.ConfigData;
 using LBoL.Core;
@@ -53,22 +52,24 @@ namespace TianziMod.Cards
         {
             yield return base.AttackAction(selector);
 
-            int consumed = TianziTempHp.ConsumeAll(base.Battle.Player);
+            int consumed;
+            foreach (BattleAction action in TianziTempHp.ConsumeActions(base.Battle.Player, int.MaxValue, out consumed))
+                yield return action;
+
             TianziTempHpSe leftover = base.Battle.Player.GetStatusEffect<TianziTempHpSe>();
             if (leftover != null)
-                yield return new RemoveStatusEffectAction(leftover, true, 0.05f);
+                yield return new RemoveStatusEffectAction(leftover);
 
             if (consumed <= 0)
                 yield break;
 
             foreach (BattleAction action in TianziParityPlay.Resolve(
-                this, this.OddExtra(selector, consumed), this.EvenExtra(selector, consumed)))
+                this, OddExtra(selector, consumed), EvenExtra(selector, consumed)))
                 yield return action;
         }
 
         private IEnumerable<BattleAction> OddExtra(UnitSelector selector, int consumed)
         {
-            // 消耗值×2，奇数时额外 +Value1
             int dmg = consumed * 2 + base.Value1;
             foreach (Unit enemy in selector.GetUnits(base.Battle))
             {

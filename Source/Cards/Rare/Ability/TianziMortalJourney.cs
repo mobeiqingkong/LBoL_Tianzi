@@ -35,8 +35,6 @@ namespace TianziMod.Cards
             config.UpgradedKeywords = Keyword.Initial | Keyword.Replenish;
             config.Mana = new ManaGroup() { White = 1 };
             config.UpgradedMana = new ManaGroup() { White = 1 };
-            config.RelativeEffects = new List<string>() { nameof(TianziMortalJourneySe) };
-            config.UpgradedRelativeEffects = config.RelativeEffects;
 
             config.Illustrator = "";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
@@ -58,7 +56,7 @@ namespace TianziMod.Cards
             Interaction precondition
         )
         {
-            yield return BuffAction<TianziMortalJourneySe>(base.Value1, 0, 0, 0, 0.2f);
+            yield return BuffAction<TianziMortalJourneySe>(base.Value1, 0, 0, base.Value1, 0.2f);
             yield break;
         }
     }

@@ -111,7 +111,7 @@ TianziTemperamentSword:
   Name: 气质之剑
   Description: |-
     造成 {Damage} 点伤害。
-    上一张打出的牌为攻击牌则施加 {Value1} 回合|易伤|；
+    |因果|：上一张打出的牌为攻击牌则施加 {Value1} 回合|易伤|；
     为防御或技能牌则施加 {Value1} 回合|虚弱|。
 
 TianziScarletFlameWheel:
@@ -288,67 +288,67 @@ TianziWeatherMastery:
 
 TianziScarletRadiance:
   Name: 绯想的威光
-  Description: 获得|威光|：每当一张牌被|放逐|，对所有敌人造成 {Value1} 点攻击伤害。
+  Description: 每当一张牌被|放逐|，对所有敌人造成 {Value1} 点攻击伤害。
 
 TianziScarletWave:
   Name: 绯想剑斩波
-  Description: 获得|斩波|：每回合前 {Value1} 张攻击牌造成攻击伤害时，获得等量的|格挡|。
+  Description: 每回合前 {Value1} 次攻击造成伤害时，获得等量的|格挡|。
 
 TianziOddEvenQi:
   Name: 天人之气
-  Description: 获得|奇偶|：具有|奇偶数|的牌打出时，奇偶效果改为由{PlayerName}选择触发。
+  Description: 具有|奇偶数|的牌打出时，奇偶效果改为由{PlayerName}选择触发。
 
 TianziPeachBoost:
   Name: 仙桃增幅
   Description: |-
-    获得|桃增|：获得|绝壁|时额外获得 |e:1| 点。
+    获得|绝壁|时额外获得 |e:1| 点。
     立即获得 {Value1} 点|绝壁|。
 
 TianziPeachGarden:
   Name: 漫漫桃园
-  Description: 获得|桃园|：|绝壁|减少时，获得 |e:1| 点|绝壁|。
+  Description: "|绝壁|减少时，获得 |e:1| 点|绝壁|。"
 
 TianziPureWish:
   Name: 清霖之愿
-  Description: 获得|清霖|：每回合前 {Value1} 次抽到诅咒或状态牌时，将其|放逐|并抽 |e:1| 张牌；|庇护|触发时此效果也会生效。
+  Description: 每回合前 {Value1} 次抽到诅咒或状态牌时，将其|放逐|并抽 |e:1| 张牌；|庇护|触发时此效果也会生效。
 
 TianziHeavenShield:
   Name: 天界之庇护
   Description: |-
-    获得|天界庇护|：{PlayerName}的回合开始时获得{Mana}。
-    {PlayerName}的普通回合结束时获得 |e:1| 层|庇护|。
+    {PlayerName}的回合开始时获得{Mana}。
+    {PlayerName}的回合结束时获得 |e:1| 层|庇护|。
 
 TianziMeditation:
   Name: 一念
   Description: |-
-    获得|一念|：每回合多抽 |e:1| 张牌。
+    每回合多抽 |e:1| 张牌。
     回合开始时，可将一张手牌与弃牌堆内的一张牌互换。
 
 TianziEndurance:
   Name: 天人的耐性
   Description: |-
-    获得|耐性|：回合开始时保留上回合至多 |e:10| 点|格挡|，
+    回合开始时保留上回合至多 |e:10| 点|格挡|，
     并获得 |e:1| 点|灵力|（最多累计 |e:3| 点）。
 
 TianziPeachBlossom:
   Name: 因果之剑
-  Description: 获得|因果选|：具有|因果|的牌打出时，因果效果改为由{PlayerName}选择触发。
+  Description: 具有|因果|的牌打出时，因果效果改为由{PlayerName}选择触发。
 
 TianziHeavenlyTempo:
   Name: 天人永不落俗
   Description: |-
-    获得|天人|：{PlayerName}的回合开始时，奇数回合获得 |e:1| 点|火力|；
-    偶数回合获得当前|火力|的|e:1|倍的|格挡|。
+    {PlayerName}的回合开始时，奇数回合获得 |e:1| 点|火力|；
+    偶数回合获得当前|火力|的 {Value1} 倍的|格挡|。
   UpgradedDescription: |-
-    获得|天人|：{PlayerName}的回合开始时，奇数回合获得 |e:1| 点|火力|；
-    偶数回合获得当前|火力|的|e:1.5|倍的|格挡|。
+    {PlayerName}的回合开始时，奇数回合获得 |e:1| 点|火力|；
+    偶数回合获得当前|火力|的 {Value1} 倍的|格挡|。
+    多次打出时，火力获取叠加，格挡倍数取更高者。
 
 TianziFinalBlade:
   Name: 终绝的一剑
   Description: |-
     造成 {Damage} 点伤害。
     该敌人每失去 |e:4|% 生命值，{SelfName}的伤害就额外提高该敌人最大生命值 {Value1}% 的伤害。
-    |放逐| |保留| |精准|
   FlavorText: 她把剑举过头顶的那一刻，天上的云停住了。
 
 TianziHardshipFirst:
@@ -388,7 +388,7 @@ TianziPureDawn:
 TianziWorldCleaver:
   Name: 乾坤一掷
   Description: |-
-    选择丢弃与消耗费用相等数量的手牌，并抽取等量的牌。
+    消耗全部费用（X）。选择丢弃与消耗费用相等数量的手牌，并抽取等量的牌。
     根据丢弃牌的种类依次触发：攻击获得|火力|；防御获得|灵力|；
     技能获得{Mana}；能力或诅咒与状态则|放逐|手牌与弃牌中的诅咒与状态。
     返还超出可弃手牌数量的费用。
@@ -403,7 +403,7 @@ TianziScarletApocalypse:
 
 TianziFinalJudgement:
   Name: 纯粹致死
-  Description: 获得|致死|：{PlayerName}在自己的回合内获得{Mana}时，对所有敌人造成其最大生命值 |e:1|% 的伤害。
+  Description: "{PlayerName}在自己的回合内获得{Mana}时，对所有敌人造成其最大生命值 |e:1|% 的伤害。"
 
 TianziHeavenCreation:
   Name: 天界造物
@@ -428,25 +428,25 @@ TianziPeachTalisman:
   Name: 桃符「固若金汤的仙桃」
   Description: |-
     获得 |e:1| 回合|天衣无缝|和 {Value1} 点|绝壁|。
-    获得|桃符|：每 |e:4| 个自然回合结束后，下回合开始时再次触发上述效果。
+    每 |e:4| 个自然回合结束后，下回合开始时再次触发上述效果。
   FlavorText: 桃符贴在门框上，连天狗的团扇都敲不开。
 
 TianziMortalJourney:
   Name: 凡间之游
-  Description: 获得|凡游|：{PlayerName}每打出 {Value1} 张牌，获得{Mana}并抽 |e:1| 张牌。
+  Description: "{PlayerName}每打出 {Value1} 张牌，获得{Mana}并抽 |e:1| 张牌。"
   FlavorText: 下凡一趟，她学会了凡人的节奏：走几步，歇一歇。
 
 TianziHeavenThrone:
   Name: 有顶天的恩宠
   Description: |-
-    获得|恩宠|：回合结束时将失去的|格挡|转化为|绝壁|。
+    回合开始失去|格挡|时，将剩余|格挡|转化为|绝壁|。
     每回合开始获得{Mana}。
 
 TianziPeachEternity:
   Name: “野生桃奶”
   Description: |-
-    获得|桃久|：|绝壁|上限提高 {Value1}。
-    {PlayerName}每回合开始时，获得 |e:2| 点|绝壁|。
+    {PlayerName}|绝壁|上限提高 {Value1}。
+    {PlayerName}每回合开始时，获得 {Value2} 点|绝壁|。
 
 TianziParityOddChoice:
   Name: 奇数
@@ -522,7 +522,7 @@ TianziEarthStone:
   Name: 灵想「镇守大地之石」
   Description: |-
     进入手中时|放逐|{SelfName}。
-    后续 {Value1} 个回合获得 |e:2| 层|自愈|。
+    下 {Value1} 个回合获得 |e:2| 层|自愈|。
 
 TianziFeast:
   Name: 庆功宴

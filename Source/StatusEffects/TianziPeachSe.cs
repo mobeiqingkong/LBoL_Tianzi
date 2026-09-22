@@ -73,21 +73,24 @@ namespace TianziMod.StatusEffects
     {
         protected override void OnAdded(Unit unit)
         {
-            TianziTempHp.Lost += this.OnTempHpLost;
+            TianziTempHp.LostActions += this.OnTempHpLost;
         }
 
         protected override void OnRemoving(Unit unit)
         {
-            TianziTempHp.Lost -= this.OnTempHpLost;
+            TianziTempHp.LostActions -= this.OnTempHpLost;
         }
 
-        private void OnTempHpLost(Unit target, int amount)
+        private IEnumerable<BattleAction> OnTempHpLost(Unit target, int amount)
         {
-            // 这里只做排队，真正的获得交给卡片/状态动作序列之外的一个延迟动作。
+            if (target != base.Owner || amount <= 0)
+                yield break;
+            if (base.Battle == null || base.Battle.BattleShouldEnd)
+                yield break;
             base.NotifyActivating();
-            BattleAction action = TianziTempHp.GainAction(base.Owner, 1, 0.05f);
-            if (action != null)
-                this.React(action);
+            BattleAction gain = TianziTempHp.GainAction(base.Owner, 1, 0.05f);
+            if (gain != null)
+                yield return gain;
         }
     }
 
@@ -148,6 +151,8 @@ namespace TianziMod.StatusEffects
             config.HasLevel = true;
             config.LevelStackType = StackType.Max;
             config.IsStackable = true;
+            config.HasCount = true;
+            config.CountStackType = StackType.Keep;
             return config;
         }
     }
@@ -155,10 +160,10 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziScarletWaveSeDef))]
     public sealed class TianziScarletWaveSe : StatusEffect
     {
-        private int _usedThisTurn;
-
         protected override void OnAdded(Unit unit)
         {
+            if (base.Count <= 0)
+                base.Count = base.Level > 0 ? base.Level : 1;
             base.ReactOwnerEvent<UnitEventArgs>(
                 base.Battle.Player.TurnStarted,
                 new EventSequencedReactor<UnitEventArgs>(this.OnTurnStarted)
@@ -169,23 +174,31 @@ namespace TianziMod.StatusEffects
             );
         }
 
+        public override bool Stack(StatusEffect other)
+        {
+            bool handled = base.Stack(other);
+            // 层数提高时，剩余次数至少同步到新上限
+            if (base.Count < base.Level)
+                base.Count = base.Level;
+            return handled;
+        }
+
         private IEnumerable<BattleAction> OnTurnStarted(UnitEventArgs args)
         {
-            this._usedThisTurn = 0;
+            base.Count = base.Level > 0 ? base.Level : 1;
             yield break;
         }
 
         private IEnumerable<BattleAction> OnPlayerDamageDealt(DamageEventArgs args)
         {
-            int cap = base.Level > 0 ? base.Level : 1;
-            if (base.Battle.BattleShouldEnd || this._usedThisTurn >= cap)
+            if (base.Battle.BattleShouldEnd || base.Count <= 0)
                 yield break;
             if (args.DamageInfo.DamageType != DamageType.Attack)
                 yield break;
             int dealt = (int)Math.Round(args.DamageInfo.Amount, MidpointRounding.AwayFromZero);
             if (dealt <= 0)
                 yield break;
-            this._usedThisTurn += 1;
+            base.Count -= 1;
             base.NotifyActivating();
             yield return new CastBlockShieldAction(
                 base.Battle.Player, base.Battle.Player, dealt, 0, BlockShieldType.Direct, false);

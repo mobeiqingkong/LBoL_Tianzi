@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using LBoL.Base;
 using LBoL.ConfigData;
@@ -87,10 +88,11 @@ namespace TianziMod.StatusEffects
             StatusEffectConfig config = GetDefaultStatusEffectConfig();
             config.Type = StatusEffectType.Positive;
             config.HasLevel = true;
-            config.HasDuration = true;
-            config.DurationDecreaseTiming = DurationDecreaseTiming.TurnEnd;
-            config.IsStackable = true;
             config.LevelStackType = StackType.Add;
+            config.HasCount = true;
+            config.CountStackType = StackType.Add;
+            config.HasDuration = false;
+            config.IsStackable = true;
             return config;
         }
     }
@@ -100,15 +102,25 @@ namespace TianziMod.StatusEffects
     {
         protected override void OnAdded(Unit unit)
         {
+            if (base.Count <= 0)
+                base.Count = 1;
+            // 在自愈自身 TurnStarted 扣层之后再加，避免刚加上就被 -1
             base.ReactOwnerEvent<UnitEventArgs>(
-                base.Battle.Player.TurnStarting,
-                new EventSequencedReactor<UnitEventArgs>(this.OnTurn));
+                base.Battle.Player.TurnStarted,
+                new EventSequencedReactor<UnitEventArgs>(this.OnTurn),
+                GameEventPriority.Lowest);
         }
 
         private IEnumerable<BattleAction> OnTurn(UnitEventArgs args)
         {
+            if (base.Battle.BattleShouldEnd || base.Level <= 0 || base.Count <= 0)
+                yield break;
+            base.NotifyActivating();
             yield return new ApplyStatusEffectAction<TianziRegenSe>(
                 base.Battle.Player, base.Level, null, null, null, 0.1f);
+            base.Count -= 1;
+            if (base.Count <= 0)
+                yield return new RemoveStatusEffectAction(this, true, 0.05f);
         }
     }
 
@@ -156,47 +168,65 @@ namespace TianziMod.StatusEffects
         {
             StatusEffectConfig config = GetDefaultStatusEffectConfig();
             config.Type = StatusEffectType.Positive;
-            config.HasLevel = false;
-            config.IsStackable = false;
+            config.HasLevel = true;
+            config.LevelStackType = StackType.Add;
+            config.IsStackable = true;
             return config;
         }
     }
 
+    /// <summary>境界对决：参考龟甲地狱（YachieDefendSe）——在 DamageTaking 完全抵消并原额反击。</summary>
     [EntityLogic(typeof(TianziReflectSeDef))]
     public sealed class TianziReflectSe : StatusEffect
     {
+        private readonly Queue<(Unit target, int damage)> _pending =
+            new Queue<(Unit target, int damage)>();
+
+        private int _activeTimes;
+
         protected override void OnAdded(Unit unit)
         {
             base.HandleOwnerEvent<DamageEventArgs>(
-                base.Owner.DamageReceiving,
-                new GameEventHandler<DamageEventArgs>(this.OnRecv));
+                base.Battle.Player.DamageTaking,
+                new GameEventHandler<DamageEventArgs>(this.OnTaking));
             base.ReactOwnerEvent<DamageEventArgs>(
-                base.Owner.DamageReceived,
-                new EventSequencedReactor<DamageEventArgs>(this.OnGot));
+                base.Battle.Player.DamageReceived,
+                new EventSequencedReactor<DamageEventArgs>(this.OnReceived));
         }
 
-        private float _stored;
-
-        private void OnRecv(DamageEventArgs args)
+        private void OnTaking(DamageEventArgs args)
         {
             if (args.DamageInfo.DamageType != DamageType.Attack)
                 return;
-            this._stored = args.DamageInfo.Damage;
-            args.DamageInfo = args.DamageInfo.ReduceBy((int)this._stored + 1);
+            int amount = (int)Math.Round(args.DamageInfo.Damage);
+            if (amount < 1 || this._activeTimes >= base.Level)
+                return;
+            base.NotifyActivating();
+            this._activeTimes += 1;
+            args.DamageInfo = args.DamageInfo.ReduceActualDamageBy(amount);
             args.AddModifier(this);
+            Unit source = args.Source;
+            if (source is EnemyUnit && source.IsAlive)
+                this._pending.Enqueue((source, amount));
         }
 
-        private IEnumerable<BattleAction> OnGot(DamageEventArgs args)
+        private IEnumerable<BattleAction> OnReceived(DamageEventArgs args)
         {
-            Unit src = args.Source;
-            float dmg = this._stored;
-            this._stored = 0f;
-            yield return new RemoveStatusEffectAction(this, true, 0.05f);
-            if (src == null || !src.IsAlive || dmg <= 0f)
-                yield break;
-            base.NotifyActivating();
-            yield return new DamageAction(
-                base.Owner, src, DamageInfo.Attack(dmg, true), "Instant", GunType.Single);
+            while (this._pending.Count > 0)
+            {
+                (Unit target, int damage) hit = this._pending.Dequeue();
+                if (hit.target != null && hit.target.IsAlive && hit.damage > 0)
+                {
+                    yield return new DamageAction(
+                        base.Battle.Player,
+                        hit.target,
+                        DamageInfo.Reaction(hit.damage));
+                }
+            }
+            base.Level -= this._activeTimes;
+            this._activeTimes = 0;
+            if (base.Level <= 0)
+                yield return new RemoveStatusEffectAction(this, true, 0.05f);
         }
     }
 
@@ -225,9 +255,13 @@ namespace TianziMod.StatusEffects
             base.ReactOwnerEvent<UnitEventArgs>(
                 base.Battle.Player.TurnStarted,
                 new EventSequencedReactor<UnitEventArgs>(this.OnStart));
+            // 先挂上「本回合开始不丢格挡」，再在 TurnStarting（LoseBlockGraze 之后）把格挡转成绝壁
             base.ReactOwnerEvent<UnitEventArgs>(
                 base.Battle.Player.TurnEnding,
-                new EventSequencedReactor<UnitEventArgs>(this.OnEnd));
+                new EventSequencedReactor<UnitEventArgs>(this.OnTurnEnding));
+            base.ReactOwnerEvent<UnitEventArgs>(
+                base.Battle.Player.TurnStarting,
+                new EventSequencedReactor<UnitEventArgs>(this.OnTurnStarting));
         }
 
         private IEnumerable<BattleAction> OnStart(UnitEventArgs args)
@@ -235,17 +269,32 @@ namespace TianziMod.StatusEffects
             yield return new GainManaAction(new ManaGroup() { White = 1 });
         }
 
-        private IEnumerable<BattleAction> OnEnd(UnitEventArgs args)
+        private IEnumerable<BattleAction> OnTurnEnding(UnitEventArgs args)
         {
-            // 回合末即将失去的剩余格挡 → 绝壁
-            int block = base.Battle.Player.Block;
+            if (base.Battle.BattleShouldEnd)
+                yield break;
+            if (base.Battle.Player.Block <= 0)
+                yield break;
+            // 已有 DontLoseBlock（如耐性）则复用；否则挂一层，避免 LoseBlockGraze 先清掉格挡
+            if (base.Battle.Player.HasStatusEffect<TurnStartDontLoseBlock>())
+                yield break;
+            yield return new ApplyStatusEffectAction<TurnStartDontLoseBlock>(
+                base.Battle.Player, 1, null, null, null, 0.05f);
+        }
+
+        private IEnumerable<BattleAction> OnTurnStarting(UnitEventArgs args)
+        {
+            // 敌人回合结束后、本回合即将失去剩余格挡时：格挡 → 绝壁
+            Unit player = base.Battle.Player;
+            int block = player.Block;
             if (block <= 0)
                 yield break;
-            BattleAction gain = TianziTempHp.GainAction(base.Battle.Player, block, 0.1f);
-            if (gain == null)
-                yield break;
             base.NotifyActivating();
-            yield return gain;
+            BattleAction gain = TianziTempHp.GainAction(player, block, 0.1f);
+            if (gain != null)
+                yield return gain;
+            if (player.Block > 0)
+                yield return new LoseBlockShieldAction(player, player.Block, 0, true);
         }
     }
 

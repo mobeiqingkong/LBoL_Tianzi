@@ -28,7 +28,7 @@ namespace TianziMod.Cards
             config.Rarity = Rarity.Rare;
             config.Type = CardType.Ability;
             config.TargetType = TargetType.Self;
-            config.RelativeEffects = new List<string>() { nameof(TianziProbeSe), nameof(TianziParityKwSe) };
+            config.RelativeEffects = new List<string>() { nameof(TianziParityKwSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;

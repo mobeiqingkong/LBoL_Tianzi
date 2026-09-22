@@ -36,7 +36,6 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.Mana = new ManaGroup() { Colorless = 1 };
             config.UpgradedMana = new ManaGroup() { Colorless = 1 };
-            config.RelativeEffects = new List<string>() { nameof(TianziLethalSe) };
 
             config.Illustrator = "";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

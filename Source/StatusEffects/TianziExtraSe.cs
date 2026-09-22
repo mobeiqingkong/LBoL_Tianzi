@@ -72,9 +72,12 @@ namespace TianziMod.StatusEffects
         {
             StatusEffectConfig config = GetDefaultStatusEffectConfig();
             config.Type = StatusEffectType.Positive;
+            // Level = 格挡倍数（取高）；Count = 奇数回合获得的火力（叠加）
             config.HasLevel = true;
             config.LevelStackType = StackType.Max;
             config.IsStackable = true;
+            config.HasCount = true;
+            config.CountStackType = StackType.Add;
             return config;
         }
     }
@@ -84,9 +87,19 @@ namespace TianziMod.StatusEffects
     {
         protected override void OnAdded(Unit unit)
         {
+            if (base.Count <= 0)
+                base.Count = 1;
             base.ReactOwnerEvent<UnitEventArgs>(
                 base.Battle.Player.TurnStarted,
                 new EventSequencedReactor<UnitEventArgs>(this.OnTurnStarted));
+        }
+
+        public override bool Stack(StatusEffect other)
+        {
+            bool handled = base.Stack(other);
+            if (base.Count < 1)
+                base.Count = 1;
+            return handled;
         }
 
         private IEnumerable<BattleAction> OnTurnStarted(UnitEventArgs args)
@@ -95,16 +108,18 @@ namespace TianziMod.StatusEffects
                 yield break;
             base.NotifyActivating();
             int turn = base.Battle.Player.TurnCounter;
-            Firepower fpSe = base.Battle.Player.GetStatusEffect<Firepower>();
-            int fp = fpSe == null ? 0 : fpSe.Level;
             if (turn % 2 == 1)
             {
+                int gain = base.Count > 0 ? base.Count : 1;
                 yield return new ApplyStatusEffectAction<Firepower>(
-                    base.Battle.Player, 1, null, null, null, 0.2f);
+                    base.Battle.Player, gain, null, null, null, 0.2f);
             }
             else
             {
-                int block = (int)Math.Round(fp * base.Level / 10.0, MidpointRounding.AwayFromZero);
+                Firepower fpSe = base.Battle.Player.GetStatusEffect<Firepower>();
+                int fp = fpSe == null ? 0 : fpSe.Level;
+                // Level 即倍数（未升级 10 / 升级 15）
+                int block = fp * base.Level;
                 if (block <= 0)
                     yield break;
                 yield return new CastBlockShieldAction(
@@ -121,6 +136,8 @@ namespace TianziMod.StatusEffects
             config.Type = StatusEffectType.Positive;
             config.HasLevel = true;
             config.LevelStackType = StackType.Add;
+            config.HasCount = true;
+            config.CountStackType = StackType.Add;
             config.IsStackable = true;
             return config;
         }
@@ -129,10 +146,13 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziPeachEternitySeDef))]
     public sealed class TianziPeachEternitySe : StatusEffect
     {
+        /// <summary>单次打出默认回合开始绝壁；叠层时用 Count（可叠加）。</summary>
         public const int PerTurnTempHp = 2;
 
         protected override void OnAdded(Unit unit)
         {
+            if (base.Count <= 0)
+                base.Count = PerTurnTempHp;
             base.ReactOwnerEvent<UnitEventArgs>(
                 base.Battle.Player.TurnStarted,
                 new EventSequencedReactor<UnitEventArgs>(this.OnTurnStarted));
@@ -142,7 +162,8 @@ namespace TianziMod.StatusEffects
         {
             if (base.Battle.BattleShouldEnd)
                 yield break;
-            BattleAction gain = TianziTempHp.GainAction(base.Battle.Player, PerTurnTempHp, 0.1f);
+            int amount = base.Count > 0 ? base.Count : PerTurnTempHp;
+            BattleAction gain = TianziTempHp.GainAction(base.Battle.Player, amount, 0.1f);
             if (gain == null)
                 yield break;
             base.NotifyActivating();
