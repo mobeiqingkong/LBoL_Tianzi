@@ -1,0 +1,186 @@
+﻿using System.Collections.Generic;
+using LBoL.Core.Cards;
+
+namespace LBoL.Core.Battle.BattleActions;
+
+public class DrawManyCardAction : SimpleAction
+{
+	private readonly int _count;
+
+	private readonly List<Card> _cards = new List<Card>();
+
+	public IReadOnlyList<Card> DrawnCards => _cards.AsReadOnly();
+
+	public override bool IsCanceled => false;
+
+	public DrawManyCardAction(int count)
+	{
+		_count = count;
+	}
+
+	protected override void ResolvePhase()
+	{
+		React(new Reactor(ResolvePhaseEnumerator()));
+	}
+
+	private IEnumerable<BattleAction> ResolvePhaseEnumerator()
+	{
+		int i = 0;
+		while (i < _count)
+		{
+			DrawCardAction draw = new DrawCardAction();
+			yield return draw;
+			if (draw.Args.Card != null)
+			{
+				_cards.Add(draw.Args.Card);
+			}
+			int num = i + 1;
+			i = num;
+		}
+	}
+}
+
+---
+using System.Collections.Generic;
+using System.Linq;
+using LBoL.Base.Extensions;
+using LBoL.Core.Cards;
+using UnityEngine;
+
+namespace LBoL.Core.Battle.BattleActions;
+
+public sealed class DrawCardAction : EventBattleAction<CardEventArgs>
+{
+	public CardTransitionType TransitionType { get; private set; }
+
+	public DrawCardAction()
+	{
+		base.Args = new CardEventArgs();
+	}
+
+	internal override IEnumerable<Phase> GetPhases()
+	{
+		yield return CreateEventPhase("Predraw", base.Args, base.Battle.Predraw);
+		if (base.Battle.HandZone.Count == base.Battle.MaxHand)
+		{
+			while (base.Battle.HandZone.Count == base.Battle.MaxHand && base.Battle.HandZone.Any((Card card) => card.IsAutoExile))
+			{
+				Card firstAutoExile2 = base.Battle.HandZone.FirstOrDefault((Card card) => card.IsAutoExile);
+				if (firstAutoExile2 != null)
+				{
+					yield return CreatePhase("AutoExile", delegate
+					{
+						base.Battle.React(new ExileCardAction(firstAutoExile2), base.Args.Card, ActionCause.AutoExile);
+					});
+				}
+			}
+			if (base.Battle.HandZone.Count == base.Battle.MaxHand)
+			{
+				yield return CreatePhase("HandFull", delegate
+				{
+					base.Battle.NotifyMessage(BattleMessage.HandFull);
+					base.Args.ForceCancelBecause(CancelCause.HandFull);
+				});
+			}
+		}
+		if (base.Battle.DrawZone.Empty() && !base.Battle.DiscardZone.Empty())
+		{
+			yield return CreatePhase("Reshuffle", delegate
+			{
+				base.Battle.React(new ReshuffleAction(), null, ActionCause.None);
+			});
+			if (base.Battle.HandZone.Count == base.Battle.MaxHand)
+			{
+				Card firstAutoExile = base.Battle.HandZone.FirstOrDefault((Card card) => card.IsAutoExile);
+				if (firstAutoExile != null)
+				{
+					yield return CreatePhase("AutoExile", delegate
+					{
+						base.Battle.React(new ExileCardAction(firstAutoExile), base.Args.Card, ActionCause.AutoExile);
+					});
+				}
+				else
+				{
+					yield return CreatePhase("HandFull", delegate
+					{
+						base.Battle.NotifyMessage(BattleMessage.HandFull);
+						base.Args.ForceCancelBecause(CancelCause.HandFull);
+					});
+				}
+			}
+		}
+		if (base.Battle.DrawZone.Empty())
+		{
+			yield return CreatePhase("EmptyDraw", delegate
+			{
+				base.Battle.NotifyMessage(BattleMessage.EmptyDraw);
+				base.Args.ForceCancelBecause(CancelCause.EmptyDraw);
+			});
+		}
+		base.Args.Card = base.Battle.DrawZone[0];
+		base.Args.IsModified = true;
+		base.Args.CanCancel = false;
+		yield return CreateEventPhase("CardDrawing", base.Args, base.Battle.CardDrawing);
+		IEnumerable<BattleAction> reactor = null;
+		yield return CreatePhase("Main", delegate
+		{
+			Card card2 = base.Battle.DrawCard();
+			if (card2 != base.Args.Card)
+			{
+				Debug.LogError("Drawing card is modified, drawing " + base.Args.Card.DebugName + ", drawn " + (card2?.DebugName ?? "<null>"));
+				base.Args.Card = card2;
+			}
+			if (base.Args.Card == null)
+			{
+				base.Args.ForceCancelBecause(CancelCause.Failure);
+			}
+			else
+			{
+				reactor = base.Args.Card.OnDraw();
+				if (reactor != null && base.Args.Card.OnDrawVisual)
+				{
+					TransitionType = CardTransitionType.SpecialBegin;
+				}
+			}
+		}, hasViewer: true);
+		if (reactor != null)
+		{
+			List<DamageAction> damageActions = new List<DamageAction>();
+			yield return CreatePhase("SpecialDraw", delegate
+			{
+				React(new Reactor(StatisticalTotalDamageAction.WrapReactorWithStats(reactor, damageActions)), base.Args.Card, ActionCause.Card);
+			});
+			if (damageActions.NotEmpty())
+			{
+				yield return CreatePhase("Statistics", delegate
+				{
+					base.Battle.React(new StatisticalTotalDamageAction(damageActions), base.Args.Card, ActionCause.Card);
+				});
+			}
+			if (base.Args.Card.OnDrawVisual)
+			{
+				TransitionType = CardTransitionType.SpecialEnd;
+				yield return CreatePhase("SpecialDrawn", delegate
+				{
+				}, hasViewer: true);
+			}
+		}
+		if (!base.Args.IsCanceled && base.Args.Card.IsPlentiful && base.Args.Card.PlentifulMana.HasValue && !base.Args.Card.PlentifulHappenThisTurn)
+		{
+			yield return CreatePhase("Plentiful", delegate
+			{
+				base.Battle.React(new GainManaAction(base.Args.Card.PlentifulMana.Value), base.Args.Card, ActionCause.Card);
+				base.Args.Card.PlentifulHappenThisTurn = true;
+			});
+		}
+		if (!base.Args.IsCanceled && base.Args.Card.IsReplenish)
+		{
+			yield return CreatePhase("Replenish", delegate
+			{
+				base.Battle.React(new DrawCardAction(), base.Args.Card, ActionCause.Card);
+			});
+		}
+		yield return CreateEventPhase("CardDrawn", base.Args, base.Battle.CardDrawn);
+	}
+}
+
