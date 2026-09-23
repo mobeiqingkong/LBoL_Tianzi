@@ -81,6 +81,59 @@ namespace TianziMod.Patches
             if (tmp != null)
                 tmp.text = temp.ToString();
             badge.gameObject.SetActive(temp > 0);
+            if (temp > 0)
+                PlaceBadgeBesideDefense(bar, badge);
+        }
+
+        /// <summary>
+        /// 护盾+格挡+绝壁同时显示时，原版父节点布局宽度只够两个徽标，第三个会换行。
+        /// 绝壁徽标改成忽略布局，贴在当前最右侧防御徽标右边。
+        /// </summary>
+        private static void PlaceBadgeBesideDefense(HealthBar bar, Transform badge)
+        {
+            Traverse tr = Traverse.Create(bar);
+            Transform blockParent = tr.Field("blockParent").GetValue<Transform>();
+            Transform shieldParent = tr.Field("shieldParent").GetValue<Transform>();
+            if (blockParent == null)
+                return;
+
+            LayoutElement layout = badge.GetComponent<LayoutElement>();
+            if (layout == null)
+                layout = badge.gameObject.AddComponent<LayoutElement>();
+            layout.ignoreLayout = true;
+
+            RectTransform badgeRt = badge as RectTransform;
+            RectTransform blockRt = blockParent as RectTransform;
+            if (badgeRt == null || blockRt == null)
+                return;
+
+            RectTransform anchorRt = blockRt;
+            if (blockParent.gameObject.activeInHierarchy)
+                anchorRt = blockRt;
+            else if (shieldParent != null && shieldParent.gameObject.activeInHierarchy)
+                anchorRt = shieldParent as RectTransform ?? blockRt;
+
+            badgeRt.anchorMin = anchorRt.anchorMin;
+            badgeRt.anchorMax = anchorRt.anchorMax;
+            badgeRt.pivot = anchorRt.pivot;
+            badgeRt.sizeDelta = anchorRt.sizeDelta;
+            badgeRt.localScale = anchorRt.localScale;
+            badgeRt.localRotation = anchorRt.localRotation;
+
+            // 先强制刷一遍布局，再读护盾/格挡的最终坐标
+            Canvas.ForceUpdateCanvases();
+
+            float gap = 2f;
+            float width = Mathf.Max(anchorRt.rect.width, 1f);
+            if (blockParent.gameObject.activeInHierarchy ||
+                (shieldParent != null && shieldParent.gameObject.activeInHierarchy))
+            {
+                badgeRt.localPosition = anchorRt.localPosition + new Vector3(width + gap, 0f, 0f);
+            }
+            else
+            {
+                badgeRt.localPosition = blockRt.localPosition;
+            }
         }
 
         /// <summary>
@@ -155,10 +208,17 @@ namespace TianziMod.Patches
                 tempImage.fillAmount = tempEnd;
                 bar.SetHp(hp, maxHp);
                 bar.SetShield(shield, block);
+                // SetShield 之后再摆绝壁徽标，才能读到护盾/格挡的最终布局位置
+                Transform badge = EnsureBadge(bar);
+                if (badge != null && badge.gameObject.activeSelf)
+                    PlaceBadgeBesideDefense(bar, badge);
                 return true;
             }
 
             bar.SetShield(shield, block);
+            Transform badgeLive = EnsureBadge(bar);
+            if (badgeLive != null && badgeLive.gameObject.activeSelf)
+                PlaceBadgeBesideDefense(bar, badgeLive);
             float lerp = 0f;
             DOTween.Sequence()
                 .Insert(0f, tempImage.DOFillAmount(tempEnd, 0.2f))
@@ -247,6 +307,10 @@ namespace TianziMod.Patches
             clone.transform.SetSiblingIndex(blockParent.GetSiblingIndex() + 1);
             foreach (Graphic g in clone.GetComponentsInChildren<Graphic>(true))
                 g.color = Yellow;
+            LayoutElement layout = clone.GetComponent<LayoutElement>();
+            if (layout == null)
+                layout = clone.AddComponent<LayoutElement>();
+            layout.ignoreLayout = true;
             clone.SetActive(false);
             return clone.transform;
         }
