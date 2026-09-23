@@ -1,0 +1,29 @@
+using System.Collections.Generic;
+using LBoL.Core.Battle;
+
+namespace LBoL.Core.Units;
+
+public class SimpleEnemyMove : IEnemyMove
+{
+	public Intention Intention { get; }
+
+	public IEnumerable<BattleAction> Actions { get; }
+
+	public SimpleEnemyMove(Intention intention, IEnumerable<BattleAction> actions)
+	{
+		Intention = intention;
+		Actions = actions;
+	}
+
+	public SimpleEnemyMove(Intention intention, BattleAction action)
+	{
+		IEnumerable<BattleAction> enumerable = new BattleAction[1] { action };
+		Intention = intention;
+		Actions = enumerable;
+	}
+
+	public SimpleEnemyMove(Intention intention)
+	{
+		Intention = intention;
+	}
+}

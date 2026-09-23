@@ -15,9 +15,9 @@ TianziRegenSe:
 TianziWeatherClear:
   Name: 快晴
   Description: |-
-    随机一张卡牌的任意费用减少 |e:1|。
+    回合开始时，随机一张卡牌的费用减少{Mana}。
     {OwnerName}的|闪避|不会在回合开始时消失。
-  Brief: "随机一张牌费用减少 |e:1|；|闪避|不会消失。"
+  Brief: "回合开始时，随机一张牌费用减少{Mana}；|闪避|不会消失。"
 
 TianziWeatherMist:
   Name: 雾雨
@@ -28,8 +28,8 @@ TianziWeatherMist:
 TianziWeatherCloud:
   Name: 云天
   Description: |-
-    所有卡牌的任意费用减少 |e:1|。
-  Brief: "所有卡牌费用减少 |e:1|。"
+    回合开始时，所有卡牌的费用减少{Mana}。
+  Brief: "回合开始时，所有卡牌费用减少{Mana}。"
 
 TianziWeatherAzure:
   Name: 苍天
@@ -240,7 +240,7 @@ TianziLethalSe:
 
 TianziBossPeachSe:
   Name: 仙桃
-  Description: 受到伤害时回复 {Level} 点生命值，并额外积攒 {Count} 点P。
+  Description: 受到伤害时回复 {Level} 点生命值，并额外积攒 {Count} 点<sprite="Point" name="Power">。
 
 TianziBossHeavenQiSe:
   Name: 天人之气
@@ -249,5 +249,5 @@ TianziBossHeavenQiSe:
 TianziBossKarmaInfluenceSe:
   Name: 因果影响
   Description: |-
-    主角每打出 {Level} 张牌后，下一张牌：
-    奇数牌：随机失去 |e:1| 点费用；偶数牌：随机弃 |e:1| 张牌。
+    主角每打出 {Level} 张牌时（进度 {Count}/{Level}）：
+    打出前手牌数为奇数：随机失去 |e:1| 点费用；打出前手牌数为偶数：随机弃 |e:1| 张牌。

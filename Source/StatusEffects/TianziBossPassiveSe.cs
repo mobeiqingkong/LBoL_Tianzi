@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using LBoL.Base;
 using LBoL.ConfigData;
@@ -23,14 +24,12 @@ namespace TianziMod.StatusEffects
             config.HasLevel = true;
             config.HasCount = true;
             config.HasDuration = false;
-            config.RelativeEffects = new List<string> { nameof(EnemyEnergy) };
             return config;
         }
     }
 
     /// <summary>
-    /// 本章天子 Boss 专属仙桃：受击回血并额外积攒能量。
-    /// 伤害等量转能量仍由 EnemyEnergy 负责。
+    /// 本章天子 Boss 专属仙桃：受击回血并额外积攒 P（经 EnemyEnergy）。
     /// </summary>
     [EntityLogic(typeof(TianziBossPeachSeDef))]
     public sealed class TianziBossPeachSe : StatusEffect
@@ -123,19 +122,38 @@ namespace TianziMod.StatusEffects
         }
     }
 
-    /// <summary>因果影响：每打出 Level 张牌后，下一张奇数牌丢随机费用，偶数牌随机弃牌。</summary>
+    /// <summary>
+    /// 因果影响：打出第 Level 张牌时按「打出前手牌数」奇偶惩罚。
+    /// Count 为已打出张数；Count == Level-1 时 Highlight 发光表示即将触发。
+    /// </summary>
     [EntityLogic(typeof(TianziBossKarmaInfluenceSeDef))]
     public sealed class TianziBossKarmaInfluenceSe : StatusEffect
     {
-        private bool _punishNext;
+        /// <summary>CardUsing 时快照的打出前手牌数（含正打出的那张）。</summary>
+        private int _handBeforePlay = -1;
 
         protected override void OnAdded(Unit unit)
         {
             base.Count = 0;
-            this._punishNext = false;
-            base.ReactOwnerEvent<CardUsingEventArgs>(
+            base.Highlight = false;
+            this._handBeforePlay = -1;
+            base.HandleOwnerEvent(
+                base.Battle.CardUsing,
+                new GameEventHandler<CardUsingEventArgs>(this.OnCardUsing));
+            base.ReactOwnerEvent(
                 base.Battle.CardUsed,
                 new EventSequencedReactor<CardUsingEventArgs>(this.OnCardUsed));
+        }
+
+        private void OnCardUsing(CardUsingEventArgs args)
+        {
+            if (args.Card == null || args.Card.CardType == CardType.Status)
+            {
+                this._handBeforePlay = -1;
+                return;
+            }
+            // 此时牌还在手里：手牌数 = 打出前张数
+            this._handBeforePlay = base.Battle.HandZone.Count;
         }
 
         private IEnumerable<BattleAction> OnCardUsed(CardUsingEventArgs args)
@@ -143,39 +161,49 @@ namespace TianziMod.StatusEffects
             if (args.Card == null || args.Card.CardType == CardType.Status)
                 yield break;
 
-            if (this._punishNext)
+            int handBefore = this._handBeforePlay;
+            this._handBeforePlay = -1;
+            if (handBefore < 0)
+                handBefore = base.Battle.HandZone.Count + 1;
+
+            base.Count++;
+            int threshold = Math.Max(base.Level, 1);
+
+            // 差一张触发：发光提示激活
+            if (base.Count == threshold - 1)
             {
-                this._punishNext = false;
+                base.Highlight = true;
                 base.NotifyActivating();
-                bool odd = TianziParity.IsOddAtPlay(base.Battle);
-                if (odd)
-                {
-                    foreach (BattleAction action in this.LoseRandomMana())
-                        yield return action;
-                }
-                else
-                {
-                    List<Card> hand = new List<Card>();
-                    foreach (Card c in base.Battle.HandZone)
-                    {
-                        if (c != null && c != args.Card)
-                            hand.Add(c);
-                    }
-                    if (hand.Count > 0)
-                    {
-                        Card discard = hand[base.GameRun.BattleRng.NextInt(0, hand.Count)];
-                        yield return new DiscardAction(discard);
-                    }
-                }
                 yield break;
             }
 
-            base.Count++;
-            if (base.Count >= base.Level)
+            if (base.Count < threshold)
+                yield break;
+
+            // 第 Level 张：触发惩罚并复位
+            base.Highlight = false;
+            base.Count = 0;
+            base.NotifyActivating();
+
+            bool oddHand = handBefore % 2 == 1;
+            if (oddHand)
             {
-                base.Count = 0;
-                this._punishNext = true;
-                base.NotifyActivating();
+                foreach (BattleAction action in this.LoseRandomMana())
+                    yield return action;
+            }
+            else
+            {
+                List<Card> hand = new List<Card>();
+                foreach (Card c in base.Battle.HandZone)
+                {
+                    if (c != null)
+                        hand.Add(c);
+                }
+                if (hand.Count > 0)
+                {
+                    Card discard = hand[base.GameRun.BattleRng.NextInt(0, hand.Count)];
+                    yield return new DiscardAction(discard);
+                }
             }
         }
 
@@ -223,11 +251,12 @@ namespace TianziMod.StatusEffects
 
         public static int KarmaThreshold(GameDifficulty difficulty)
         {
+            // 原 9/8/7，改为层数+1：第 10/9/8 张触发
             switch (difficulty)
             {
-                case GameDifficulty.Lunatic: return 7;
-                case GameDifficulty.Hard: return 8;
-                default: return 9;
+                case GameDifficulty.Lunatic: return 8;
+                case GameDifficulty.Hard: return 9;
+                default: return 10;
             }
         }
     }

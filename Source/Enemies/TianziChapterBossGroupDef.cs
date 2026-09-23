@@ -9,7 +9,7 @@ namespace TianziMod.Enemies
 {
     public sealed class TianziChapterBossGroupDef : TianziEnemyGroupTemplate
     {
-        public override IdContainer GetId() => "TianziChapterBossGroup";
+        public override IdContainer GetId() => nameof(TianziChapterBoss);
 
         public override EnemyGroupConfig MakeConfig()
         {

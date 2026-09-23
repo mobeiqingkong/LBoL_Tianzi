@@ -548,5 +548,5 @@ TianziHeavenDoor:
 TianziKarmaShackle:
   Name: 因果枷锁
   Description: |-
-    你只能打出一张与此牌相邻的手牌；打出其中一侧后，另一侧本回合内无法打出。
-  PreventUsageMessage: 因果枷锁限制了可打出的相邻牌。
+    打出与此牌相邻的一张手牌时，另一侧相邻牌获得|禁止|；本回合结束时移除因此添加的|禁止|。
+  PreventUsageMessage: 因果枷锁限制了相邻牌。

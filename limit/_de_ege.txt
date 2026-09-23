@@ -1,0 +1,113 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using LBoL.Base;
+using LBoL.Base.Extensions;
+using LBoL.ConfigData;
+using UnityEngine;
+
+namespace LBoL.Core.Units;
+
+public class EnemyGroupEntry : IEnumerable<EnemyGroupEntry.EntrySource>, IEnumerable
+{
+	public class EntrySource
+	{
+		public Type Type { get; }
+
+		public int RootIndex { get; }
+
+		public EntrySource(Type type, int rootIndex)
+		{
+			Type = type;
+			RootIndex = rootIndex;
+		}
+	}
+
+	private readonly List<EntrySource> _entries = new List<EntrySource>();
+
+	private List<EntrySource> _list;
+
+	public EnemyGroupConfig Config { get; }
+
+	public string Id => Config.Id;
+
+	public EnemyType EnemyType => Config.EnemyType;
+
+	public bool RollBossExhibit => Config.RollBossExhibit;
+
+	public string FormationName => Config.FormationName;
+
+	public Vector2 PlayerRootV2 => Config.PlayerRoot;
+
+	public string PreBattleDialogName => Config.PreBattleDialogName;
+
+	public string PostBattleDialogName => Config.PostBattleDialogName;
+
+	public bool Hidden => Config.Hidden;
+
+	public float DebutTime => Config.DebutTime;
+
+	public string Environment => Config.Environment;
+
+	public EnemyGroupEntry(EnemyGroupConfig config)
+	{
+		Config = config;
+	}
+
+	public void Add(Type type)
+	{
+		_entries.Add(new EntrySource(type, _entries.Count));
+	}
+
+	public void Add(Type type, int rootIndex)
+	{
+		_entries.Add(new EntrySource(type, rootIndex));
+	}
+
+	public EnemyGroup Generate(GameRunController gameRun)
+	{
+		if (!Config.IsSub && Config.Subs.Any())
+		{
+			EnemyGroupConfig enemyGroupConfig = EnemyGroupConfig.FromId(Config.Subs.Sample(gameRun.StationRng));
+			if (enemyGroupConfig != null)
+			{
+				return Library.CreateEnemyGroupEntryFromConfig(enemyGroupConfig).Generate(gameRun);
+			}
+		}
+		EnemyGroup enemyGroup = new EnemyGroup(Id, _entries, EnemyType, FormationName, PlayerRootV2, PreBattleDialogName, PostBattleDialogName, Hidden, DebutTime, Environment);
+		foreach (EnemyUnit item in enemyGroup)
+		{
+			item.EnterGameRun(gameRun);
+		}
+		return enemyGroup;
+	}
+
+	public IEnumerator<EntrySource> GetEnumerator()
+	{
+		return _entries.GetEnumerator();
+	}
+
+	IEnumerator IEnumerable.GetEnumerator()
+	{
+		return GetEnumerator();
+	}
+
+	public List<EntrySource> ToList()
+	{
+		if (_list != null)
+		{
+			return _list;
+		}
+		_list = Enumerable.Repeat<EntrySource>(null, 5).ToList();
+		foreach (EntrySource entry in _entries)
+		{
+			if (_list[entry.RootIndex] != null)
+			{
+				throw new InvalidOperationException("'" + Id + "' has duplicated root index");
+			}
+			_list[entry.RootIndex] = entry;
+		}
+		return _list;
+	}
+}

@@ -4,14 +4,11 @@ using ICSharpCode.Decompiler;
 using ICSharpCode.Decompiler.CSharp;
 using ICSharpCode.Decompiler.Metadata;
 using ICSharpCode.Decompiler.TypeSystem;
-
 var game = @"D:\software\steam\steamapps\common\LBoL\LBoL_Data\Managed";
-var dll = Path.Combine(game, "LBoL.Presentation.dll");
-var resolver = new UniversalAssemblyResolver(dll, false, null);
+var core = Path.Combine(game, "LBoL.Core.dll");
+var resolver = new UniversalAssemblyResolver(core, false, null);
 resolver.AddSearchDirectory(game);
-var d = new CSharpDecompiler(dll, resolver, new DecompilerSettings { ThrowOnAssemblyResolveErrors = false });
-var code = d.DecompileTypeAsString(new FullTypeName("LBoL.Presentation.ResourcesHelper"));
-File.WriteAllText(@"D:\riderProject\Hinanawi-Tenshi\limit\_de_resourceshelper.txt", code);
-foreach (var line in code.Split('\n'))
-  if (line.Contains("Boss") || line.Contains("TryGet") || line.Contains("public static"))
-    Console.WriteLine(line.TrimEnd());
+var d = new CSharpDecompiler(core, resolver, new DecompilerSettings { ThrowOnAssemblyResolveErrors = false });
+var grc = d.DecompileTypeAsString(new FullTypeName("LBoL.Core.GameRunController"));
+int i = grc.IndexOf("EnterStage(");
+Console.WriteLine(grc.Substring(i, Math.Min(500, grc.Length-i)));

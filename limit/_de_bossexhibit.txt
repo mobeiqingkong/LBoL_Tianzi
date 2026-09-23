@@ -1,0 +1,210 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using DG.Tweening;
+using LBoL.Base;
+using LBoL.Base.Extensions;
+using LBoL.Core;
+using LBoL.Presentation.InputSystemExtend;
+using LBoL.Presentation.UI.ExtraWidgets;
+using LBoL.Presentation.UI.Widgets;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace LBoL.Presentation.UI.Panels;
+
+public class BossExhibitPanel : UiPanel<Exhibit[]>
+{
+	[SerializeField]
+	private ExhibitWidget exhibitPrefab;
+
+	[SerializeField]
+	private List<Transform> contentList;
+
+	[SerializeField]
+	private Image nonInitialColorHint;
+
+	[SerializeField]
+	private CanvasGroup rollCardsExplainContent;
+
+	private readonly List<ExhibitWidget> _exhibitList = new List<ExhibitWidget>();
+
+	private bool _revealedNonInitialColorHint;
+
+	private ExhibitWidget _lastInteractExhibit;
+
+	public override PanelLayer Layer => PanelLayer.Bottom;
+
+	protected override void OnShowing(Exhibit[] exhibits)
+	{
+		foreach (Transform content in contentList)
+		{
+			content.gameObject.SetActive(value: false);
+		}
+		foreach (var item2 in exhibits.WithIndices())
+		{
+			int i = item2.index;
+			Exhibit exhibit = item2.elem;
+			ExhibitWidget exhibitWidget = Object.Instantiate(exhibitPrefab, contentList[i]);
+			if (i == 0)
+			{
+				exhibitWidget.gameObject.AddComponent<GamepadNavigationOrigin>();
+			}
+			exhibitWidget.transform.localScale = Vector3.one * 1.5f;
+			exhibitWidget.Exhibit = exhibit;
+			exhibitWidget.name = "Exhibit: " + exhibit.Id;
+			exhibitWidget.ShowCounter = false;
+			_exhibitList.Add(exhibitWidget);
+			contentList[i].GetComponent<CanvasGroup>().alpha = 0f;
+			exhibitWidget.ExhibitClicked += delegate
+			{
+				OnClickExhibit(exhibit, i);
+			};
+		}
+		nonInitialColorHint.gameObject.SetActive(value: false);
+		_revealedNonInitialColorHint = false;
+		if (GameMaster.ShowBriefHint && GameMaster.ShouldShowHint("NonInitialColor"))
+		{
+			foreach (var item3 in _exhibitList.WithIndices())
+			{
+				ExhibitWidget item = item3.elem;
+				if (IsExhibitNonInitialColor(item.Exhibit))
+				{
+					item.ExhibitExit += RevealColorHint;
+				}
+			}
+		}
+		rollCardsExplainContent.gameObject.SetActive(value: true);
+		rollCardsExplainContent.alpha = 0f;
+	}
+
+	protected override void OnShown()
+	{
+		foreach (Transform content in contentList)
+		{
+			GameObject gameObject = content.gameObject;
+			gameObject.SetActive(value: true);
+			content.GetComponent<CanvasGroup>().DOFade(1f, 0.6f).From(0f)
+				.SetUpdate(isIndependentUpdate: true)
+				.SetLink(gameObject);
+			content.GetComponentInChildren<Image>().transform.DORotate(new Vector3(0f, 0f, 360f), 5f, RotateMode.FastBeyond360).SetLoops(-1, LoopType.Incremental).SetEase(Ease.Linear)
+				.SetUpdate(isIndependentUpdate: true)
+				.SetLink(gameObject);
+		}
+	}
+
+	protected override void OnHided()
+	{
+		_exhibitList.Clear();
+		foreach (Transform content in contentList)
+		{
+			Object.Destroy(content.GetComponentInChildren<ExhibitWidget>().gameObject);
+			content.gameObject.SetActive(value: false);
+		}
+	}
+
+	private bool IsExhibitNonInitialColor(Exhibit exhibit)
+	{
+		ManaGroup mana = exhibit.BaseMana.Value;
+		if (mana != ManaGroup.Empty)
+		{
+			return ManaColors.TrivialColors.Any((ManaColor color) => mana.HasColor(color) && !base.GameRun.Player.Config.InitialMana.HasColor(color));
+		}
+		return false;
+	}
+
+	private void OnClickExhibit(Exhibit exhibit, int index)
+	{
+		if (exhibit.Config.IsSentinel)
+		{
+			return;
+		}
+		foreach (Transform content in contentList)
+		{
+			content.GetComponentInChildren<Button>().enabled = false;
+		}
+		foreach (ExhibitWidget exhibit2 in _exhibitList)
+		{
+			exhibit2.GetComponent<ExhibitTooltipSource>().enabled = false;
+		}
+		StartCoroutine(CoGainExhibit(exhibit, index));
+	}
+
+	private IEnumerator CoGainExhibit(Exhibit exhibit, int index)
+	{
+		yield return Singleton<GameMaster>.Instance.CurrentGameRun.GainExhibitRunner(exhibit, triggerVisual: true, new VisualSourceData
+		{
+			SourceType = VisualSourceType.BossReward,
+			Index = index
+		});
+		Hide();
+	}
+
+	public Vector3 GetRewardWorldPosition(int index)
+	{
+		return contentList[index].position;
+	}
+
+	public void OnPointerEnterRollCardTips()
+	{
+		rollCardsExplainContent.DOKill();
+		rollCardsExplainContent.DOFade(1f, 0.2f).From(0f);
+	}
+
+	public void OnPointerRollCardExitTips()
+	{
+		rollCardsExplainContent.DOKill();
+		rollCardsExplainContent.DOFade(0f, 0.2f).From(1f);
+	}
+
+	public void OnGamepadSelectRollCardTipsChanged(bool value)
+	{
+		if (value)
+		{
+			OnPointerEnterRollCardTips();
+		}
+		else
+		{
+			OnPointerRollCardExitTips();
+		}
+	}
+
+	private void RevealColorHint(ExhibitWidget exhibit)
+	{
+		_lastInteractExhibit = exhibit;
+		if (_revealedNonInitialColorHint)
+		{
+			return;
+		}
+		_revealedNonInitialColorHint = true;
+		Image hint = nonInitialColorHint;
+		if ((bool)hint)
+		{
+			hint.gameObject.SetActive(value: true);
+			hint.DOKill();
+			hint.transform.DOKill();
+			hint.DOFade(1f, 0.2f).From(0f).SetUpdate(isIndependentUpdate: true)
+				.OnComplete(delegate
+				{
+					hint.transform.DOScale(1.1f, 0.5f).From(1f).SetLoops(-1, LoopType.Yoyo)
+						.SetUpdate(isIndependentUpdate: true);
+				});
+		}
+	}
+
+	public void OnPointerEnterColorHint()
+	{
+		Image hint = nonInitialColorHint;
+		hint.DOKill();
+		hint.transform.DOKill();
+		hint.DOFade(0f, 0.2f).SetUpdate(isIndependentUpdate: true).OnComplete(delegate
+		{
+			hint.gameObject.SetActive(value: false);
+		});
+		UiManager.GetPanel<HintPanel>().Show(new HintPayload
+		{
+			HintKey = "NonInitialColor",
+			Target = _lastInteractExhibit.RectTransform
+		});
+	}
+}

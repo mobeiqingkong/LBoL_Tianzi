@@ -7,6 +7,7 @@ using LBoL.Core.Battle;
 using LBoL.Core.Battle.BattleActions;
 using LBoL.EntityLib.Exhibits;
 using LBoLEntitySideloader.Attributes;
+using TianziMod.Enemies;
 using TianziMod.StatusEffects;
 
 namespace TianziMod.Exhibits
@@ -24,6 +25,8 @@ namespace TianziMod.Exhibits
             config.HasCounter = true;
             config.InitialCounter = 7;
             config.Keywords = Keyword.None;
+            // Boss 专属展品：Owner 必须与 EnemyGroup/Unit Id 一致才能进 Boss 展品槽
+            config.Owner = nameof(TianziChapterBoss);
             config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe) };
             return config;
         }

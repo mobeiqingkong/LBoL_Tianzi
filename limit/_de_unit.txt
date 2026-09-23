@@ -1,0 +1,609 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using LBoL.Base;
+using LBoL.Base.Extensions;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.StatusEffects;
+using UnityEngine;
+
+namespace LBoL.Core.Units;
+
+public abstract class Unit : GameEntity
+{
+	private readonly WeakReference<BattleController> _battle = new WeakReference<BattleController>(null);
+
+	private readonly GameEventHandlerHolder _battleHandlerHolder = new GameEventHandlerHolder();
+
+	private readonly GameEventHandlerHolder _gameRunHandlerHolder = new GameEventHandlerHolder();
+
+	private readonly OrderedList<StatusEffect> _statusEffects = new OrderedList<StatusEffect>((StatusEffect a, StatusEffect b) => a.Config.Order.CompareTo(b.Config.Order));
+
+	public int TurnCounter { get; internal set; }
+
+	public bool IsExtraTurn { get; internal set; }
+
+	public bool IsInTurn { get; internal set; }
+
+	public int Hp { get; internal set; }
+
+	public int MaxHp { get; protected set; }
+
+	public int Shield { get; internal set; }
+
+	public int Block { get; internal set; }
+
+	public UnitStatus Status { get; internal set; }
+
+	public bool IsAlive => Status == UnitStatus.Alive;
+
+	public bool IsNotAlive => Status != UnitStatus.Alive;
+
+	public bool IsDying => Status == UnitStatus.Dying;
+
+	public bool IsDead => Status == UnitStatus.Dead;
+
+	public bool IsEscaped => Status == UnitStatus.Escaped;
+
+	public bool IsInvalidTarget
+	{
+		get
+		{
+			UnitStatus status = Status;
+			return status == UnitStatus.Dead || status == UnitStatus.Escaped;
+		}
+	}
+
+	public override string Name => GetName().ToString();
+
+	public string NameWithColor => GetName().ToString(colored: true);
+
+	public string ShortName => GetName().ToString(UnitNameStyle.Short);
+
+	public string ShortNameWithColor => GetName().ToString(colored: true, NounCase.Nominative, UnitNameStyle.Short);
+
+	public string FullName => GetName().ToString(UnitNameStyle.Full);
+
+	public string FullNameWithColor => GetName().ToString(colored: true, NounCase.Nominative, UnitNameStyle.Full);
+
+	public BattleController Battle
+	{
+		get
+		{
+			if (!_battle.TryGetTarget(out var target))
+			{
+				return null;
+			}
+			return target;
+		}
+		private set
+		{
+			_battle.SetTarget(value);
+		}
+	}
+
+	public IReadOnlyList<StatusEffect> StatusEffects => _statusEffects.AsReadOnly();
+
+	public int TotalFirepower => (GetStatusEffect<TempFirepower>()?.Level ?? 0) + (GetStatusEffect<Firepower>()?.Level ?? 0) - (GetStatusEffect<TempFirepowerNegative>()?.Level ?? 0) - (GetStatusEffect<FirepowerNegative>()?.Level ?? 0) + (GetStatusEffect<Grace>()?.Level ?? 0);
+
+	public int TotalSpirit => (GetStatusEffect<TempSpirit>()?.Level ?? 0) + (GetStatusEffect<Spirit>()?.Level ?? 0) - (GetStatusEffect<TempSpiritNegative>()?.Level ?? 0) - (GetStatusEffect<SpiritNegative>()?.Level ?? 0) + (GetStatusEffect<Grace>()?.Level ?? 0);
+
+	public IUnitView View { get; private set; }
+
+	public GameEvent<UnitEventArgs> TurnStarting { get; } = new GameEvent<UnitEventArgs>();
+
+
+	public GameEvent<UnitEventArgs> TurnStarted { get; } = new GameEvent<UnitEventArgs>();
+
+
+	public GameEvent<UnitEventArgs> TurnEnding { get; } = new GameEvent<UnitEventArgs>();
+
+
+	public GameEvent<UnitEventArgs> TurnEnded { get; } = new GameEvent<UnitEventArgs>();
+
+
+	public GameEvent<BlockShieldEventArgs> BlockShieldCasting { get; } = new GameEvent<BlockShieldEventArgs>();
+
+
+	public GameEvent<BlockShieldEventArgs> BlockShieldGaining { get; } = new GameEvent<BlockShieldEventArgs>();
+
+
+	public GameEvent<BlockShieldEventArgs> BlockShieldCasted { get; } = new GameEvent<BlockShieldEventArgs>();
+
+
+	public GameEvent<BlockShieldEventArgs> BlockShieldGained { get; } = new GameEvent<BlockShieldEventArgs>();
+
+
+	public GameEvent<BlockShieldEventArgs> BlockShieldLosing { get; } = new GameEvent<BlockShieldEventArgs>();
+
+
+	public GameEvent<BlockShieldEventArgs> BlockShieldLost { get; } = new GameEvent<BlockShieldEventArgs>();
+
+
+	public GameEvent<DamageDealingEventArgs> DamageDealing { get; } = new GameEvent<DamageDealingEventArgs>();
+
+
+	public GameEvent<DamageEventArgs> DamageReceiving { get; } = new GameEvent<DamageEventArgs>();
+
+
+	public GameEvent<DamageEventArgs> DamageGiving { get; } = new GameEvent<DamageEventArgs>();
+
+
+	public GameEvent<DamageEventArgs> DamageTaking { get; } = new GameEvent<DamageEventArgs>();
+
+
+	public GameEvent<DamageEventArgs> DamageDealt { get; } = new GameEvent<DamageEventArgs>();
+
+
+	public GameEvent<DamageEventArgs> DamageReceived { get; } = new GameEvent<DamageEventArgs>();
+
+
+	public GameEvent<HealEventArgs> HealingGiving { get; } = new GameEvent<HealEventArgs>();
+
+
+	public GameEvent<HealEventArgs> HealingReceiving { get; } = new GameEvent<HealEventArgs>();
+
+
+	public GameEvent<HealEventArgs> HealingGiven { get; } = new GameEvent<HealEventArgs>();
+
+
+	public GameEvent<HealEventArgs> HealingReceived { get; } = new GameEvent<HealEventArgs>();
+
+
+	public GameEvent<DollValueArgs> DollValueGenerating { get; } = new GameEvent<DollValueArgs>();
+
+
+	public GameEvent<StatusEffectApplyEventArgs> StatusEffectAdding { get; } = new GameEvent<StatusEffectApplyEventArgs>();
+
+
+	public GameEvent<StatusEffectApplyEventArgs> StatusEffectAdded { get; } = new GameEvent<StatusEffectApplyEventArgs>();
+
+
+	public GameEvent<StatusEffectEventArgs> StatusEffectRemoving { get; } = new GameEvent<StatusEffectEventArgs>();
+
+
+	public GameEvent<StatusEffectEventArgs> StatusEffectRemoved { get; } = new GameEvent<StatusEffectEventArgs>();
+
+
+	public GameEvent<StatusEffectEventArgs> StatusEffectChanged { get; } = new GameEvent<StatusEffectEventArgs>();
+
+
+	public GameEvent<MoodChangeEventArgs> MoodChanging { get; } = new GameEvent<MoodChangeEventArgs>();
+
+
+	public GameEvent<MoodChangeEventArgs> MoodChanged { get; } = new GameEvent<MoodChangeEventArgs>();
+
+
+	public GameEvent<DieEventArgs> Dying { get; } = new GameEvent<DieEventArgs>();
+
+
+	public GameEvent<DieEventArgs> Died { get; } = new GameEvent<DieEventArgs>();
+
+
+	public GameEvent<UnitEventArgs> Escaping { get; } = new GameEvent<UnitEventArgs>();
+
+
+	public GameEvent<UnitEventArgs> Escaped { get; } = new GameEvent<UnitEventArgs>();
+
+
+	public GameEvent<StatisticalDamageEventArgs> StatisticalTotalDamageDealt { get; } = new GameEvent<StatisticalDamageEventArgs>();
+
+
+	public GameEvent<StatisticalDamageEventArgs> StatisticalTotalDamageReceived { get; } = new GameEvent<StatisticalDamageEventArgs>();
+
+
+	public override void Initialize()
+	{
+		base.Initialize();
+		Hp = MaxHp;
+	}
+
+	public abstract UnitName GetName();
+
+	protected void HandleGameRunEvent<T>(GameEvent<T> e, GameEventHandler<T> handler, GameEventPriority priority) where T : GameEventArgs
+	{
+		_gameRunHandlerHolder.HandleEvent(e, handler, priority);
+	}
+
+	protected void HandleGameRunEvent<T>(GameEvent<T> e, GameEventHandler<T> handler) where T : GameEventArgs
+	{
+		HandleGameRunEvent(e, handler, DefaultEventPriority);
+	}
+
+	protected void HandleBattleEvent<T>(GameEvent<T> e, GameEventHandler<T> handler, GameEventPriority priority) where T : GameEventArgs
+	{
+		_battleHandlerHolder.HandleEvent(e, handler, priority);
+	}
+
+	protected void HandleBattleEvent<T>(GameEvent<T> e, GameEventHandler<T> handler) where T : GameEventArgs
+	{
+		HandleBattleEvent(e, handler, DefaultEventPriority);
+	}
+
+	protected void ReactBattleEvent<T>(GameEvent<T> e, Func<T, IEnumerable<BattleAction>> reactor, GameEventPriority priority) where T : GameEventArgs
+	{
+		HandleBattleEvent(e, delegate(T args)
+		{
+			React(reactor(args));
+		}, priority);
+	}
+
+	protected void ReactBattleEvent<T>(GameEvent<T> e, Func<T, IEnumerable<BattleAction>> reactor) where T : GameEventArgs
+	{
+		ReactBattleEvent(e, reactor, DefaultEventPriority);
+	}
+
+	internal virtual void EnterGameRun(GameRunController gameRun)
+	{
+		if (base.GameRun != null)
+		{
+			throw new InvalidOperationException("Cannot enter game-run while already in game-run");
+		}
+		base.GameRun = gameRun;
+		OnEnterGameRun(gameRun);
+	}
+
+	internal void LeaveGameRun()
+	{
+		if (base.GameRun == null)
+		{
+			throw new InvalidOperationException("Cannot leave game-run while not in game-run");
+		}
+		_gameRunHandlerHolder.ClearEventHandlers();
+		OnLeaveGameRun();
+		base.GameRun = null;
+	}
+
+	protected virtual void OnEnterGameRun(GameRunController gameRun)
+	{
+	}
+
+	protected virtual void OnLeaveGameRun()
+	{
+	}
+
+	internal void EnterBattle(BattleController battle)
+	{
+		if (base.GameRun != battle.GameRun)
+		{
+			throw new InvalidOperationException("Cannot enter battle while in different game-run");
+		}
+		if (Battle != null)
+		{
+			throw new InvalidOperationException("Cannot enter battle while already in battle");
+		}
+		Battle = battle;
+		if (this is PlayerUnit playerUnit)
+		{
+			playerUnit.SetDollSlot(4);
+		}
+		OnEnterBattle(battle);
+	}
+
+	internal void LeaveBattle()
+	{
+		if (Battle == null)
+		{
+			throw new InvalidOperationException("Cannot leave battle while not in battle");
+		}
+		TurnCounter = 0;
+		ClearBlockShield();
+		ClearStatusEffects();
+		if (this is PlayerUnit playerUnit)
+		{
+			playerUnit.SetDollSlot(0);
+		}
+		_battleHandlerHolder.ClearEventHandlers();
+		OnLeaveBattle();
+		Battle = null;
+	}
+
+	protected virtual void OnEnterBattle(BattleController battle)
+	{
+	}
+
+	protected virtual void OnLeaveBattle()
+	{
+	}
+
+	protected override void React(Reactor reactor)
+	{
+		Battle.React(reactor, this, ActionCause.Unit);
+	}
+
+	public StatusEffect GetStatusEffect(Type type)
+	{
+		return _statusEffects.FirstOrDefault((StatusEffect effect) => effect.GetType() == type);
+	}
+
+	public T GetStatusEffect<T>() where T : StatusEffect
+	{
+		return (T)_statusEffects.FirstOrDefault((StatusEffect effect) => effect.GetType() == typeof(T));
+	}
+
+	public StatusEffect GetStatusEffectExtend(Type type)
+	{
+		return _statusEffects.FirstOrDefault((StatusEffect effect) => effect.GetType().IsSubclassOf(type));
+	}
+
+	public T GetStatusEffectExtend<T>() where T : StatusEffect
+	{
+		return (T)_statusEffects.FirstOrDefault((StatusEffect effect) => effect.GetType().IsSubclassOf(typeof(T)));
+	}
+
+	public bool TryGetStatusEffect(Type type, out StatusEffect statusEffect)
+	{
+		statusEffect = _statusEffects.FirstOrDefault((StatusEffect effect) => effect.GetType() == type);
+		return statusEffect != null;
+	}
+
+	public bool TryGetStatusEffect<T>(out T statusEffect) where T : StatusEffect
+	{
+		statusEffect = _statusEffects.FirstOrDefault((StatusEffect effect) => effect.GetType() == typeof(T)) as T;
+		return statusEffect != null;
+	}
+
+	public bool HasStatusEffect(Type type)
+	{
+		return _statusEffects.Any((StatusEffect effect) => effect.GetType() == type);
+	}
+
+	public bool HasStatusEffect<T>() where T : StatusEffect
+	{
+		return _statusEffects.Any((StatusEffect effect) => effect.GetType() == typeof(T));
+	}
+
+	public bool HasStatusEffect(StatusEffect effect)
+	{
+		return _statusEffects.Contains(effect);
+	}
+
+	internal StatusEffectAddResult? TryAddStatusEffect(StatusEffect effect)
+	{
+		if (effect.Owner != null)
+		{
+			Debug.LogError("Try to add effect " + effect.DebugName + " of " + effect.Owner.DebugName + " to " + DebugName);
+			return null;
+		}
+		foreach (StatusEffect statusEffect2 in _statusEffects)
+		{
+			OpposeResult? opposeResult = statusEffect2.Oppose(effect);
+			if (opposeResult == OpposeResult.KeepSelf)
+			{
+				return StatusEffectAddResult.Opposed;
+			}
+			if (opposeResult == OpposeResult.Neutralize)
+			{
+				React(new RemoveStatusEffectAction(statusEffect2));
+				return StatusEffectAddResult.Neutralized;
+			}
+			if (opposeResult == OpposeResult.KeepOther)
+			{
+				React(new RemoveStatusEffectAction(statusEffect2));
+			}
+		}
+		StatusEffect statusEffect = GetStatusEffect(effect.GetType());
+		if (statusEffect != null && statusEffect.Stack(effect))
+		{
+			return StatusEffectAddResult.Stacked;
+		}
+		int? stackActionTriggerLevel = effect.Config.StackActionTriggerLevel;
+		if (stackActionTriggerLevel.HasValue)
+		{
+			int valueOrDefault = stackActionTriggerLevel.GetValueOrDefault();
+			if (effect.Level >= valueOrDefault)
+			{
+				int targetLevel = effect.Level / valueOrDefault;
+				effect.Level %= valueOrDefault;
+				Battle.React(new Reactor(effect.StackAction(this, targetLevel)), effect, ActionCause.StatusEffect);
+			}
+			if (effect.Level == 0)
+			{
+				return StatusEffectAddResult.Stacked;
+			}
+		}
+		effect.Owner = this;
+		effect.TriggerAdding(this);
+		effect.ClampMax();
+		_statusEffects.Add(effect);
+		effect.TriggerAdded(this);
+		if (effect.Type == StatusEffectType.Positive && this is PlayerUnit && base.GameRun.IsAutoSeed && base.GameRun.JadeBoxes.Empty() && _statusEffects.Count((StatusEffect e) => e.Type == StatusEffectType.Positive) >= 20)
+		{
+			base.GameRun.AchievementHandler.UnlockAchievement(AchievementKey.JiangshenYishi);
+		}
+		return StatusEffectAddResult.Added;
+	}
+
+	internal bool TryRemoveStatusEffect(StatusEffect effect)
+	{
+		if (!_statusEffects.Contains(effect))
+		{
+			return false;
+		}
+		effect.TriggerRemoving(this);
+		_statusEffects.Remove(effect);
+		effect.TriggerRemoved(this);
+		effect.Owner = null;
+		return true;
+	}
+
+	private void ClearBlockShield()
+	{
+		Block = 0;
+		Shield = 0;
+	}
+
+	private void ClearStatusEffects()
+	{
+		foreach (StatusEffect item in _statusEffects.ToList())
+		{
+			if (!TryRemoveStatusEffect(item))
+			{
+				Debug.LogError("Cannot clear " + item.DebugName + " on " + DebugName);
+			}
+		}
+		if (_statusEffects.Any())
+		{
+			Debug.LogError("Clearing " + DebugName + "'s effect incomplete: [" + string.Join(", ", _statusEffects.Select((StatusEffect e) => e.DebugName)) + "]");
+		}
+	}
+
+	internal DamageInfo MeasureDamage(DamageInfo info)
+	{
+		if (info.Damage < 0f)
+		{
+			info.Damage = 0f;
+		}
+		else
+		{
+			info.Damage = info.Damage.Round(MidpointRounding.AwayFromZero);
+		}
+		if (info.DamageType == DamageType.Attack && info.Damage > 0f && HasStatusEffect<Graze>() && !info.IsAccuracy)
+		{
+			return new DamageInfo(0f, info.DamageType, isGrazed: true).BlockBy(Block).ShieldBy(Shield);
+		}
+		if (info.DamageType != 0)
+		{
+			return info.BlockBy(Block).ShieldBy(Shield);
+		}
+		return info;
+	}
+
+	internal DamageInfo TakeDamage(DamageInfo info)
+	{
+		if (info.IsGrazed && info.IsAccuracy)
+		{
+			Debug.LogError($"Taking grazed accurary DamageInfo {info}.");
+		}
+		if (IsDead)
+		{
+			Debug.LogError("Damaging already dead " + DebugName);
+		}
+		if (IsDying)
+		{
+			Debug.LogWarning("Damaging dying unit " + DebugName);
+		}
+		if (info.DamageType == DamageType.Attack)
+		{
+			if (info.IsGrazed)
+			{
+				GetStatusEffect<Graze>().Activate();
+			}
+			else if (info.IsAccuracy && HasStatusEffect<Graze>())
+			{
+				GetStatusEffect<Graze>().BeenAccurate();
+			}
+		}
+		int num = CheckIsInt(info.Damage, "Damage is not int", "Damage is negative");
+		int num2 = CheckIsInt(info.DamageBlocked, "Damage blocked is not int", "Damage blocked is negative");
+		int num3 = CheckIsInt(info.DamageShielded, "Damage shielded is not int", "Damage shielded is negative");
+		Hp -= num;
+		if (Hp < 0)
+		{
+			info.OverDamage = -Hp;
+			Hp = 0;
+		}
+		if (Block < num2)
+		{
+			Debug.LogError($"{DebugName} taking damage is over-blocked (block={Block}, taking={num2})");
+			Block = 0;
+		}
+		else
+		{
+			Block -= num2;
+		}
+		if (Shield < num3)
+		{
+			Debug.LogError($"{DebugName} taking damage is over-shielded (shield={Shield}, taking={num3}");
+			Shield = 0;
+		}
+		else
+		{
+			Shield -= num3;
+		}
+		return info;
+		static int CheckIsInt(float value, string roundError, string negativeError)
+		{
+			int num4 = (int)value;
+			if (!value.Approximately(num4))
+			{
+				Debug.LogError(roundError + " (" + num4 + " vs " + value + ")");
+				return value.RoundToInt(MidpointRounding.AwayFromZero);
+			}
+			return num4;
+		}
+	}
+
+	internal void SetMaxHp(int hp, int maxHp)
+	{
+		if (hp < 0)
+		{
+			throw new ArgumentException("Hp cannot be negative", "hp");
+		}
+		if (maxHp < 0)
+		{
+			throw new ArgumentException("Max hp cannot be negative", "maxHp");
+		}
+		MaxHp = Math.Min(maxHp, 9999);
+		Hp = Math.Min(hp, MaxHp);
+	}
+
+	internal int Heal(int healValue)
+	{
+		int num = Math.Min(MaxHp - Hp, healValue);
+		Hp += num;
+		return num;
+	}
+
+	internal (int block, int shield) GainBlockShield(float block, float shield)
+	{
+		int num = Math.Min(block.RoundToInt(MidpointRounding.AwayFromZero), 9999 - Block);
+		int num2 = Math.Min(shield.RoundToInt(MidpointRounding.AwayFromZero), 9999 - Shield);
+		Block += num;
+		Shield += num2;
+		if (Shield >= 1000 && this is PlayerUnit && base.GameRun.IsAutoSeed && base.GameRun.JadeBoxes.Empty())
+		{
+			base.GameRun.AchievementHandler.UnlockAchievement(AchievementKey.BoliJiejie);
+		}
+		return (block: num, shield: num2);
+	}
+
+	internal (int block, int shield) LoseBlockShield(float block, float shield)
+	{
+		int num = Math.Min(Block, block.RoundToInt(MidpointRounding.AwayFromZero));
+		int num2 = Math.Min(Shield, shield.RoundToInt(MidpointRounding.AwayFromZero));
+		Block -= num;
+		Shield -= num2;
+		return (block: num, shield: num2);
+	}
+
+	internal virtual void Die()
+	{
+		OnDie();
+		UnitStatus status = Status;
+		if (status == UnitStatus.Alive || status == UnitStatus.Dead)
+		{
+			Debug.LogError($"Unit die when {Status}");
+		}
+		Status = UnitStatus.Dead;
+	}
+
+	protected virtual void OnDie()
+	{
+	}
+
+	public virtual void SetView(IUnitView view)
+	{
+		View = view;
+	}
+
+	public virtual TView GetView<TView>() where TView : class, IUnitView
+	{
+		if (!(View is TView result))
+		{
+			return null;
+		}
+		return result;
+	}
+}

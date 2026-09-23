@@ -9,6 +9,7 @@ using LBoL.Core.Units;
 using LBoL.EntityLib.Exhibits;
 using LBoL.EntityLib.StatusEffects.Basic;
 using LBoLEntitySideloader.Attributes;
+using TianziMod.Enemies;
 
 namespace TianziMod.Exhibits
 {
@@ -21,6 +22,7 @@ namespace TianziMod.Exhibits
             config.BaseManaColor = ManaColor.Red;
             config.BaseManaAmount = 1;
             config.Value1 = 1; // 额外施加的层数
+            config.Owner = nameof(TianziChapterBoss);
             config.RelativeEffects = new List<string>()
             {
                 nameof(Weak),

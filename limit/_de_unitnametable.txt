@@ -1,0 +1,63 @@
+using System;
+using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
+using UnityEngine;
+using YamlDotNet.RepresentationModel;
+
+namespace LBoL.Core;
+
+public static class UnitNameTable
+{
+	private static Dictionary<string, UnitName> _table;
+
+	public static async UniTask ReloadLocalizationAsync()
+	{
+		try
+		{
+			_table = new Dictionary<string, UnitName>();
+			foreach (var (yamlNode3, yamlNode4) in (await Localization.LoadFileAsync("UnitName")).Children)
+			{
+				if (!(yamlNode3 is YamlScalarNode yamlScalarNode))
+				{
+					Debug.LogError($"[Localization] UnitName key {yamlNode3} is not scalar");
+					continue;
+				}
+				string value = yamlScalarNode.Value;
+				if (!(yamlNode4 is YamlMappingNode localization))
+				{
+					Debug.LogError($"[Localization] UnitName value of {value} is not mapping: {yamlNode4}");
+				}
+				else if (!_table.TryAdd(value, new UnitName(localization)))
+				{
+					Debug.LogError("[Localization] Cannot add duplicated " + value + " to UnitName");
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+			Debug.LogError("[Localization] failed to load UnitName.yaml: " + ex.Message);
+			_table = null;
+		}
+	}
+
+	public static UnitName GetName(string id, string color = null)
+	{
+		if (_table != null && _table.TryGetValue(id, out var value))
+		{
+			UnitName unitName = value.ShallowCopy();
+			unitName.Color = color;
+			return unitName;
+		}
+		return new UnitName("<" + id + ".Name>");
+	}
+
+	public static UnitName GetDefaultPlayerName()
+	{
+		return GetName("DefaultPlayer");
+	}
+
+	public static UnitName GetDefaultOwnerName()
+	{
+		return GetName("DefaultOwner");
+	}
+}

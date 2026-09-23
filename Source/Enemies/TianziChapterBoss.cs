@@ -18,7 +18,7 @@ namespace TianziMod.Enemies
     {
         private enum MoveKind
         {
-            /// <summary>天穹斩 → 要石浮游炮 → 因果之剑 → 状态防御</summary>
+            /// <summary>天穹斩 → 要石浮游炮 → 因果之剑 → 防御</summary>
             SkySlash,
             Keystone,
             KarmaSword,
@@ -31,7 +31,7 @@ namespace TianziMod.Enemies
         private bool _altCycle;
         private bool _rainbowUsed;
 
-        // Move yaml 顺序：0 要石浮游炮 / 1 天穹斩 / 2 因果之剑 / 3 状态防御 / 4 彩符
+        // Move yaml 顺序：0 要石浮游炮 / 1 天穹斩 / 2 因果之剑 / 3 防御 / 4 彩符
         private string MoveKeystone { get { return base.GetMove(0); } }
         private string MoveSkySlash { get { return base.GetMove(1); } }
         private string MoveKarma { get { return base.GetMove(2); } }
@@ -91,7 +91,7 @@ namespace TianziMod.Enemies
                 MoveKind beforeUlt = this._next;
                 yield return this.RainbowMove();
                 this._last = MoveKind.Rainbow;
-                // 释符前若下一手是天穹斩或状态防御 → 进入另类循环
+                // 释符前若下一手是天穹斩或防御 → 进入另类循环
                 this._altCycle = beforeUlt == MoveKind.SkySlash || beforeUlt == MoveKind.StatusGuard;
                 this._next = MoveKind.SkySlash;
                 yield break;
@@ -100,21 +100,42 @@ namespace TianziMod.Enemies
             switch (this._next)
             {
                 case MoveKind.SkySlash:
-                    yield return this.SkySlashMove();
+                    // 攻击意图 + 负面意图（Cirno 式双招）
+                    yield return new SimpleEnemyMove(
+                        Intention.Attack(base.Damage2, base.Count2).WithMoveName(this.MoveSkySlash),
+                        this.SkySlashAttackActions());
+                    yield return new SimpleEnemyMove(
+                        Intention.NegativeEffect(),
+                        this.SkySlashDebuffActions());
                     this._last = MoveKind.SkySlash;
                     break;
                 case MoveKind.Keystone:
-                    // 要石浮游炮：5/5/6 × 3，精准
-                    yield return base.AttackMove(
-                        this.MoveKeystone, base.Gun1, base.Damage1, base.Count1, true);
+                    // times>1 时 AttackMove 不会挂招式名，需手动 WithMoveName
+                    yield return new SimpleEnemyMove(
+                        Intention.Attack(base.Damage1, base.Count1, true)
+                            .WithMoveName(this.MoveKeystone),
+                        base.AttackActions(
+                            this.MoveKeystone, base.Gun1, base.Damage1, base.Count1, true));
                     this._last = MoveKind.Keystone;
                     break;
                 case MoveKind.KarmaSword:
-                    yield return this.KarmaMove();
+                    // 攻击意图 + 状态牌意图
+                    yield return new SimpleEnemyMove(
+                        Intention.Attack(base.Damage3, true).WithMoveName(this.MoveKarma),
+                        this.KarmaAttackActions());
+                    yield return new SimpleEnemyMove(
+                        Intention.AddCard(),
+                        this.KarmaAddCardActions());
                     this._last = MoveKind.KarmaSword;
                     break;
                 case MoveKind.StatusGuard:
-                    yield return this.GuardMove();
+                    // 防御意图 + 状态牌意图
+                    yield return new SimpleEnemyMove(
+                        Intention.Defend().WithMoveName(this.MoveGuard),
+                        this.GuardBlockActions());
+                    yield return new SimpleEnemyMove(
+                        Intention.AddCard(),
+                        this.GuardAddCardActions());
                     this._last = MoveKind.StatusGuard;
                     break;
             }
@@ -127,7 +148,7 @@ namespace TianziMod.Enemies
 
             if (this._altCycle)
             {
-                // 另类：状态防御 → 天穹斩 → 要石浮游炮 → 因果之剑
+                // 另类：防御 → 天穹斩 → 要石浮游炮 → 因果之剑
                 this._next = this._last switch
                 {
                     MoveKind.StatusGuard => MoveKind.SkySlash,
@@ -139,7 +160,7 @@ namespace TianziMod.Enemies
                 return;
             }
 
-            // 常态：天穹斩 → 要石浮游炮 → 因果之剑 → 状态防御
+            // 常态：天穹斩 → 要石浮游炮 → 因果之剑 → 防御
             this._next = this._last switch
             {
                 MoveKind.SkySlash => MoveKind.Keystone,
@@ -150,61 +171,49 @@ namespace TianziMod.Enemies
             };
         }
 
-        private IEnemyMove SkySlashMove()
-        {
-            // 天穹斩：7/7/8 × 2，非精准；附带易伤/虚弱
-            return new SimpleEnemyMove(
-                Intention.Attack(base.Damage2, base.Count2).WithMoveName(this.MoveSkySlash),
-                this.SkySlashActions());
-        }
-
-        private IEnumerable<BattleAction> SkySlashActions()
+        private IEnumerable<BattleAction> SkySlashAttackActions()
         {
             yield return new EnemyMoveAction(this, this.MoveSkySlash);
+            foreach (BattleAction action in base.AttackActions(
+                null, base.Gun2, base.Damage2, base.Count2, false))
+                yield return action;
+        }
+
+        private IEnumerable<BattleAction> SkySlashDebuffActions()
+        {
             // N/H：易伤1 + 虚弱1；L：易伤1 + 虚弱2
             int weakDur = base.Difficulty == GameDifficulty.Lunatic ? 2 : 1;
             yield return new ApplyStatusEffectAction<Vulnerable>(
                 base.Battle.Player, null, 1, null, null, 0.1f);
             yield return new ApplyStatusEffectAction<Weak>(
                 base.Battle.Player, null, weakDur, null, null, 0.1f);
-            foreach (BattleAction action in base.AttackActions(
-                null, base.Gun2, base.Damage2, base.Count2, false))
-                yield return action;
         }
 
-        private IEnemyMove KarmaMove()
-        {
-            // 因果之剑：10/12/14 × 1，精准
-            return new SimpleEnemyMove(
-                Intention.Attack(base.Damage3, true).WithMoveName(this.MoveKarma),
-                this.KarmaActions());
-        }
-
-        private IEnumerable<BattleAction> KarmaActions()
+        private IEnumerable<BattleAction> KarmaAttackActions()
         {
             yield return new EnemyMoveAction(this, this.MoveKarma);
-            yield return new AddCardsToDrawZoneAction(
-                new[] { Library.CreateCard<TianziKarmaShackle>() }, DrawZoneTarget.Random);
-            yield return new AddCardsToDiscardAction(
-                new[] { Library.CreateCard<TianziKarmaShackle>() });
             foreach (BattleAction action in base.AttackActions(
                 null, base.Gun3, base.Damage3, 1, true))
                 yield return action;
         }
 
-        private IEnemyMove GuardMove()
+        private IEnumerable<BattleAction> KarmaAddCardActions()
         {
-            // 状态防御：格挡 6/8/10，护盾 4/4/5
-            int shield = base.Difficulty == GameDifficulty.Lunatic ? 5 : 4;
-            return new SimpleEnemyMove(
-                Intention.Defend().WithMoveName(this.MoveGuard),
-                this.GuardActions(shield));
+            yield return new AddCardsToDrawZoneAction(
+                new[] { Library.CreateCard<TianziKarmaShackle>() }, DrawZoneTarget.Random);
+            yield return new AddCardsToDiscardAction(
+                new[] { Library.CreateCard<TianziKarmaShackle>() });
         }
 
-        private IEnumerable<BattleAction> GuardActions(int shield)
+        private IEnumerable<BattleAction> GuardBlockActions()
         {
+            int shield = base.Difficulty == GameDifficulty.Lunatic ? 5 : 4;
             yield return new EnemyMoveAction(this, this.MoveGuard);
             yield return new CastBlockShieldAction(this, this, base.Defend, shield);
+        }
+
+        private IEnumerable<BattleAction> GuardAddCardActions()
+        {
             yield return new AddCardsToDiscardAction(
                 new[] { Library.CreateCard<TianziKarmaShackle>() });
         }

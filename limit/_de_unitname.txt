@@ -1,0 +1,156 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using LBoL.Core.Helpers;
+using UnityEngine;
+using YamlDotNet.RepresentationModel;
+
+namespace LBoL.Core;
+
+public sealed class UnitName : IFormattable
+{
+	private static readonly NounCase[] Cases = (from v in EnumHelper<NounCase>.GetValues()
+		where v != NounCase.Nominative
+		select v).ToArray();
+
+	private static readonly UnitNameStyle[] Styles = EnumHelper<UnitNameStyle>.GetValues();
+
+	private readonly Dictionary<(NounCase, UnitNameStyle), string> _table = new Dictionary<(NounCase, UnitNameStyle), string>();
+
+	public string Color { get; internal set; }
+
+	public static (bool colored, NounCase @case, UnitNameStyle style) ParseFormat(string format)
+	{
+		bool item = false;
+		NounCase item2 = NounCase.Nominative;
+		UnitNameStyle item3 = UnitNameStyle.Default;
+		for (int i = 0; i < format.Length; i++)
+		{
+			switch (format[i])
+			{
+			case 's':
+				item3 = UnitNameStyle.Short;
+				break;
+			case 'f':
+				item3 = UnitNameStyle.Full;
+				break;
+			case 'c':
+				item = true;
+				break;
+			case 'g':
+				item2 = NounCase.Genitive;
+				break;
+			case 'd':
+				item2 = NounCase.Dative;
+				break;
+			case 'a':
+				item2 = NounCase.Accusative;
+				break;
+			case 'i':
+				item2 = NounCase.Instrumental;
+				break;
+			case 'l':
+				item2 = NounCase.Locative;
+				break;
+			case 'v':
+				item2 = NounCase.Vocative;
+				break;
+			}
+		}
+		return (colored: item, @case: item2, style: item3);
+	}
+
+	public string ToString(string format)
+	{
+		if (format == null)
+		{
+			return ToString(colored: false);
+		}
+		var (flag, nounCase, unitNameStyle) = ParseFormat(format);
+		return ToString(flag, nounCase, unitNameStyle);
+	}
+
+	public string ToString(bool colored, NounCase @case = NounCase.Nominative, UnitNameStyle style = UnitNameStyle.Default)
+	{
+		if (!_table.TryGetValue((@case, style), out var value) && !_table.TryGetValue((@case, UnitNameStyle.Default), out value) && !_table.TryGetValue((NounCase.Nominative, style), out value) && !_table.TryGetValue((NounCase.Nominative, UnitNameStyle.Default), out value))
+		{
+			value = "<NotFound>";
+		}
+		if (colored && Color != null)
+		{
+			return "<color=" + Color + ">" + value + "</color>";
+		}
+		return value;
+	}
+
+	public string ToString(NounCase @case, UnitNameStyle style = UnitNameStyle.Default)
+	{
+		return ToString(colored: false, @case, style);
+	}
+
+	public string ToString(UnitNameStyle style)
+	{
+		return ToString(colored: false, NounCase.Nominative, style);
+	}
+
+	public override string ToString()
+	{
+		return ToString(colored: false);
+	}
+
+	public string ToString(string format, IFormatProvider formatProvider)
+	{
+		return ToString(format);
+	}
+
+	internal UnitName(string @default)
+	{
+		_table.Add((NounCase.Nominative, UnitNameStyle.Default), @default);
+	}
+
+	internal UnitName(YamlMappingNode localization)
+	{
+		UnitNameStyle[] styles = Styles;
+		for (int i = 0; i < styles.Length; i++)
+		{
+			UnitNameStyle item = styles[i];
+			if (localization.Children.TryGetValue(item.ToString(), out YamlNode value))
+			{
+				if (!(value is YamlScalarNode yamlScalarNode))
+				{
+					Debug.LogError($"[Localization] {value} is not scalar. (in '{localization}')");
+				}
+				else
+				{
+					_table.Add((NounCase.Nominative, item), yamlScalarNode.Value);
+				}
+			}
+		}
+		NounCase[] cases = Cases;
+		for (int i = 0; i < cases.Length; i++)
+		{
+			NounCase item2 = cases[i];
+			styles = Styles;
+			for (int j = 0; j < styles.Length; j++)
+			{
+				UnitNameStyle item3 = styles[j];
+				if (localization.Children.TryGetValue(item2.ToString() + item3, out YamlNode value2))
+				{
+					if (!(value2 is YamlScalarNode yamlScalarNode2))
+					{
+						Debug.LogError($"[Localization] {value2} is not scalar. (in '{localization}')");
+					}
+					else
+					{
+						_table.Add((item2, item3), yamlScalarNode2.Value);
+					}
+				}
+			}
+		}
+	}
+
+	internal UnitName ShallowCopy()
+	{
+		return (UnitName)MemberwiseClone();
+	}
+}

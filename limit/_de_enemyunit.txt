@@ -1,0 +1,502 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using JetBrains.Annotations;
+using LBoL.Base;
+using LBoL.Base.Extensions;
+using LBoL.ConfigData;
+using LBoL.Core.Attributes;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.Cards;
+using LBoL.Core.StatusEffects;
+using UnityEngine;
+
+namespace LBoL.Core.Units;
+
+[Localizable]
+public abstract class EnemyUnit : Unit
+{
+	public enum AddCardZone
+	{
+		Discard,
+		Draw,
+		Hand
+	}
+
+	private readonly List<IEnemyMove> _turnMoves = new List<IEnemyMove>();
+
+	public EnemyUnitConfig Config { get; private set; }
+
+	public string ModelName
+	{
+		get
+		{
+			if (!Config.ModleName.IsNullOrEmpty())
+			{
+				return Config.ModleName;
+			}
+			return base.Id;
+		}
+	}
+
+	public string Title => LocalizeProperty("Title");
+
+	private IReadOnlyList<string> Moves => LocalizeListProperty("Move");
+
+	internal override GameEventPriority DefaultEventPriority => (GameEventPriority)Config.Order;
+
+	internal int Index { get; set; }
+
+	public int RootIndex { get; internal set; }
+
+	public bool IsServant => HasStatusEffect<Servant>();
+
+	protected string Gun1 => GetRandomGun(Config.Gun1);
+
+	protected string Gun2 => GetRandomGun(Config.Gun2);
+
+	protected string Gun3 => GetRandomGun(Config.Gun3);
+
+	protected string Gun4 => GetRandomGun(Config.Gun4);
+
+	protected int Damage1 => GuardedGetAdjustedConfigValue(Config.Damage1, Config.Damage1Hard, Config.Damage1Lunatic, "Damage1");
+
+	protected int Damage2 => GuardedGetAdjustedConfigValue(Config.Damage2, Config.Damage2Hard, Config.Damage2Lunatic, "Damage2");
+
+	protected int Damage3 => GuardedGetAdjustedConfigValue(Config.Damage3, Config.Damage3Hard, Config.Damage3Lunatic, "Damage3");
+
+	protected int Damage4 => GuardedGetAdjustedConfigValue(Config.Damage4, Config.Damage4Hard, Config.Damage4Lunatic, "Damage4");
+
+	protected int Power => GuardedGetAdjustedConfigValue(Config.Power, Config.PowerHard, Config.PowerLunatic, "Power");
+
+	protected int Defend => GuardedGetAdjustedConfigValue(Config.Defend, Config.DefendHard, Config.DefendLunatic, "Defend");
+
+	protected int Count1 => GuardedGetAdjustedConfigValue(Config.Count1, Config.Count1Hard, Config.Count1Lunatic, "Count1");
+
+	protected int Count2 => GuardedGetAdjustedConfigValue(Config.Count2, Config.Count2Hard, Config.Count2Lunatic, "Count2");
+
+	protected int CountDown { get; set; }
+
+	protected IEnumerable<EnemyUnit> AllAliveEnemies => base.Battle.AllAliveEnemies;
+
+	protected RandomGen EnemyMoveRng => base.Battle.GameRun.EnemyMoveRng;
+
+	protected RandomGen EnemyBattleRng => base.Battle.GameRun.EnemyBattleRng;
+
+	protected GameDifficulty Difficulty { get; private set; }
+
+	public virtual int MovePriority => 10;
+
+	public List<Intention> Intentions { get; protected set; } = new List<Intention>();
+
+
+	public new IEnemyUnitView View { get; private set; }
+
+	public GameEvent<DieEventArgs> EnemyPointGenerating { get; } = new GameEvent<DieEventArgs>();
+
+
+	public event Action<EnemyUnit> IntentionsChanged;
+
+	protected override string LocalizeProperty(string key, bool decorated = false, bool required = true)
+	{
+		return TypeFactory<EnemyUnit>.LocalizeProperty(base.Id, key, decorated, required);
+	}
+
+	protected virtual IReadOnlyList<string> LocalizeListProperty(string key, bool required = true)
+	{
+		return TypeFactory<EnemyUnit>.LocalizeListProperty(base.Id, key, required);
+	}
+
+	public override UnitName GetName()
+	{
+		return UnitNameTable.GetName(base.Id, Config.NarrativeColor);
+	}
+
+	private static string GetRandomGun(IReadOnlyList<string> guns)
+	{
+		int count = guns.Count;
+		if (count > 1)
+		{
+			return guns[UnityEngine.Random.Range(0, count)];
+		}
+		return guns.FirstOrDefault();
+	}
+
+	private int? GetAdjustedConfigValue(int? easyAndNormal, int? hard, int? lunatic)
+	{
+		return Difficulty switch
+		{
+			GameDifficulty.Hard => hard ?? easyAndNormal, 
+			GameDifficulty.Lunatic => lunatic ?? hard ?? easyAndNormal, 
+			_ => easyAndNormal, 
+		};
+	}
+
+	private int GuardedGetAdjustedConfigValue(int? easyAndNormal, int? hard, int? lunatic, [CallerMemberName] string memberName = "")
+	{
+		return GetAdjustedConfigValue(easyAndNormal, hard, lunatic) ?? throw new InvalidDataException(DebugName + " has no '" + memberName + "' in config");
+	}
+
+	public string GetMove(int index)
+	{
+		string text = Moves?.TryGetValue(index);
+		if (text != null)
+		{
+			return text;
+		}
+		Debug.LogError($"Move {index} of {DebugName} not found");
+		return $"<Move {index}>";
+	}
+
+	protected string GetSpellCardName(int? title, int name)
+	{
+		if (Moves == null)
+		{
+			return null;
+		}
+		if (title.HasValue)
+		{
+			return Moves.TryGetValue(title.Value) + "「" + Moves.TryGetValue(name) + "」";
+		}
+		return "「" + Moves.TryGetValue(name) + "」";
+	}
+
+	public override void Initialize()
+	{
+		base.Initialize();
+		Config = EnemyUnitConfig.FromId(base.Id);
+		if (Config == null)
+		{
+			throw new InvalidDataException("Cannot find enemy-unit config for " + base.Id);
+		}
+		SetMaxHp(Config.MaxHp, Config.MaxHp);
+	}
+
+	protected void SetMaxHpInBattle(int hp, int maxHp)
+	{
+		SetMaxHp(hp, maxHp);
+	}
+
+	internal override void EnterGameRun(GameRunController gameRun)
+	{
+		Difficulty = gameRun.Difficulty;
+		int num = GuardedGetAdjustedConfigValue(Config.MaxHp, Config.MaxHpHard, Config.MaxHpLunatic, "MaxHp");
+		int? maxHpAdd = Config.MaxHpAdd;
+		int num2;
+		if (maxHpAdd.HasValue)
+		{
+			int valueOrDefault = maxHpAdd.GetValueOrDefault();
+			num2 = num + gameRun.EnemyBattleRng.NextInt(0, valueOrDefault);
+		}
+		else
+		{
+			num2 = num;
+		}
+		int num3 = num2;
+		SetMaxHp(num3, num3);
+		base.EnterGameRun(gameRun);
+	}
+
+	public virtual void OnSpawn(EnemyUnit spawner)
+	{
+	}
+
+	internal override void Die()
+	{
+		base.Die();
+		Intentions.Clear();
+		NotifyIntentionsChanged();
+	}
+
+	internal void Escape()
+	{
+		Intentions.Clear();
+		NotifyIntentionsChanged();
+	}
+
+	internal IEnumerable<BattleAction> GetActions()
+	{
+		return Actions();
+	}
+
+	protected virtual IEnumerable<BattleAction> Actions()
+	{
+		foreach (IEnemyMove item in _turnMoves.ToList())
+		{
+			if (!base.IsAlive || item.Actions == null)
+			{
+				continue;
+			}
+			item.Intention?.NotifyActivating();
+			foreach (BattleAction action in item.Actions)
+			{
+				yield return action;
+			}
+		}
+		UpdateMoveCounters();
+	}
+
+	protected virtual IEnumerable<IEnemyMove> GetTurnMoves()
+	{
+		yield break;
+	}
+
+	protected virtual void UpdateMoveCounters()
+	{
+	}
+
+	protected virtual IEnumerable<BattleAction> AttackActions(string move, string gunName, int damage, int times = 1, bool isAccuracy = false, string followGunName = "Instant")
+	{
+		List<DamageAction> damageActions = new List<DamageAction>();
+		if (move != null)
+		{
+			yield return new EnemyMoveAction(this, move);
+		}
+		if (times < 2)
+		{
+			if (base.Battle.BattleShouldEnd || base.IsNotAlive)
+			{
+				yield break;
+			}
+			DamageAction damageAction = new DamageAction(this, base.Battle.Player, DamageInfo.Attack(damage, isAccuracy), gunName);
+			damageActions.Add(damageAction);
+			yield return damageAction;
+		}
+		else
+		{
+			if (base.Battle.BattleShouldEnd || base.IsNotAlive)
+			{
+				yield break;
+			}
+			DamageAction damageAction2 = new DamageAction(this, base.Battle.Player, DamageInfo.Attack(damage, isAccuracy), gunName, GunType.First);
+			damageActions.Add(damageAction2);
+			yield return damageAction2;
+			if (times > 2)
+			{
+				for (int i = 0; i < times - 2; i++)
+				{
+					if (base.Battle.BattleShouldEnd || base.IsNotAlive)
+					{
+						yield break;
+					}
+					DamageAction damageAction3 = new DamageAction(this, base.Battle.Player, DamageInfo.Attack(damage, isAccuracy), followGunName.IsNullOrEmpty() ? gunName : followGunName, GunType.Middle);
+					damageActions.Add(damageAction3);
+					yield return damageAction3;
+				}
+			}
+			if (base.Battle.BattleShouldEnd || base.IsNotAlive)
+			{
+				yield break;
+			}
+			DamageAction damageAction4 = new DamageAction(this, base.Battle.Player, DamageInfo.Attack(damage, isAccuracy), followGunName.IsNullOrEmpty() ? gunName : followGunName, GunType.Last);
+			damageActions.Add(damageAction4);
+			yield return damageAction4;
+		}
+		if (!damageActions.Empty())
+		{
+			yield return new StatisticalTotalDamageAction(damageActions);
+		}
+	}
+
+	protected IEnemyMove AttackMove(string move, [CanBeNull] string gunName, int damage, int times = 1, bool isAccuracy = false, string followGunName = "Instant", bool withSpell = false)
+	{
+		return new SimpleEnemyMove((!withSpell) ? ((times > 1) ? Intention.Attack(damage, times, isAccuracy) : Intention.Attack(damage, isAccuracy)) : ((times > 1) ? Intention.Attack(damage, times, isAccuracy).WithMoveName(move) : Intention.Attack(damage, isAccuracy).WithMoveName(move)), AttackActions(move, gunName, damage, times, isAccuracy, followGunName));
+	}
+
+	protected IEnumerable<BattleAction> DefendActions(Unit target, [CanBeNull] string move, int block = 0, int shield = 0, int graze = 0, bool cast = true, PerformAction performAction = null)
+	{
+		if (move != null)
+		{
+			yield return new EnemyMoveAction(this, move);
+		}
+		if (block > 0 || shield > 0)
+		{
+			yield return new CastBlockShieldAction(this, target ?? this, block, shield, BlockShieldType.Normal, cast);
+		}
+		if (performAction != null)
+		{
+			yield return performAction;
+		}
+		if (graze > 0)
+		{
+			yield return new ApplyStatusEffectAction<Graze>(target ?? this, graze);
+		}
+	}
+
+	protected IEnemyMove DefendMove(Unit target, [CanBeNull] string move, int block = 0, int shield = 0, int graze = 0, bool cast = true, PerformAction performAction = null)
+	{
+		if (block == 0 && shield == 0 && graze == 0)
+		{
+			throw new ArgumentException("Cannot create defend move with block = 0 AND shield = 0 AND graze = 0");
+		}
+		return new SimpleEnemyMove((block > 0 || shield > 0) ? Intention.Defend() : Intention.Graze(), DefendActions(target, move, block, shield, graze, cast, performAction));
+	}
+
+	protected IEnumerable<BattleAction> AddCardActions([CanBeNull] string move, IEnumerable<Card> cards, AddCardZone zone = AddCardZone.Discard, PerformAction perform = null)
+	{
+		if (move != null)
+		{
+			yield return new EnemyMoveAction(this, move);
+		}
+		if (perform != null)
+		{
+			yield return perform;
+		}
+		yield return zone switch
+		{
+			AddCardZone.Discard => new AddCardsToDiscardAction(cards), 
+			AddCardZone.Draw => new AddCardsToDrawZoneAction(cards, DrawZoneTarget.Random), 
+			AddCardZone.Hand => new AddCardsToHandAction(cards), 
+			_ => throw new ArgumentOutOfRangeException("zone", zone, null), 
+		};
+	}
+
+	protected IEnemyMove AddCardMove([CanBeNull] string move, IEnumerable<Card> cards, AddCardZone zone = AddCardZone.Discard, PerformAction perform = null, bool withSpell = false)
+	{
+		if (!withSpell)
+		{
+			return new SimpleEnemyMove(Intention.AddCard(), AddCardActions(move, cards, zone, perform));
+		}
+		return new SimpleEnemyMove(Intention.AddCard().WithMoveName(move), AddCardActions(move, cards, zone, perform));
+	}
+
+	protected IEnemyMove AddCardMove([CanBeNull] string move, Type cardType, int amount = 1, AddCardZone zone = AddCardZone.Discard, PerformAction perform = null, bool withSpell = false)
+	{
+		List<Card> list = new List<Card>();
+		if (amount > 1)
+		{
+			for (int i = 0; i < amount; i++)
+			{
+				list.Add(Library.CreateCard(cardType));
+			}
+		}
+		else
+		{
+			list.Add(Library.CreateCard(cardType));
+		}
+		if (!withSpell)
+		{
+			return new SimpleEnemyMove(Intention.AddCard(), AddCardActions(move, list, zone, perform));
+		}
+		return new SimpleEnemyMove(Intention.AddCard().WithMoveName(move), AddCardActions(move, list, zone, perform));
+	}
+
+	protected IEnumerable<BattleAction> PositiveActions([CanBeNull] string move, Type type, int? level = null, int? duration = null, float occupationTime = 0f, PerformAction performAction = null)
+	{
+		if (move != null)
+		{
+			yield return new EnemyMoveAction(this, move);
+		}
+		if (performAction != null)
+		{
+			yield return performAction;
+		}
+		yield return new ApplyStatusEffectAction(type, this, level, duration, null, null, occupationTime);
+	}
+
+	protected IEnemyMove PositiveMove([CanBeNull] string move, Type type, int? level = null, int? duration = null, bool withSpell = false, PerformAction performAction = null)
+	{
+		return new SimpleEnemyMove(withSpell ? Intention.PositiveEffect().WithMoveName(move) : Intention.PositiveEffect(), PositiveActions(move, type, level, duration, 0f, performAction));
+	}
+
+	protected IEnumerable<BattleAction> NegativeActions([CanBeNull] string move, Type type, int? level = null, int? duration = null, bool startAutoDecreasing = true, PerformAction performAction = null)
+	{
+		if (move != null)
+		{
+			yield return new EnemyMoveAction(this, move);
+		}
+		if (performAction != null)
+		{
+			yield return performAction;
+		}
+		if (type == typeof(Vulnerable) || type == typeof(LockedOn))
+		{
+			EnemyUnit lastAliveEnemy = base.Battle.LastAliveEnemy;
+			if (lastAliveEnemy != null && lastAliveEnemy != this)
+			{
+				int? limit;
+				if (type == typeof(Vulnerable))
+				{
+					EnemyUnit target = this;
+					limit = (startAutoDecreasing ? 1 : 0);
+					yield return new ApplyStatusEffectAction<EnemyVulnerable>(target, duration, null, null, limit);
+					yield break;
+				}
+				if (type == typeof(LockedOn))
+				{
+					EnemyUnit target2 = this;
+					limit = (startAutoDecreasing ? 1 : 0);
+					yield return new ApplyStatusEffectAction<EnemyLockedOn>(target2, level, null, null, limit);
+					yield break;
+				}
+			}
+		}
+		yield return new ApplyStatusEffectAction(type, base.Battle.Player, level, duration, null, null, 0f, startAutoDecreasing);
+	}
+
+	protected IEnemyMove NegativeMove([CanBeNull] string move, Type type, int? level = null, int? duration = null, bool startAutoDecreasing = true, bool withSpell = false, PerformAction performAction = null)
+	{
+		return new SimpleEnemyMove(withSpell ? Intention.NegativeEffect().WithMoveName(move) : Intention.NegativeEffect(), NegativeActions(move, type, level, duration, startAutoDecreasing, performAction));
+	}
+
+	protected IEnumerable<BattleAction> PerformActions([CanBeNull] string move, PerformAction performAction)
+	{
+		if (move != null)
+		{
+			yield return new EnemyMoveAction(this, move);
+		}
+		yield return performAction;
+	}
+
+	protected IEnemyMove ClearMove(float occupationTime = 0f)
+	{
+		return new SimpleEnemyMove(Intention.Clear(), new RemoveAllNegativeStatusEffectAction(this, occupationTime));
+	}
+
+	public void UpdateTurnMoves()
+	{
+		if (base.IsInTurn)
+		{
+			Debug.LogError("[EnemyUnit: " + DebugName + "] UpdateTurnMoves() is invoked in turn, behaviour maybe undefined");
+		}
+		_turnMoves.Clear();
+		foreach (IEnemyMove turnMove in GetTurnMoves())
+		{
+			_turnMoves.Add(turnMove);
+		}
+		Intentions = (from i in GetIntentions()
+			select i.SetSource(this)).ToList();
+		NotifyIntentionsChanged();
+	}
+
+	public void ClearIntentions()
+	{
+		Intentions.Clear();
+		NotifyIntentionsChanged();
+	}
+
+	protected virtual IEnumerable<Intention> GetIntentions()
+	{
+		foreach (IEnemyMove turnMove in _turnMoves)
+		{
+			yield return turnMove.Intention;
+		}
+	}
+
+	public void NotifyIntentionsChanged()
+	{
+		this.IntentionsChanged?.Invoke(this);
+	}
+
+	public override void SetView(IUnitView view)
+	{
+		base.SetView(view);
+		if (view is IEnemyUnitView view2)
+		{
+			View = view2;
+		}
+	}
+}

@@ -13,7 +13,7 @@ using UnityEngine;
 namespace TianziMod.StatusEffects
 {
     // ================================================================
-    //  快晴：随机一张卡牌任意费用 -1；自身的闪避不会消失
+    //  快晴：回合开始时随机一张卡牌任意费用 -1；自身的闪避不会消失
     // ================================================================
     public sealed class TianziWeatherClearDef : TianziStatusEffectTemplate
     {
@@ -23,10 +23,12 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziWeatherClearDef))]
     public sealed class TianziWeatherClear : TianziWeatherSeBase
     {
-        protected override void RegisterHooks()
+        public ManaGroup Mana
         {
-            this.CheatOneCardCost();
+            get { return ManaGroup.Anys(1); }
         }
+
+        protected override void RegisterHooks() { }
 
         internal void KeepGraze()
         {
@@ -42,7 +44,7 @@ namespace TianziMod.StatusEffects
             if (card != null && card.CostToMana(false).Total > 0)
             {
                 base.NotifyActivating();
-                card.DecreaseTurnCost(ManaGroup.Anys(1));
+                card.DecreaseTurnCost(this.Mana);
             }
         }
 
@@ -50,6 +52,14 @@ namespace TianziMod.StatusEffects
         {
             foreach (BattleAction action in this.TickDuration())
                 yield return action;
+        }
+
+        protected override IEnumerable<BattleAction> OnWeatherTurnStarted(UnitEventArgs args)
+        {
+            if (base.Battle.BattleShouldEnd)
+                yield break;
+            this.CheatOneCardCost();
+            yield break;
         }
     }
 
@@ -93,7 +103,7 @@ namespace TianziMod.StatusEffects
     }
 
     // ================================================================
-    //  云天：所有卡牌任意费用 -1
+    //  云天：回合开始时所有卡牌任意费用 -1（Mana Any×1）
     // ================================================================
     public sealed class TianziWeatherCloudDef : TianziStatusEffectTemplate
     {
@@ -103,6 +113,11 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziWeatherCloudDef))]
     public sealed class TianziWeatherCloud : TianziWeatherSeBase
     {
+        public ManaGroup Mana
+        {
+            get { return ManaGroup.Anys(1); }
+        }
+
         protected override void RegisterHooks()
         {
             base.ReactOwnerEvent<CardsEventArgs>(
@@ -122,7 +137,7 @@ namespace TianziMod.StatusEffects
             foreach (Card card in cards)
             {
                 if (card != null && card.CostToMana(false).Total > 0)
-                    card.DecreaseTurnCost(ManaGroup.Anys(1));
+                    card.DecreaseTurnCost(this.Mana);
             }
         }
 

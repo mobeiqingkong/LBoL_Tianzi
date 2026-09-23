@@ -1,0 +1,92 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using LBoL.Base.Extensions;
+using LBoL.Core;
+using LBoLEntitySideloader.ReflectionHelpers;
+using YamlDotNet.RepresentationModel;
+
+namespace LBoLEntitySideloader.Resource;
+
+public abstract class LocalizationOption
+{
+	internal static void FillLocalizationTables(Dictionary<string, Dictionary<string, object>> termDic, Type facType, bool mergeTerms)
+	{
+		if (termDic == null)
+		{
+			return;
+		}
+		foreach (KeyValuePair<string, Dictionary<string, object>> item in termDic)
+		{
+			if (item.Value.Empty())
+			{
+				LocalizationFiles.MissingValueError(item.Key);
+			}
+			if (mergeTerms)
+			{
+				TypeFactoryReflection.AccessTypeLocalizers(facType).Invoke((object)null).TryAdd(item.Key, new Dictionary<string, object>());
+				TypeFactoryReflection.AccessTypeLocalizers(facType).Invoke((object)null)[item.Key].Merge(item.Value);
+			}
+			else
+			{
+				TypeFactoryReflection.AccessTypeLocalizers(facType).Invoke((object)null).AlwaysAdd(item.Key, item.Value);
+			}
+		}
+	}
+
+	public static YamlMappingNode TermDic2YamlMapping(Dictionary<string, Dictionary<string, object>> termDic)
+	{
+		YamlMappingNode yamlMappingNode = new YamlMappingNode();
+		foreach (string key in termDic.Keys)
+		{
+			YamlMappingNode yamlMappingNode2 = new YamlMappingNode();
+			foreach (KeyValuePair<string, object> item in termDic[key])
+			{
+				if (item.Value.GetType() != typeof(string) && item.Value.GetType().GetInterfaces().Any((Type i) => (i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IEnumerable<>)) || i.GetType() == typeof(IEnumerable)))
+				{
+					yamlMappingNode2.Add(item.Key, new YamlSequenceNode());
+					foreach (object item2 in (IEnumerable)item.Value)
+					{
+						(yamlMappingNode2[item.Key] as YamlSequenceNode).Add(new YamlScalarNode(item2?.ToString()));
+					}
+				}
+				else
+				{
+					yamlMappingNode2.Add(item.Key, new YamlScalarNode(item.Value?.ToString()));
+				}
+			}
+			yamlMappingNode.Add(key, yamlMappingNode2);
+		}
+		return yamlMappingNode;
+	}
+
+	internal static void FillUnitNameTable(YamlMappingNode yamlKeyValue, bool mergeTerms, HashSet<IdContainer> keysToInclude = null)
+	{
+		foreach (KeyValuePair<YamlNode, YamlNode> item in yamlKeyValue)
+		{
+			item.Deconstruct(out var key, out var value);
+			if (!(key is YamlScalarNode yamlScalarNode))
+			{
+				Log.log.LogError((object)$"[Localization] UnitName key {key} is not scalar");
+			}
+			else if (keysToInclude == null || keysToInclude.Contains(yamlScalarNode.Value))
+			{
+				if (!(value is YamlMappingNode localization))
+				{
+					Log.log.LogError((object)$"[Localization] UnitName value of {yamlScalarNode.Value} is not mapping: {value}");
+				}
+				else if (mergeTerms)
+				{
+					UnitName unitName = new UnitName(localization);
+					UnitNameTable._table.TryAdd(yamlScalarNode.Value, unitName);
+					UnitNameTable._table[yamlScalarNode.Value]._table.Merge(unitName._table);
+				}
+				else
+				{
+					UnitNameTable._table.AlwaysAdd(yamlScalarNode.Value, new UnitName(localization));
+				}
+			}
+		}
+	}
+}
