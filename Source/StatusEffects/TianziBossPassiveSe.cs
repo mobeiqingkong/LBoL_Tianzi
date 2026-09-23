@@ -19,7 +19,9 @@ namespace TianziMod.StatusEffects
             StatusEffectConfig config = GetDefaultStatusEffectConfig();
             config.Type = StatusEffectType.Special;
             config.IsStackable = false;
-            config.HasLevel = false;
+            // Level = 回复量；Count = 额外积攒 P
+            config.HasLevel = true;
+            config.HasCount = true;
             config.HasDuration = false;
             config.RelativeEffects = new List<string> { nameof(EnemyEnergy) };
             return config;
@@ -28,13 +30,17 @@ namespace TianziMod.StatusEffects
 
     /// <summary>
     /// 本章天子 Boss 专属仙桃：受击回血并额外积攒能量。
-    /// 不修改原版第二章 FlatPeach；伤害等量转能量由 EnemyEnergy 负责。
+    /// 伤害等量转能量仍由 EnemyEnergy 负责。
     /// </summary>
     [EntityLogic(typeof(TianziBossPeachSeDef))]
     public sealed class TianziBossPeachSe : StatusEffect
     {
         protected override void OnAdded(Unit unit)
         {
+            if (base.Level <= 0)
+                base.Level = 1;
+            if (base.Count <= 0)
+                base.Count = 1;
             base.ReactOwnerEvent<DamageEventArgs>(
                 unit.DamageReceived,
                 new EventSequencedReactor<DamageEventArgs>(this.OnDamageReceived));
@@ -46,27 +52,9 @@ namespace TianziMod.StatusEffects
                 yield break;
 
             base.NotifyActivating();
-
-            int heal;
-            int bonusEnergy;
-            switch (base.GameRun.Difficulty)
-            {
-                case GameDifficulty.Lunatic:
-                    heal = 2;
-                    bonusEnergy = 3;
-                    break;
-                case GameDifficulty.Hard:
-                    heal = 1;
-                    bonusEnergy = 2;
-                    break;
-                default:
-                    heal = 1;
-                    bonusEnergy = 1;
-                    break;
-            }
-
-            yield return new HealAction(base.Owner, base.Owner, heal, HealType.Normal, 0.1f);
-            yield return new ApplyStatusEffectAction<EnemyEnergy>(base.Owner, bonusEnergy);
+            yield return new HealAction(base.Owner, base.Owner, base.Level, HealType.Normal, 0.1f);
+            if (base.Count > 0)
+                yield return new ApplyStatusEffectAction<EnemyEnergy>(base.Owner, base.Count);
         }
     }
 

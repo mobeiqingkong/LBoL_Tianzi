@@ -4,15 +4,9 @@ using LBoL.ConfigData;
 using LBoL.Core;
 using LBoL.Core.Battle;
 using LBoL.Core.Battle.BattleActions;
-using LBoL.Core.Battle.Interactions;
 using LBoL.Core.Cards;
-using LBoL.Core.StatusEffects;
-using LBoL.Core.Units;
-using LBoL.EntityLib.StatusEffects.Basic;
 using LBoLEntitySideloader.Attributes;
 using TianziMod.Cards.Template;
-using TianziMod.GunName;
-using TianziMod.Keywords;
 using TianziMod.StatusEffects;
 
 namespace TianziMod.Cards
@@ -42,40 +36,52 @@ namespace TianziMod.Cards
     }
 
 
+    /// <summary>
+    /// 进手即放逐并挂延迟自愈。参考药水 / 森林探险：OnDraw + OnMove(→Hand) + 开战已在手。
+    /// </summary>
     [EntityLogic(typeof(TianziEarthStoneDef))]
     public sealed class TianziEarthStone : TianziCard
     {
+        public override IEnumerable<BattleAction> OnDraw()
+        {
+            return this.EnterHandReactor();
+        }
+
+        public override IEnumerable<BattleAction> OnMove(CardZone srcZone, CardZone dstZone)
+        {
+            if (dstZone != CardZone.Hand)
+                return null;
+            return this.EnterHandReactor();
+        }
+
         protected override void OnEnterBattle(BattleController battle)
         {
             base.OnEnterBattle(battle);
-            base.ReactBattleEvent<CardsEventArgs>(
-                battle.CardsAddedToHand,
-                new EventSequencedReactor<CardsEventArgs>(this.OnAddedToHand));
+            // 开战已在手：不能同步 React，延后到可解析动作时
+            if (base.Zone == CardZone.Hand)
+                this.React((LazySequencedReactor)this.EnterHandLazy);
         }
 
-        private IEnumerable<BattleAction> OnAddedToHand(CardsEventArgs args)
+        private IEnumerable<BattleAction> EnterHandLazy()
         {
-            if (args.Cards == null || base.Zone != CardZone.Hand)
-                yield break;
-            bool mine = false;
-            foreach (Card c in args.Cards)
-            {
-                if (c == this)
-                {
-                    mine = true;
-                    break;
-                }
-            }
-            if (!mine)
-                yield break;
-            yield return new ExileCardAction(this);
-            // Level=自愈层数；Count=后续回合数
-            yield return BuffAction<TianziEarthDelaySe>(2, 0, 0, base.Value1, 0.2f);
+            return this.EnterHandReactor();
         }
 
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
+            return this.EnterHandReactor(ensureInHand: false);
+        }
+
+        private IEnumerable<BattleAction> EnterHandReactor(bool ensureInHand = true)
+        {
+            if (base.Battle == null || base.Battle.BattleShouldEnd)
+                yield break;
+            if (ensureInHand && base.Zone != CardZone.Hand)
+                yield break;
+            base.NotifyActivating();
+            yield return new ExileCardAction(this);
+            // Level=自愈层数；Count=后续回合数
             yield return BuffAction<TianziEarthDelaySe>(2, 0, 0, base.Value1, 0.2f);
         }
     }

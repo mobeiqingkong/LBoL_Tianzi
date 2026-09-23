@@ -88,7 +88,8 @@ namespace TianziMod.StatusEffects
             StatusEffectConfig config = GetDefaultStatusEffectConfig();
             config.Type = StatusEffectType.Positive;
             config.HasLevel = true;
-            config.LevelStackType = StackType.Add;
+            // 自愈层数取更高；多次进手只叠加回合数 Count
+            config.LevelStackType = StackType.Max;
             config.HasCount = true;
             config.CountStackType = StackType.Add;
             config.HasDuration = false;

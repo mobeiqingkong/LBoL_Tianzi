@@ -240,19 +240,14 @@ TianziLethalSe:
 
 TianziBossPeachSe:
   Name: 仙桃
-  Description: |-
-    受到伤害时回复生命值，并额外积攒|能量|。
-    普通：回复 |e:1|，额外能量 |e:1|；困难：回复 |e:1|，额外能量 |e:2|；LUNATIC：回复 |e:2|，额外能量 |e:3|。
-  Brief: 受击回血并额外积攒能量。
+  Description: 受到伤害时回复 {Level} 点生命值，并额外积攒 {Count} 点P。
 
 TianziBossHeavenQiSe:
   Name: 天人之气
-  Description: "回合结束时，负面状态失去 |e:2| 层而不是 |e:1| 层。"
-  Brief: 负面状态每回合多掉 |e:1| 层。
+  Description: 回合结束时，负面状态失去 |e:2| 层而不是 |e:1| 层。
 
 TianziBossKarmaInfluenceSe:
   Name: 因果影响
   Description: |-
     主角每打出 {Level} 张牌后，下一张牌：
     奇数牌：随机失去 |e:1| 点费用；偶数牌：随机弃 |e:1| 张牌。
-  Brief: "每 {Level} 张牌后，下一张按奇偶惩罚。"

@@ -18,6 +18,7 @@ namespace TianziMod.Enemies
     {
         private enum MoveKind
         {
+            /// <summary>天穹斩 → 要石浮游炮 → 因果之剑 → 状态防御</summary>
             SkySlash,
             Keystone,
             KarmaSword,
@@ -30,8 +31,9 @@ namespace TianziMod.Enemies
         private bool _altCycle;
         private bool _rainbowUsed;
 
-        private string MoveSkySlash { get { return base.GetMove(0); } }
-        private string MoveKeystone { get { return base.GetMove(1); } }
+        // Move yaml 顺序：0 要石浮游炮 / 1 天穹斩 / 2 因果之剑 / 3 状态防御 / 4 彩符
+        private string MoveKeystone { get { return base.GetMove(0); } }
+        private string MoveSkySlash { get { return base.GetMove(1); } }
         private string MoveKarma { get { return base.GetMove(2); } }
         private string MoveGuard { get { return base.GetMove(3); } }
         private string MoveRainbow { get { return base.GetMove(4); } }
@@ -49,13 +51,37 @@ namespace TianziMod.Enemies
             this._altCycle = false;
             this._rainbowUsed = false;
 
-            // 文档仙桃 = 回血 + 额外 p；能量 = 伤害等量转 p。均仅本章 Boss。
-            this.React(new ApplyStatusEffectAction<EnemyEnergy>(this, 0));
-            this.React(new ApplyStatusEffectAction<TianziBossPeachSe>(this, null, null, null, null, 0f));
-            this.React(new ApplyStatusEffectAction<TianziBossHeavenQiSe>(this, null, null, null, null, 0f));
+            base.ReactBattleEvent(battle.BattleStarted, this.OnBattleStarted);
+        }
+
+        private IEnumerable<BattleAction> OnBattleStarted(GameEventArgs args)
+        {
+            yield return new ApplyStatusEffectAction<EnemyEnergy>(this, 0);
+
+            int heal;
+            int bonusEnergy;
+            switch (base.Difficulty)
+            {
+                case GameDifficulty.Lunatic:
+                    heal = 2;
+                    bonusEnergy = 3;
+                    break;
+                case GameDifficulty.Hard:
+                    heal = 1;
+                    bonusEnergy = 2;
+                    break;
+                default:
+                    heal = 1;
+                    bonusEnergy = 1;
+                    break;
+            }
+            // Level=回复；Count=额外 P
+            yield return new ApplyStatusEffectAction<TianziBossPeachSe>(
+                this, heal, null, null, bonusEnergy, 0f);
+            yield return new ApplyStatusEffectAction<TianziBossHeavenQiSe>(this, null, null, null, null, 0f);
             int threshold = TianziChapterBossPassive.KarmaThreshold(base.Difficulty);
-            this.React(new ApplyStatusEffectAction<TianziBossKarmaInfluenceSe>(
-                this, threshold, null, null, null, 0f));
+            yield return new ApplyStatusEffectAction<TianziBossKarmaInfluenceSe>(
+                this, threshold, null, null, null, 0f);
         }
 
         protected override IEnumerable<IEnemyMove> GetTurnMoves()
@@ -65,6 +91,7 @@ namespace TianziMod.Enemies
                 MoveKind beforeUlt = this._next;
                 yield return this.RainbowMove();
                 this._last = MoveKind.Rainbow;
+                // 释符前若下一手是天穹斩或状态防御 → 进入另类循环
                 this._altCycle = beforeUlt == MoveKind.SkySlash || beforeUlt == MoveKind.StatusGuard;
                 this._next = MoveKind.SkySlash;
                 yield break;
@@ -77,6 +104,7 @@ namespace TianziMod.Enemies
                     this._last = MoveKind.SkySlash;
                     break;
                 case MoveKind.Keystone:
+                    // 要石浮游炮：5/5/6 × 3，精准
                     yield return base.AttackMove(
                         this.MoveKeystone, base.Gun1, base.Damage1, base.Count1, true);
                     this._last = MoveKind.Keystone;
@@ -99,6 +127,7 @@ namespace TianziMod.Enemies
 
             if (this._altCycle)
             {
+                // 另类：状态防御 → 天穹斩 → 要石浮游炮 → 因果之剑
                 this._next = this._last switch
                 {
                     MoveKind.StatusGuard => MoveKind.SkySlash,
@@ -110,6 +139,7 @@ namespace TianziMod.Enemies
                 return;
             }
 
+            // 常态：天穹斩 → 要石浮游炮 → 因果之剑 → 状态防御
             this._next = this._last switch
             {
                 MoveKind.SkySlash => MoveKind.Keystone,
@@ -122,6 +152,7 @@ namespace TianziMod.Enemies
 
         private IEnemyMove SkySlashMove()
         {
+            // 天穹斩：7/7/8 × 2，非精准；附带易伤/虚弱
             return new SimpleEnemyMove(
                 Intention.Attack(base.Damage2, base.Count2).WithMoveName(this.MoveSkySlash),
                 this.SkySlashActions());
@@ -130,7 +161,7 @@ namespace TianziMod.Enemies
         private IEnumerable<BattleAction> SkySlashActions()
         {
             yield return new EnemyMoveAction(this, this.MoveSkySlash);
-            // 文档：N/H 易伤1+虚弱1；L 易伤1+虚弱2（duration 必须走第 3 参）
+            // N/H：易伤1 + 虚弱1；L：易伤1 + 虚弱2
             int weakDur = base.Difficulty == GameDifficulty.Lunatic ? 2 : 1;
             yield return new ApplyStatusEffectAction<Vulnerable>(
                 base.Battle.Player, null, 1, null, null, 0.1f);
@@ -143,6 +174,7 @@ namespace TianziMod.Enemies
 
         private IEnemyMove KarmaMove()
         {
+            // 因果之剑：10/12/14 × 1，精准
             return new SimpleEnemyMove(
                 Intention.Attack(base.Damage3, true).WithMoveName(this.MoveKarma),
                 this.KarmaActions());
@@ -162,6 +194,7 @@ namespace TianziMod.Enemies
 
         private IEnemyMove GuardMove()
         {
+            // 状态防御：格挡 6/8/10，护盾 4/4/5
             int shield = base.Difficulty == GameDifficulty.Lunatic ? 5 : 4;
             return new SimpleEnemyMove(
                 Intention.Defend().WithMoveName(this.MoveGuard),
@@ -195,6 +228,7 @@ namespace TianziMod.Enemies
 
         private int RainbowDamage()
         {
+            // 首次 N/H 40、L 45；之后用 Damage4（30/30/35）
             if (!this._rainbowUsed)
             {
                 this._rainbowUsed = true;

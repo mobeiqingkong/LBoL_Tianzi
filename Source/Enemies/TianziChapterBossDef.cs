@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using LBoL.Base;
 using LBoL.ConfigData;
+using LBoL.Presentation;
 using LBoLEntitySideloader;
+using LBoLEntitySideloader.Entities;
 using TianziMod.Enemies.Template;
 using TianziMod.GunName;
 
@@ -9,6 +11,14 @@ namespace TianziMod.Enemies
 {
     public sealed class TianziChapterBossDef : TianziEnemyUnitTemplate
     {
+        static TianziChapterBossDef()
+        {
+            // 一幕 Boss 节点图标：复用原版二幕天子（Tianzi）的 BossIcon
+            EnemyUnitTemplate.AddBossNodeIcon(
+                nameof(TianziChapterBoss),
+                () => ResourcesHelper.TryGetBossIcon("Tianzi"));
+        }
+
         public override IdContainer GetId() => nameof(TianziChapterBoss);
 
         public override EnemyUnitConfig MakeConfig()
@@ -17,6 +27,7 @@ namespace TianziMod.Enemies
             config.IsPreludeOpponent = BepinexPlugin.enableAct1Boss.Value;
             config.BaseManaColor = new List<ManaColor>() { ManaColor.White, ManaColor.Red };
             config.Type = EnemyType.Boss;
+            config.ModleName = "Tianzi";
             config.MaxHp = 240;
             config.MaxHpHard = 250;
             config.MaxHpLunatic = 260;

@@ -70,16 +70,16 @@ namespace TianziMod.StatusEffects
         {
             if (base.Level <= 0)
                 return;
+            // 意图/预览（OnlyCalculate）不能 ReduceBy，否则敌人攻击会显示成 0×N
+            if (args.Cause == ActionCause.OnlyCalculate)
+                return;
             int incoming = (int)Math.Round(args.DamageInfo.Damage, MidpointRounding.AwayFromZero);
             if (incoming <= 0)
                 return;
 
             int cost = Math.Min(incoming, base.Level);
-            if (args.Cause != ActionCause.OnlyCalculate)
-            {
-                base.NotifyActivating();
-                this._pendingCost += cost;
-            }
+            base.NotifyActivating();
+            this._pendingCost += cost;
             // Measure 之前必须用 ReduceBy（尚未 Blocked/Shielded）
             args.DamageInfo = args.DamageInfo.ReduceBy(cost);
             args.AddModifier(this);
