@@ -28,8 +28,8 @@ TianziWeatherMist:
 TianziWeatherCloud:
   Name: 云天
   Description: |-
-    回合开始时，所有卡牌的费用减少{Mana}。
-  Brief: "回合开始时，所有卡牌费用减少{Mana}。"
+    回合开始时，本回合内所有卡牌的费用减少{Mana}。
+  Brief: "回合开始时，本回合内所有卡牌费用减少{Mana}。"
 
 TianziWeatherAzure:
   Name: 苍天
