@@ -22,7 +22,7 @@ TianziWeatherClear:
 TianziWeatherMist:
   Name: 雾雨
   Description: |-
-    {OwnerName}造成原来的|e:1.25|倍的符卡伤害。
+    {OwnerName}的符卡造成原来的|e:1.25|倍的伤害。
   Brief: "造成原来的|e:1.25|倍的符卡伤害。"
 
 TianziWeatherCloud:
