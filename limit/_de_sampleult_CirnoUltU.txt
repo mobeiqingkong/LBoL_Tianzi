@@ -1,0 +1,37 @@
+using System.Collections.Generic;
+using JetBrains.Annotations;
+using LBoL.Base;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.Units;
+using LBoL.EntityLib.StatusEffects.Cirno;
+
+namespace LBoL.EntityLib.UltimateSkills;
+
+[UsedImplicitly]
+public sealed class CirnoUltU : UltimateSkill
+{
+	public CirnoUltU()
+	{
+		base.TargetType = TargetType.AllEnemies;
+		base.GunName = "完美冻结";
+	}
+
+	protected override IEnumerable<BattleAction> Actions(UnitSelector selector)
+	{
+		yield return new DamageAction(base.Owner, selector.GetUnits(base.Battle), Damage, base.GunName);
+		if (base.Battle.BattleShouldEnd)
+		{
+			yield break;
+		}
+		Unit[] units = selector.GetUnits(base.Battle);
+		foreach (Unit unit in units)
+		{
+			if (unit.IsAlive)
+			{
+				yield return new ApplyStatusEffectAction<Cold>(unit);
+			}
+		}
+	}
+}

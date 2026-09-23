@@ -1,0 +1,80 @@
+using System;
+using System.Collections.Generic;
+using JetBrains.Annotations;
+using LBoL.Base;
+using LBoL.Base.Extensions;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.StatusEffects;
+using LBoL.Core.Units;
+
+namespace LBoL.EntityLib.StatusEffects.Koishi;
+
+public sealed class MoodEpiphany : Mood
+{
+	[UsedImplicitly]
+	public ManaGroup Mana = ManaGroup.Philosophies(1);
+
+	[UsedImplicitly]
+	public int PlayCount = 5;
+
+	private bool _justGained;
+
+	private int _playedCardCount;
+
+	public override bool ForceNotShowDownText => true;
+
+	public override string UnitEffectName => "DunwuLoop";
+
+	protected override void OnAdded(Unit unit)
+	{
+		base.OnAdded(unit);
+		base.Count = PlayCount;
+		_playedCardCount = 0;
+		_justGained = true;
+		ReactOwnerEvent(base.Battle.Player.TurnEnded, OnTurnEnded);
+		ReactOwnerEvent(base.Battle.CardUsed, OnCardUsed);
+	}
+
+	private IEnumerable<BattleAction> OnTurnEnded(UnitEventArgs args)
+	{
+		yield return new MoodChangeAction(base.Battle.Player, this, null);
+	}
+
+	private IEnumerable<BattleAction> OnCardUsed(CardUsingEventArgs args)
+	{
+		if (base.SourceCard == args.Card && _justGained)
+		{
+			_justGained = false;
+			yield break;
+		}
+		int count = base.Count - 1;
+		base.Count = count;
+		_playedCardCount++;
+		yield return new GainManaAction(Mana);
+		yield return new DrawCardAction();
+		if (base.Count <= 0)
+		{
+			yield return new MoodChangeAction(base.Battle.Player, this, null);
+		}
+	}
+
+	protected override void OnRemoving(Unit unit)
+	{
+		if (_playedCardCount >= 12 && base.GameRun.IsAutoSeed && base.GameRun.JadeBoxes.Empty())
+		{
+			base.GameRun.AchievementHandler.UnlockAchievement(AchievementKey.Epiphany);
+		}
+	}
+
+	public override bool Stack(StatusEffect other)
+	{
+		bool num = base.Stack(other);
+		if (num)
+		{
+			base.Count = Math.Max(base.Count, PlayCount);
+		}
+		return num;
+	}
+}

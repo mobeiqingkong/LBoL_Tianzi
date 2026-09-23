@@ -12,7 +12,7 @@ using LBoLEntitySideloader.Attributes;
 namespace TianziMod.StatusEffects
 {
     // ================================================================
-    //  雹：每回合基础法力获取数量翻倍
+    //  雹：下回合获得与当前基础法力等量的法力（含光耀展品提供的基础法力）
     // ================================================================
     public sealed class TianziWeatherHailDef : TianziStatusEffectTemplate
     {
@@ -43,8 +43,12 @@ namespace TianziMod.StatusEffects
             if (base.Battle.BattleShouldEnd || !this._grantNext)
                 yield break;
             this._grantNext = false;
+            // GameRun.BaseMana 已包含角色初始法力与光耀展品 OnGain 的基础法力
+            ManaGroup baseMana = base.Battle.BaseTurnMana;
+            if (baseMana.Amount <= 0)
+                yield break;
             base.NotifyActivating();
-            yield return new GainManaAction(new ManaGroup() { White = 2, Red = 2 });
+            yield return new GainManaAction(baseMana);
         }
 
         protected override IEnumerable<BattleAction> OnWeatherTurnStarting(UnitEventArgs args)

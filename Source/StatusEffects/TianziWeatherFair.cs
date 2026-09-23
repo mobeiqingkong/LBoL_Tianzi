@@ -77,22 +77,22 @@ namespace TianziMod.StatusEffects
         protected override void RegisterHooks()
         {
             base.HandleOwnerEvent<DamageDealingEventArgs>(
-                base.Battle.Player.DamageDealing,
-                new GameEventHandler<DamageDealingEventArgs>(this.OnPlayerDamageDealing)
+                base.Owner.DamageDealing,
+                new GameEventHandler<DamageDealingEventArgs>(this.OnOwnerDamageDealing)
             );
         }
 
-        private void OnPlayerDamageDealing(DamageDealingEventArgs args)
+        private void OnOwnerDamageDealing(DamageDealingEventArgs args)
         {
             if (args.DamageInfo.DamageType != DamageType.Attack)
                 return;
-            if (args.Cause != ActionCause.Us
-                && args.Cause != ActionCause.UsUse
-                && args.Cause != ActionCause.Player)
+            // 符卡伤害：ActionSource 为 UltimateSkill（Cause 一般为 Us）
+            if (!(args.ActionSource is UltimateSkill) && args.Cause != ActionCause.Us)
                 return;
-            base.NotifyActivating();
             args.DamageInfo = args.DamageInfo.MultiplyBy(1.25f);
             args.AddModifier(this);
+            if (args.Cause != ActionCause.OnlyCalculate)
+                base.NotifyActivating();
         }
 
         protected override IEnumerable<BattleAction> OnWeatherTurnStarting(UnitEventArgs args)
@@ -176,9 +176,12 @@ namespace TianziMod.StatusEffects
                 yield return action;
         }
 
-        protected override void RegisterHooks()
+        protected override IEnumerable<BattleAction> OnWeatherTurnStarted(UnitEventArgs args)
         {
-            this.React(new GainPowerAction(PowerGain));
+            if (base.Battle.BattleShouldEnd)
+                yield break;
+            base.NotifyActivating();
+            yield return new GainPowerAction(PowerGain);
         }
     }
 }

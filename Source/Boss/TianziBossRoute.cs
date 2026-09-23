@@ -1,4 +1,7 @@
+using System.Reflection;
+using LBoL.Base;
 using LBoL.Core;
+using LBoL.Core.Randoms;
 using LBoL.Core.Units;
 using TianziMod.Exhibits;
 
@@ -6,24 +9,46 @@ namespace TianziMod.Boss
 {
     /// <summary>
     /// 第一幕自订天子 Boss 掉落中选了仙桃/绯想之剑后，
-    /// 第二幕强制为原版 Boss 组「Tianzi」；否则第二幕池排除原版天子。
+    /// 第二幕强制原版「Tianzi」，并在登场时说话；
+    /// 否则第二幕池排除原版天子。
+    /// 主角为模组天子时，第二幕一定不会遇到原版天子。
     /// </summary>
     public static class TianziBossRoute
     {
-        /// <summary>第一幕自订 Boss（掉落展品用）。</summary>
         public const string ChapterBossGroupId = "TianziChapterBoss";
-
-        /// <summary>第二幕原版天子 Boss 组。</summary>
         public const string VanillaAct2BossGroupId = "Tianzi";
 
+        public static bool KeepsakeTaken { get; set; }
         public static bool AwaitingBossExhibitPick { get; set; }
+
+        private static readonly PropertyInfo BossProp =
+            typeof(Stage).GetProperty(nameof(Stage.Boss));
+        private static readonly PropertyInfo SelectedBossProp =
+            typeof(Stage).GetProperty("SelectedBoss");
+
+        public static void ResetKeepsake()
+        {
+            KeepsakeTaken = false;
+            AwaitingBossExhibitPick = false;
+        }
+
+        public static bool IsModTianziPlayer(GameRunController run)
+        {
+            PlayerUnit player = run == null ? null : run.Player;
+            return player != null && player.Id == BepinexPlugin.modUniqueID;
+        }
 
         public static bool ShouldForceAct2Boss(GameRunController run)
         {
+            // 模组天子永不强制原版自己
+            if (IsModTianziPlayer(run))
+                return false;
+
+            if (KeepsakeTaken)
+                return true;
+
             PlayerUnit player = run == null ? null : run.Player;
             if (player == null)
-                return false;
-            if (player.Id == BepinexPlugin.modUniqueID)
                 return false;
             return player.HasExhibit<TianziExhibitA>() || player.HasExhibit<TianziExhibitB>();
         }
@@ -32,13 +57,37 @@ namespace TianziMod.Boss
         {
             if (run == null || run.Stages == null)
                 return;
-            bool force = ShouldForceAct2Boss(run);
+
+            if (IsModTianziPlayer(run))
+            {
+                EnsureNoVanillaTianziForModPlayer(run);
+                return;
+            }
+
+            if (!ShouldForceAct2Boss(run))
+                return;
+
+            foreach (Stage stage in run.Stages)
+            {
+                if (stage != null && stage.Level == 2)
+                    ForceBoss(stage, VanillaAct2BossGroupId);
+            }
+        }
+
+        /// <summary>模组天子：二幕若抽到原版天子则重抽。</summary>
+        public static void EnsureNoVanillaTianziForModPlayer(GameRunController run)
+        {
+            if (run == null || run.Stages == null || !IsModTianziPlayer(run))
+                return;
+
             foreach (Stage stage in run.Stages)
             {
                 if (stage == null || stage.Level != 2)
                     continue;
-                if (force)
-                    ForceBoss(stage, VanillaAct2BossGroupId);
+
+                RemoveBossFromPool(stage.BossPool, VanillaAct2BossGroupId);
+                if (stage.Boss != null && stage.Boss.Id == VanillaAct2BossGroupId)
+                    RerollAct2Boss(stage, run);
             }
         }
 
@@ -47,8 +96,35 @@ namespace TianziMod.Boss
             if (stage == null || string.IsNullOrEmpty(groupId))
                 return;
             EnemyGroupEntry entry = Library.GetEnemyGroupEntry(groupId);
-            typeof(Stage).GetProperty(nameof(Stage.Boss))?.SetValue(stage, entry);
-            typeof(Stage).GetProperty("SelectedBoss")?.SetValue(stage, groupId);
+            BossProp?.SetValue(stage, entry);
+            SelectedBossProp?.SetValue(stage, groupId);
+        }
+
+        public static void RemoveBossFromPool(object pool, string groupId)
+        {
+            if (pool == null)
+                return;
+            MethodInfo remove = pool.GetType().GetMethod(
+                "Remove",
+                BindingFlags.Public | BindingFlags.Instance,
+                null,
+                new[] { typeof(string) },
+                null);
+            remove?.Invoke(pool, new object[] { groupId });
+        }
+
+        private static void RerollAct2Boss(Stage stage, GameRunController run)
+        {
+            RepeatableRandomPool<string> pool = stage.BossPool as RepeatableRandomPool<string>;
+            if (pool == null)
+                return;
+            RemoveBossFromPool(pool, VanillaAct2BossGroupId);
+            RandomGen rng = run.RootRng ?? run.StationRng;
+            if (rng == null)
+                return;
+            string id = pool.SampleOrDefault(rng);
+            if (!string.IsNullOrEmpty(id))
+                ForceBoss(stage, id);
         }
     }
 }

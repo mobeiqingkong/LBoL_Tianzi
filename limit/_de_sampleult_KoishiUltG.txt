@@ -1,0 +1,30 @@
+using System.Collections.Generic;
+using JetBrains.Annotations;
+using LBoL.Base;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.Units;
+using LBoL.EntityLib.Cards.Character.Koishi;
+
+namespace LBoL.EntityLib.UltimateSkills;
+
+[UsedImplicitly]
+public sealed class KoishiUltG : UltimateSkill
+{
+	public KoishiUltG()
+	{
+		base.TargetType = TargetType.SingleEnemy;
+		base.GunName = "生命的本源";
+	}
+
+	protected override IEnumerable<BattleAction> Actions(UnitSelector selector)
+	{
+		EnemyUnit enemy = selector.GetEnemy(base.Battle);
+		yield return new DamageAction(base.Owner, enemy, Damage, base.GunName);
+		if (!base.Battle.BattleShouldEnd)
+		{
+			yield return new AddCardsToHandAction(Library.CreateCards<KoishiUltimateToken>(base.Value1));
+		}
+	}
+}

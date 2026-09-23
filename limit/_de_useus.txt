@@ -1,0 +1,83 @@
+using System.Collections.Generic;
+using LBoL.Core.Units;
+
+namespace LBoL.Core.Battle.BattleActions;
+
+public sealed class UseUsAction : BattleAction
+{
+	public UsUsingEventArgs Args { get; }
+
+	public override bool IsModified => Args.IsModified;
+
+	public override string[] Modifiers => Args.Modifiers;
+
+	public override bool IsCanceled => Args.IsCanceled;
+
+	public override CancelCause CancelCause => Args.CancelCause;
+
+	public UseUsAction(UltimateSkill us, UnitSelector selector, int consumingEnergy)
+	{
+		Args = new UsUsingEventArgs
+		{
+			Us = us,
+			Selector = selector,
+			ConsumingPower = consumingEnergy
+		};
+	}
+
+	public override BattleAction SetCause(ActionCause cause)
+	{
+		base.SetCause(cause);
+		Args.Cause = cause;
+		return this;
+	}
+
+	public override BattleAction SetSource(GameEntity source)
+	{
+		base.SetSource(source);
+		Args.ActionSource = base.Source;
+		return this;
+	}
+
+	public override void ClearModifiers()
+	{
+		Args.ClearModifiers();
+	}
+
+	internal override IEnumerable<Phase> GetPhases()
+	{
+		yield return CreateEventPhase("UsUsing", Args, base.Battle.UsUsing);
+		yield return CreatePhase("UsUsing", delegate
+		{
+			Args.CanCancel = false;
+			if (!Args.Us.TurnRepeatable)
+			{
+				Args.Us.TurnAvailable = false;
+			}
+			if (!Args.Us.BattleRepeatable)
+			{
+				Args.Us.BattleAvailable = false;
+			}
+			base.Battle.React(new ConsumePowerAction(Args.ConsumingPower), Args.Us, ActionCause.UsUse);
+		});
+		List<DamageAction> damageActions = new List<DamageAction>();
+		yield return CreatePhase("UsAction", delegate
+		{
+			base.Battle.React(new Reactor(Args.Us.GetActions(Args.Selector, damageActions)), Args.Us, ActionCause.Us);
+		});
+		if (damageActions.Count > 0)
+		{
+			yield return CreatePhase("Statistics", delegate
+			{
+				base.Battle.React(new StatisticalTotalDamageAction(damageActions), Args.Us, ActionCause.Us);
+			});
+		}
+		base.Battle.GameRun.UltimateUseCount++;
+		yield return CreateEventPhase("UsUsed", Args, base.Battle.UsUsed);
+	}
+
+	public override string ExportDebugDetails()
+	{
+		return Args.ExportDebugDetails();
+	}
+}

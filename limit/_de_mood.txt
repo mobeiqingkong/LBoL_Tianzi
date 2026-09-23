@@ -1,0 +1,29 @@
+using System.Linq;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.Units;
+
+namespace LBoL.Core.StatusEffects;
+
+public abstract class Mood : StatusEffect
+{
+	private bool _moodChangeHappen;
+
+	protected override void OnAdding(Unit unit)
+	{
+		Mood mood = (Mood)base.Battle.Player.StatusEffects.FirstOrDefault((StatusEffect se) => se is Mood);
+		if (mood != null)
+		{
+			React(new MoodChangeAction(base.Battle.Player, mood, this));
+			_moodChangeHappen = true;
+		}
+	}
+
+	protected override void OnAdded(Unit unit)
+	{
+		if (!_moodChangeHappen)
+		{
+			React(new MoodChangeAction(base.Battle.Player, null, this));
+			_moodChangeHappen = true;
+		}
+	}
+}

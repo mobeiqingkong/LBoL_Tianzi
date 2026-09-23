@@ -12,13 +12,31 @@ namespace TianziMod.StatusEffects
 {
     /// <summary>
     /// 天气的公共基类。
-    /// 规则：同一时刻只有一种天气；天气持续 {Duration} 个「主角回合」；
-    /// 新天气生效时旧天气立刻全部失效。
+    /// 规则：同一时刻只有一种天气（与游戏「心境」互斥方式相同）；
+    /// 天气持续 {Duration} 个「主角回合」；新天气生效时旧天气立刻失效。
     /// </summary>
     public abstract class TianziWeatherSeBase : StatusEffect
     {
         /// <summary>Localized display name from DirResources yaml (`Name`).</summary>
         public string WeatherName { get { return this.Name; } }
+
+        /// <summary>
+        /// 参考 <see cref="Mood"/>：在 OnAdding 时若已有其它天气，立刻移除，保证互斥。
+        /// </summary>
+        protected override void OnAdding(Unit unit)
+        {
+            StatusEffect existing = null;
+            foreach (StatusEffect se in unit.StatusEffects)
+            {
+                if (se is TianziWeatherSeBase)
+                {
+                    existing = se;
+                    break;
+                }
+            }
+            if (existing != null)
+                this.React(new RemoveStatusEffectAction(existing, true, 0f));
+        }
 
         protected override void OnAdded(Unit unit)
         {

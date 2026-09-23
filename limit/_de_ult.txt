@@ -1,0 +1,231 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using JetBrains.Annotations;
+using LBoL.Base;
+using LBoL.ConfigData;
+using LBoL.Core.Attributes;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.Cards;
+
+namespace LBoL.Core.Units;
+
+[Localizable]
+public abstract class UltimateSkill : GameEntity
+{
+	internal sealed class UsFormatWrapper : GameEntityFormatWrapper
+	{
+		private readonly UltimateSkill _us;
+
+		public UsFormatWrapper(UltimateSkill us)
+			: base(us)
+		{
+			_us = us;
+		}
+
+		protected override string FormatArgument(object arg, string format)
+		{
+			if (!(arg is DamageInfo damageInfo))
+			{
+				if (!(arg is BlockInfo { Block: var block }))
+				{
+					if (arg is ShieldInfo { Shield: var shield } shieldInfo)
+					{
+						if (_us.Battle == null)
+						{
+							return GameEntityFormatWrapper.WrappedFormatNumber(shield, shield, format);
+						}
+						int item = _us.Battle.CalculateBlockShield(_us, 0f, shieldInfo.Shield).shield;
+						return GameEntityFormatWrapper.WrappedFormatNumber(shield, item, format);
+					}
+					return base.FormatArgument(arg, format);
+				}
+				if (_us.Battle == null)
+				{
+					return GameEntityFormatWrapper.WrappedFormatNumber(block, block, format);
+				}
+				int item2 = _us.Battle.CalculateBlockShield(_us, block, 0f).block;
+				return GameEntityFormatWrapper.WrappedFormatNumber(block, item2, format);
+			}
+			int num = (int)damageInfo.Damage;
+			if (_us.Battle == null)
+			{
+				return GameEntityFormatWrapper.WrappedFormatNumber(num, num, format);
+			}
+			int value = _us.Battle.CalculateDamage(_us, _us.Battle.Player, _us.PendingTarget, damageInfo);
+			return GameEntityFormatWrapper.WrappedFormatNumber(num, value, format);
+		}
+	}
+
+	private readonly WeakReference<PlayerUnit> _owner = new WeakReference<PlayerUnit>(null);
+
+	private Unit _pendingTarget;
+
+	internal override GameEventPriority DefaultEventPriority => (GameEventPriority)Config.Order;
+
+	public UltimateSkillConfig Config { get; private set; }
+
+	public override string DebugName => "<" + base.Id + ">(" + Title + "-" + Content + ")";
+
+	public override string Name => Title + "-" + Content;
+
+	protected internal PlayerUnit Owner
+	{
+		get
+		{
+			if (!_owner.TryGetTarget(out var target))
+			{
+				return null;
+			}
+			return target;
+		}
+		set
+		{
+			_owner.SetTarget(value);
+		}
+	}
+
+	public BattleController Battle => Owner?.Battle;
+
+	public int PowerCost => Config.PowerCost;
+
+	public bool TurnRepeatable => UsRepeatableType == UsRepeatableType.FreeToUse;
+
+	public bool BattleRepeatable
+	{
+		get
+		{
+			UsRepeatableType usRepeatableType = UsRepeatableType;
+			return usRepeatableType == UsRepeatableType.FreeToUse || usRepeatableType == UsRepeatableType.OncePerTurn;
+		}
+	}
+
+	public UsRepeatableType UsRepeatableType { get; set; }
+
+	public string GunName { get; protected set; }
+
+	public int PowerPerLevel => Config.PowerPerLevel;
+
+	public int MaxPowerLevel { get; set; }
+
+	[UsedImplicitly]
+	public virtual DamageInfo Damage => DamageInfo.Attack(Config.Damage, isAccuracy: true);
+
+	[UsedImplicitly]
+	public int Value1 => Config.Value1;
+
+	[UsedImplicitly]
+	public int Value2 => Config.Value2;
+
+	public string Title => LocalizeProperty("Title", decorated: false, required: false);
+
+	public string Content => LocalizeProperty("Content", decorated: false, required: false);
+
+	public bool TurnAvailable { get; internal set; }
+
+	public bool BattleAvailable { get; internal set; }
+
+	public bool Available
+	{
+		get
+		{
+			if (TurnAvailable)
+			{
+				return BattleAvailable;
+			}
+			return false;
+		}
+	}
+
+	public TargetType TargetType { get; protected set; }
+
+	public Unit PendingTarget
+	{
+		get
+		{
+			return _pendingTarget;
+		}
+		set
+		{
+			if (value != _pendingTarget)
+			{
+				_pendingTarget = value;
+				NotifyChanged();
+			}
+		}
+	}
+
+	protected override string LocalizeProperty(string key, bool decorated = false, bool required = true)
+	{
+		return TypeFactory<UltimateSkill>.LocalizeProperty(base.Id, key, decorated, required);
+	}
+
+	protected virtual IReadOnlyList<string> LocalizeListProperty(string key, bool required = true)
+	{
+		return TypeFactory<UltimateSkill>.LocalizeListProperty(base.Id, key, required);
+	}
+
+	public override void Initialize()
+	{
+		base.Initialize();
+		Config = UltimateSkillConfig.FromId(base.Id);
+		UsRepeatableType = Config.RepeatableType;
+		if (Config == null)
+		{
+			throw new InvalidDataException("Cannot find ultimate-skill config for <" + base.Id + ">");
+		}
+		MaxPowerLevel = Config.MaxPowerLevel;
+	}
+
+	internal override GameEntityFormatWrapper CreateFormatWrapper()
+	{
+		return new UsFormatWrapper(this);
+	}
+
+	internal IEnumerable<BattleAction> GetActions(UnitSelector selector, IList<DamageAction> damageActions)
+	{
+		if (selector.Type == TargetType.SingleEnemy)
+		{
+			PendingTarget = selector.SelectedEnemy;
+		}
+		foreach (BattleAction item2 in Actions(selector))
+		{
+			if (item2 is DamageAction item)
+			{
+				damageActions.Add(item);
+			}
+			yield return item2;
+		}
+		PendingTarget = null;
+	}
+
+	protected abstract IEnumerable<BattleAction> Actions(UnitSelector selector);
+
+	public IEnumerable<IDisplayWord> EnumerateDisplayWords(bool verbose)
+	{
+		return Library.InternalEnumerateDisplayWords(base.GameRun, Config.Keywords, Config.RelativeEffects, verbose);
+	}
+
+	public IEnumerable<Card> EnumerateRelativeCards()
+	{
+		IReadOnlyList<string> readOnlyList = Config.RelativeCards ?? Array.Empty<string>();
+		foreach (string item in readOnlyList)
+		{
+			Card card;
+			if (item.Last() == '+')
+			{
+				string text = item;
+				card = Library.CreateCard(text.Substring(0, text.Length - 1));
+				card.Upgrade();
+			}
+			else
+			{
+				card = Library.CreateCard(item);
+			}
+			card.GameRun = base.GameRun;
+			yield return card;
+		}
+	}
+}

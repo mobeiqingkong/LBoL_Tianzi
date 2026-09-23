@@ -8,7 +8,6 @@ using LBoL.Core.Cards;
 using LBoL.Core.Units;
 using LBoLEntitySideloader.Attributes;
 using TianziMod.StatusEffects;
-using UnityEngine;
 
 namespace TianziMod.TianziUlt
 {
@@ -22,7 +21,7 @@ namespace TianziMod.TianziUlt
             config.PowerPerLevel = 100;
             config.MaxPowerLevel = 2;
             config.Damage = 45;
-            config.Value1 = 10; // 每场战斗首次额外一段伤害
+            config.Value1 = 10; // 每场战斗首次额外伤害（合并进同一段）
             config.Value2 = 3; // 天气持续回合
             config.Keywords = Keyword.Accuracy;
             config.RelativeEffects = new List<string>()
@@ -53,39 +52,36 @@ namespace TianziMod.TianziUlt
             base.GunName = TianziMod.GunName.GunNameID.GetGunFromId(511);
         }
 
+        public override DamageInfo Damage
+        {
+            get
+            {
+                int amount = base.Config.Damage;
+                if (!this._usedInThisBattle)
+                    amount += base.Value1;
+                return DamageInfo.Attack(amount, true);
+            }
+        }
+
         protected override IEnumerable<BattleAction> Actions(UnitSelector selector)
         {
             // 彩符「天穹虹华之剑」
-            // 随机释放一种天气（持续 3 回合），并对目标造成 45 点伤害（每场首次 55 点）。
+            // 随机释放一种天气（持续 3 回合），并对目标造成一段伤害（本场首次 +Value1）。
             foreach (BattleAction action in TianziWeather.ApplyRandom(base.Battle.Player, base.Value2))
                 yield return action;
 
-            int extra = this._usedInThisBattle ? 0 : base.Value1;
+            DamageInfo damage = this.Damage;
             this._usedInThisBattle = true;
-
-            float mistMult = base.Battle.Player.GetStatusEffect<TianziWeatherMist>() != null ? 1.25f : 1f;
-            int mainDamage = Mathf.RoundToInt(base.Config.Damage * mistMult);
-            int extraDamage = extra > 0 ? Mathf.RoundToInt(extra * mistMult) : 0;
 
             foreach (Unit enemy in selector.GetUnits(base.Battle))
             {
                 yield return new DamageAction(
                     base.Owner,
                     enemy,
-                    DamageInfo.Attack(mainDamage, true),
+                    damage,
                     base.GunName,
                     GunType.Single
                 );
-                if (extraDamage > 0)
-                {
-                    yield return new DamageAction(
-                        base.Owner,
-                        enemy,
-                        DamageInfo.Attack(extraDamage, true),
-                        base.GunName,
-                        GunType.Single
-                    );
-                }
             }
             yield break;
         }

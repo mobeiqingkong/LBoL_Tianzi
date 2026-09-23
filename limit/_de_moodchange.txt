@@ -1,0 +1,58 @@
+using System.Collections.Generic;
+using LBoL.Base.Extensions;
+using LBoL.Core.StatusEffects;
+using LBoL.Core.Units;
+
+namespace LBoL.Core.Battle.BattleActions;
+
+public class MoodChangeAction : EventBattleAction<MoodChangeEventArgs>
+{
+	private sealed class MoodChangeAchievementCounter : ICustomCounter
+	{
+		private int _counter;
+
+		public CustomCounterResetTiming AutoResetTiming => CustomCounterResetTiming.PlayerTurnStart;
+
+		public void Increase(BattleController battle)
+		{
+			_counter++;
+			if (_counter >= 7 && battle.GameRun.IsAutoSeed && battle.GameRun.JadeBoxes.Empty())
+			{
+				battle.GameRun.AchievementHandler.UnlockAchievement(AchievementKey.MoodChange);
+			}
+		}
+
+		public void Reset(BattleController battle)
+		{
+			_counter = 0;
+		}
+	}
+
+	public MoodChangeAction(Unit unit, Mood before, Mood after)
+	{
+		base.Args = new MoodChangeEventArgs
+		{
+			Unit = unit,
+			BeforeMood = before,
+			AfterMood = after
+		};
+		if (base.Args.Unit == null)
+		{
+			base.Args.ForceCancelBecause(CancelCause.InvalidTarget);
+		}
+	}
+
+	internal override IEnumerable<Phase> GetPhases()
+	{
+		yield return CreateEventPhase("MoodChanging", base.Args, base.Args.Unit.MoodChanging);
+		if (base.Args.BeforeMood != null)
+		{
+			yield return CreatePhase("LeaveMood", delegate
+			{
+				React(new RemoveStatusEffectAction(base.Args.BeforeMood));
+			});
+		}
+		base.Battle.IncreaseCounter<MoodChangeAchievementCounter>();
+		yield return CreateEventPhase("MoodChanged", base.Args, base.Args.Unit.MoodChanged);
+	}
+}

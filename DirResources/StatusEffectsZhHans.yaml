@@ -15,9 +15,9 @@ TianziRegenSe:
 TianziWeatherClear:
   Name: 快晴
   Description: |-
-    回合开始时，随机一张卡牌的费用减少{Mana}。
+    回合开始时，随机一张卡牌的费用暂时减少{Mana}。
     {OwnerName}的|闪避|不会在回合开始时消失。
-  Brief: "回合开始时，随机一张牌费用减少{Mana}；|闪避|不会消失。"
+  Brief: "回合开始时，随机一张牌费用暂时减少{Mana}；|闪避|不会消失。"
 
 TianziWeatherMist:
   Name: 雾雨
@@ -34,8 +34,8 @@ TianziWeatherCloud:
 TianziWeatherAzure:
   Name: 苍天
   Description: |-
-    {OwnerName}获得 |e:7| 点<sprite="Point" name="Power">。
-  Brief: "获得 |e:7| 点<sprite=\"Point\" name=\"Power\">。"
+    回合开始时，{OwnerName}获得 |e:7| 点<sprite="Point" name="Power">。
+  Brief: "回合开始时，获得 |e:7| 点<sprite=\"Point\" name=\"Power\">。"
 
 TianziWeatherHail:
   Name: 雹
@@ -52,8 +52,8 @@ TianziWeatherFog:
 TianziWeatherTyphoon:
   Name: 台风
   Description: |-
-    对手无法获得|格挡|或|护盾|。
-  Brief: 对手无法获得|格挡|或|护盾|。
+    所有敌人无法获得|格挡|或|护盾|。
+  Brief: 所有敌人无法获得|格挡|或|护盾|。
 
 TianziWeatherCalm:
   Name: 无风

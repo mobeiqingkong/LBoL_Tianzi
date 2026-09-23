@@ -18,27 +18,25 @@ namespace TianziMod.Patches
     internal static class TianziBossRouteInitBossPatch
     {
         /// <summary>
-        /// 开局就会给所有幕抽样 Boss，此时还没有第一幕展品。
-        /// 二幕默认从池中去掉原版天子；选到展品后再强制写回。
+        /// 开局就会给所有幕抽样 Boss。二幕默认去掉原版天子；
+        /// 模组天子再保险：抽完若仍是原版天子则重抽。
         /// </summary>
         static void Prefix(Stage __instance)
         {
+            if (__instance.Level == 1)
+                TianziBossRoute.ResetKeepsake();
+
             if (__instance.Level != 2)
                 return;
-            RemoveBossFromPool(__instance.BossPool, TianziBossRoute.VanillaAct2BossGroupId);
+            TianziBossRoute.RemoveBossFromPool(
+                __instance.BossPool, TianziBossRoute.VanillaAct2BossGroupId);
         }
 
-        private static void RemoveBossFromPool(object pool, string groupId)
+        static void Postfix(Stage __instance)
         {
-            if (pool == null)
+            if (__instance.Level != 2)
                 return;
-            MethodInfo remove = pool.GetType().GetMethod(
-                "Remove",
-                BindingFlags.Public | BindingFlags.Instance,
-                null,
-                new[] { typeof(string) },
-                null);
-            remove?.Invoke(pool, new object[] { groupId });
+            TianziBossRoute.EnsureNoVanillaTianziForModPlayer(__instance.GameRun);
         }
     }
 
@@ -139,18 +137,20 @@ namespace TianziMod.Patches
     {
         static void Postfix(Exhibit __instance)
         {
-            if (__instance is TianziExhibitA || __instance is TianziExhibitB)
-            {
-                // 拿到展品后立刻把二幕 Boss 改成原版天子
-                TianziBossRoute.ApplyAct2BossOverride(__instance.GameRun);
-            }
+            // 必须是第一幕自订天子 Boss 掉落这次选择
+            if (!TianziBossRoute.AwaitingBossExhibitPick)
+                return;
 
-            if (TianziBossRoute.AwaitingBossExhibitPick)
-                TianziBossRoute.AwaitingBossExhibitPick = false;
+            TianziBossRoute.AwaitingBossExhibitPick = false;
+            if (!(__instance is TianziExhibitA) && !(__instance is TianziExhibitB))
+                return;
+
+            TianziBossRoute.KeepsakeTaken = true;
+            TianziBossRoute.ApplyAct2BossOverride(__instance.GameRun);
         }
     }
 
-    /// <summary>进入二幕建图前覆盖 Boss（CreateMap 会读 Boss.Id）。</summary>
+    /// <summary>进入二幕建图前覆盖/规避 Boss（CreateMap 会读 Boss.Id）。</summary>
     [HarmonyPatch(typeof(GameRunController), "EnterStage", typeof(int))]
     internal static class TianziBossRouteEnterStagePatch
     {
@@ -158,34 +158,42 @@ namespace TianziMod.Patches
         {
             if (__instance.Stages == null || index < 0 || index >= __instance.Stages.Count)
                 return;
-            if (__instance.Stages[index].Level == 2)
-                TianziBossRoute.ApplyAct2BossOverride(__instance);
+            if (__instance.Stages[index].Level != 2)
+                return;
+            TianziBossRoute.ApplyAct2BossOverride(__instance);
         }
     }
 
-    [HarmonyPatch(typeof(GameDirector), nameof(GameDirector.EnemyDebutAnimation), typeof(EnemyUnit))]
+    [HarmonyPatch(typeof(UnitView), nameof(UnitView.DebutAnimation))]
     internal static class TianziBossDebutChatPatch
     {
-        static void Postfix(EnemyUnit enemy)
+        static void Postfix(UnitView __instance)
         {
-            if (enemy == null || enemy.GameRun == null || enemy.GameRun.CurrentStage == null)
+            Unit unit = __instance.Unit;
+            if (!(unit is EnemyUnit enemy))
+                return;
+            if (enemy.GameRun == null || enemy.GameRun.CurrentStage == null)
                 return;
             if (enemy.GameRun.CurrentStage.Level != 2)
                 return;
-            if (!TianziBossRoute.ShouldForceAct2Boss(enemy.GameRun))
+            // 只有第一幕自订天子掉落选了专属展品才说话
+            if (!TianziBossRoute.KeepsakeTaken)
                 return;
 
-            // 二幕原版天子登场台词
-            if (!(enemy is Tianzi) && !(enemy is TianziChapterBoss))
+            // 二幕原版天子 Id 为 "Tianzi"
+            bool isVanillaTianzi = enemy.Id == TianziBossRoute.VanillaAct2BossGroupId || enemy is Tianzi;
+            bool isChapterTianzi = enemy is TianziChapterBoss;
+            if (!isVanillaTianzi && !isChapterTianzi)
                 return;
 
-            string chat = enemy is TianziChapterBoss chapter
-                ? chapter.KeepsakeDebutChat
+            string chat = isChapterTianzi
+                ? ((TianziChapterBoss)enemy).KeepsakeDebutChat
                 : "把我的道具还给我！";
+            if (string.IsNullOrEmpty(chat))
+                chat = "把我的道具还给我！";
 
-            UnitView view = enemy.GetView<UnitView>();
-            if (view != null)
-                view.Chat(chat, 3.2f, ChatWidget.CloudType.RightTalk, 0.35f);
+            // 等登场动画再出字，避免被 debut 清掉
+            __instance.Chat(chat, 3.5f, ChatWidget.CloudType.RightTalk, 1.2f);
         }
     }
 }
