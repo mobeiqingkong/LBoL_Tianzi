@@ -484,10 +484,6 @@ TianziKarmaCurseChoice:
   Name: 诅咒
   Description: 触发诅咒或状态|因果|。
 
-TianziSplash:
-  Name: 水花
-  Description: 抽 |e:1| 张牌。
-
 TianziIkuFriend:
   Name: 龙宫使者衣玖
   Description: "{FriendP}|f:占卜 {Scry}。直到自己的回合开始之前获得 {Value2} 层电击。|"

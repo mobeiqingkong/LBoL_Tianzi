@@ -8,6 +8,7 @@ using LBoL.Core.Battle.Interactions;
 using LBoL.Core.Cards;
 using LBoL.Core.StatusEffects;
 using LBoL.Core.Units;
+using LBoL.EntityLib.Cards.Neutral.NoColor;
 using LBoL.EntityLib.StatusEffects.Basic;
 using LBoLEntitySideloader.Attributes;
 using TianziMod.Cards.Template;
@@ -30,7 +31,7 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.Keywords = Keyword.Exile | Keyword.Echo;
             config.UpgradedKeywords = Keyword.None;
-            config.RelativeCards = new List<string>() { nameof(TianziSplash) };
+            config.RelativeCards = new List<string>() { nameof(UManaCard) };
             config.UpgradedRelativeCards = config.RelativeCards;
             config.RelativeEffects = new List<string>() { nameof(TianziParityKwSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
@@ -50,7 +51,7 @@ namespace TianziMod.Cards
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
-            yield return new AddCardsToHandAction(new Card[] { Library.CreateCard<TianziSplash>() });
+            yield return new AddCardsToHandAction(new Card[] { Library.CreateCard<UManaCard>() });
 
             // 先加水花再判奇偶：按当前手牌数，不能用 IsOddAtPlay（会再 +1 导致反了）
             bool odd;
