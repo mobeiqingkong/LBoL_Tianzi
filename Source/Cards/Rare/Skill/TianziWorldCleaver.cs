@@ -25,8 +25,7 @@ namespace TianziMod.Cards
         {
             CardConfig config = GetDefaultCardConfig();
             config.Colors = new List<ManaColor>() { ManaColor.White, ManaColor.Red };
-            // X 费最低需求不能含 Hybrid/Any：CanAfford 禁止把它们当作可用法力
-            config.Cost = new ManaGroup(){ Hybrid = 1};
+            config.Cost = new ManaGroup() { Red = 1 };
             config.IsXCost = true;
             config.Rarity = Rarity.Rare;
             config.Type = CardType.Skill;

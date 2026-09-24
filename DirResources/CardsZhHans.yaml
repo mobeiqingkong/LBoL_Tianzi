@@ -547,6 +547,11 @@ TianziHeavenDoor:
     根据|升级|的牌：攻击则将其复制加入手中，费用为 |e:0|，具有|放逐|、|虚无|；
     防御则获得 {Value2} 点|格挡|；技能则抽 |e:2| 张牌。
 
+TianziAyaNewsSp:
+  Name: 《文文新闻》天子特刊
+  Description: '|回合结束时|：失去 {Value1} 点|灵力|。'
+  FlavorText: 月都万象展特集！详细刊载了有关{PlayerName}的流言蜚语。
+
 TianziKarmaShackle:
   Name: 因果枷锁
   Description: |-

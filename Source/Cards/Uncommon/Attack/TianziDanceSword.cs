@@ -46,13 +46,17 @@ namespace TianziMod.Cards
     [EntityLogic(typeof(TianziDanceSwordDef))]
     public sealed class TianziDanceSword : TianziCard
     {
-        public static ManaGroup Mana1 = new ManaGroup() { White = 1 };
+        public ManaGroup Mana1
+        {
+            get { return new ManaGroup() { White = 1 }; }
+        }
+
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
-            bool paid = base.Battle.BattleMana.White >= 1;
+            bool paid = base.Battle.BattleMana.CanAfford(this.Mana1);
             if (paid)
-                yield return new LoseManaAction(new ManaGroup() { White = 1 });
+                yield return new LoseManaAction(this.Mana1);
             yield return base.AttackAction(selector);
             foreach (Unit enemy in selector.GetUnits(base.Battle))
             {

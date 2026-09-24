@@ -25,7 +25,7 @@ namespace TianziMod.Cards
             CardConfig config = GetDefaultCardConfig();
             config.Colors = new List<ManaColor>() { ManaColor.Red, ManaColor.Blue };
             config.Cost = new ManaGroup() { Red = 1, Blue = 1 };
-            config.UpgradedCost = new ManaGroup() { Hybrid = 1 };
+            config.UpgradedCost = ManaGroup.Hybrids(1, ManaColor.Red, ManaColor.Blue);
             config.Rarity = Rarity.Uncommon;
             config.Type = CardType.Friend;
             config.TargetType = TargetType.Self;

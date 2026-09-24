@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Reflection;
 using LBoL.Base;
 using LBoL.Core;
@@ -72,6 +73,71 @@ namespace TianziMod.Boss
                 if (stage != null && stage.Level == 2)
                     ForceBoss(stage, VanillaAct2BossGroupId);
             }
+        }
+
+        private static readonly MethodInfo EnumerateOpponentIdsMethod =
+            typeof(Library).GetMethod(
+                "EnumerateOpponentIds",
+                BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static);
+
+        /// <summary>
+        /// 一面选 Boss 走 GetOpponentCandidates：列出所有序章对手再抽 3 个，
+        /// 只排除与主角 Id 相同的单位。本模组 Boss 叫 TianziChapterBoss，对不上，要在这里拿掉并补一位。
+        /// </summary>
+        public static EnemyUnit[] FilterAct1Choices(GameRunController run, EnemyUnit[] opponents)
+        {
+            if (opponents == null || !IsModTianziPlayer(run))
+                return opponents;
+
+            bool hit = false;
+            for (int i = 0; i < opponents.Length; i++)
+            {
+                if (IsChapterBoss(opponents[i]))
+                {
+                    hit = true;
+                    break;
+                }
+            }
+            if (!hit)
+                return opponents;
+
+            List<EnemyUnit> kept = new List<EnemyUnit>();
+            HashSet<string> used = new HashSet<string> { ChapterBossGroupId };
+            string playerId = run.Player.Id;
+            for (int i = 0; i < opponents.Length; i++)
+            {
+                EnemyUnit enemy = opponents[i];
+                if (IsChapterBoss(enemy))
+                    continue;
+                kept.Add(enemy);
+                if (enemy != null)
+                    used.Add(enemy.Id);
+            }
+
+            IEnumerable<string> ids = EnumerateOpponentIdsMethod == null
+                ? null
+                : EnumerateOpponentIdsMethod.Invoke(null, null) as IEnumerable<string>;
+            if (ids != null)
+            {
+                foreach (string id in ids)
+                {
+                    if (kept.Count >= opponents.Length)
+                        break;
+                    if (id == ChapterBossGroupId || id == playerId || !used.Add(id))
+                        continue;
+                    EnemyUnit extra = Library.CreateEnemyUnit(id);
+                    if (extra != null)
+                        kept.Add(extra);
+                }
+            }
+
+            return kept.ToArray();
+        }
+
+        private static bool IsChapterBoss(EnemyUnit enemy)
+        {
+            return enemy != null && (enemy.Id == ChapterBossGroupId
+                || (enemy.Config != null && enemy.Config.Id == ChapterBossGroupId));
         }
 
         /// <summary>模组天子选一面 Boss 时，池中不出现本模组 Boss。</summary>

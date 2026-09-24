@@ -22,10 +22,7 @@ namespace TianziMod.Cards
             CardConfig config = GetDefaultCardConfig();
             config.Colors = new List<ManaColor>() { ManaColor.White, ManaColor.Red };
             config.Cost = new ManaGroup() { White = 1, Red = 1 };
-            // Card.Verify()：升级费用不得比原费用贵。
-            // 原写 {Any=1, White=1, Red=1} 是 3 点 > 原费 2 点 -> 启动时 throw，卡死主菜单。
-            // 升级语义改为「费用颜色解绑」：双色 1+1 -> 任意 2，总额不变、各色分量不上升。
-            config.UpgradedCost = new ManaGroup() { Hybrid = 1 };
+            config.UpgradedCost = ManaGroup.Hybrids(1, ManaColor.White, ManaColor.Red);
             config.Rarity = Rarity.Uncommon;
             config.Type = CardType.Ability;
             config.TargetType = TargetType.Self;

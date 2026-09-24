@@ -206,7 +206,8 @@ namespace TianziMod.StatusEffects
                 }
                 if (hand.Count > 0)
                 {
-                    Card discard = hand[base.GameRun.BattleRng.NextInt(0, hand.Count)];
+                    // NextInt 上界含端点，NextInt(0, Count) 会取到 Count
+                    Card discard = hand[base.GameRun.BattleRng.NextInt(0, hand.Count - 1)];
                     yield return new DiscardAction(discard);
                 }
             }
@@ -219,7 +220,7 @@ namespace TianziMod.StatusEffects
             if (pool.Amount <= 0)
                 yield break;
 
-            int roll = base.GameRun.BattleRng.NextInt(0, pool.Amount);
+            int roll = base.GameRun.BattleRng.NextInt(0, pool.Amount - 1);
             ManaColor[] order = new ManaColor[]
             {
                 ManaColor.White, ManaColor.Blue, ManaColor.Black, ManaColor.Red,

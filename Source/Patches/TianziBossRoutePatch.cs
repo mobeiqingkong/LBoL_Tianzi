@@ -8,6 +8,7 @@ using LBoL.Presentation.UI.Panels;
 using LBoL.Presentation.UI.Widgets;
 using LBoL.Presentation.Units;
 using TianziMod.Boss;
+using TianziMod.Cards;
 using TianziMod.Enemies;
 using TianziMod.Exhibits;
 using UnityEngine;
@@ -152,6 +153,32 @@ namespace TianziMod.Patches
         }
     }
 
+    /// <summary>一面三选一对手列表里拿掉本模组天子。</summary>
+    [HarmonyPatch(typeof(GameRunController), "GetOpponentCandidates")]
+    internal static class TianziAct1BossChoicePatch
+    {
+        static void Postfix(GameRunController __instance, ref EnemyUnit[] __result)
+        {
+            __result = TianziBossRoute.FilterAct1Choices(__instance, __result);
+        }
+    }
+
+    /// <summary>
+    /// InitBoss 时 Player 还没赋上，一面池里的模组天子滤不掉。
+    /// 等这局创建完成后再从一面 Boss 池拿掉。
+    /// </summary>
+    [HarmonyPatch(typeof(GameRunController), MethodType.Constructor, new System.Type[] { typeof(GameRunStartupParameters) })]
+    internal static class TianziBossRouteCreateRunPatch
+    {
+        static void Postfix(GameRunController __instance)
+        {
+            if (__instance.Stages == null)
+                return;
+            foreach (Stage stage in __instance.Stages)
+                TianziBossRoute.EnsureNoModBossForModPlayer(stage);
+        }
+    }
+
     /// <summary>进入二幕建图前覆盖/规避 Boss（CreateMap 会读 Boss.Id）。</summary>
     [HarmonyPatch(typeof(GameRunController), "EnterStage", typeof(int))]
     internal static class TianziBossRouteEnterStagePatch
@@ -160,7 +187,10 @@ namespace TianziMod.Patches
         {
             if (__instance.Stages == null || index < 0 || index >= __instance.Stages.Count)
                 return;
-            if (__instance.Stages[index].Level != 2)
+            Stage stage = __instance.Stages[index];
+            if (stage.Level == 1)
+                TianziBossRoute.EnsureNoModBossForModPlayer(stage);
+            if (stage.Level != 2)
                 return;
             TianziBossRoute.ApplyAct2BossOverride(__instance);
         }
@@ -196,6 +226,30 @@ namespace TianziMod.Patches
 
             // 等登场动画再出字，避免被 debut 清掉
             __instance.Chat(chat, 3.5f, ChatWidget.CloudType.RightTalk, 1.2f);
+        }
+    }
+
+    /// <summary>文文（以及同样塞特刊的龙）按主角塞报纸时，天子用天子特刊。</summary>
+    [HarmonyPatch]
+    internal static class TianziAyaNewsPatch
+    {
+        static IEnumerable<MethodBase> TargetMethods()
+        {
+            yield return AccessTools.Method(typeof(Aya), "OnEnterBattle");
+            yield return AccessTools.Method(typeof(Long), "OnEnterBattle");
+        }
+
+        static void Postfix(EnemyUnit __instance)
+        {
+            if (__instance == null || __instance.Battle == null || __instance.Battle.Player == null)
+                return;
+            if (__instance.Battle.Player.Id != BepinexPlugin.modUniqueID)
+                return;
+
+            PropertyInfo report = __instance.GetType().GetProperty(
+                "SpecialReport",
+                BindingFlags.Instance | BindingFlags.NonPublic);
+            report?.SetValue(__instance, typeof(TianziAyaNewsSp));
         }
     }
 }
