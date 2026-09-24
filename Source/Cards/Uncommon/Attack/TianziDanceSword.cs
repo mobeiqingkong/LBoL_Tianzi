@@ -46,6 +46,7 @@ namespace TianziMod.Cards
     [EntityLogic(typeof(TianziDanceSwordDef))]
     public sealed class TianziDanceSword : TianziCard
     {
+        public static ManaGroup Mana1 = new ManaGroup() { White = 1 };
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {

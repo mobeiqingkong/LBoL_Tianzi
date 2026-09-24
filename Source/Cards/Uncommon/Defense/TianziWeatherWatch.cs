@@ -18,13 +18,13 @@ namespace TianziMod.Cards
         {
             CardConfig config = GetDefaultCardConfig();
             config.Colors = new List<ManaColor>() { ManaColor.White };
-            config.Cost = new ManaGroup() { Any = 1, White = 1 };
+            config.Cost = new ManaGroup() { White = 1 };
             config.UpgradedCost = new ManaGroup() { Any = 1 };
             config.Rarity = Rarity.Uncommon;
             config.Type = CardType.Defense;
             config.TargetType = TargetType.Self;
-            config.Block = 7;
-            config.UpgradedBlock = 11;
+            config.Block = 8;
+            config.UpgradedBlock = 12;
             config.Value1 = 2;
             config.RelativeEffects = new List<string>()
             {

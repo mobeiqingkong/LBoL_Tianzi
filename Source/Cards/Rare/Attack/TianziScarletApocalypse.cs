@@ -24,13 +24,13 @@ namespace TianziMod.Cards
             config.GunName = GunNameID.GetGunFromId(7160);
             config.GunNameBurst = GunNameID.GetGunFromId(7160);
             config.Colors = new List<ManaColor>() { ManaColor.Red };
-            config.Cost = new ManaGroup() { Red = 3 };
-            config.UpgradedCost = new ManaGroup() { Red = 2 };
+            config.Cost = new ManaGroup() { Red = 2 };
+            config.UpgradedCost = new ManaGroup() { Red = 1, Any = 1};
             config.Rarity = Rarity.Rare;
             config.Type = CardType.Attack;
             config.TargetType = TargetType.SingleEnemy;
-            config.Damage = 15;
-            config.UpgradedDamage = 20;
+            config.Damage = 16;
+            config.UpgradedDamage = 24;
             config.Value1 = 1;
             config.Keywords = Keyword.Accuracy;
             config.UpgradedKeywords = Keyword.Accuracy;

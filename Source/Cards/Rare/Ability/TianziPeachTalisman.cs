@@ -28,14 +28,15 @@ namespace TianziMod.Cards
             CardConfig config = GetDefaultCardConfig();
 
             config.Colors = new List<ManaColor>() { ManaColor.White };
-            config.Cost = new ManaGroup() { Any = 3, White = 3 };
-            config.UpgradedCost = new ManaGroup() { Any = 2, White = 2 };
+            config.Cost = new ManaGroup() { Any = 2, White = 3 };
+            config.UpgradedCost = new ManaGroup() { Any = 4, White = 1 };
             config.Rarity = Rarity.Rare;
 
             config.Type = CardType.Ability;
             config.TargetType = TargetType.Self;
 
             config.Value1 = 3;
+            config.UpgradedValue1 = 5;
 
             config.RelativeEffects = new List<string>()
             {
@@ -65,10 +66,10 @@ namespace TianziMod.Cards
         )
         {
             yield return BuffAction<Invincible>(1, 1, 0, 0, 0.2f);
-            BattleAction temp = TianziTempHp.GainAction(base.Battle.Player, 3);
+            BattleAction temp = TianziTempHp.GainAction(base.Battle.Player, Value1);
             if (temp != null)
                 yield return temp;
-            yield return BuffAction<TianziPeachTalismanSe>(3, 0, 0, 0, 0.2f);
+            yield return BuffAction<TianziPeachTalismanSe>(Value1, 0, 0, 0, 0.2f);
             yield break;
         }
     }

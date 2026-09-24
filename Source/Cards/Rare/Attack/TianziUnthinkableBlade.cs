@@ -35,8 +35,8 @@ namespace TianziMod.Cards
             config.Type = CardType.Attack;
             config.TargetType = TargetType.SingleEnemy;
 
-            config.Damage = 18;
-            config.UpgradedDamage = 24;
+            config.Damage = 15;
+            config.UpgradedDamage = 20;
 
             config.Value1 = 2;
             config.UpgradedValue1 = 3;

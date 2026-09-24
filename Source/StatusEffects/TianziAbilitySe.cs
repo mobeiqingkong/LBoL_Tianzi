@@ -490,7 +490,7 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziPeachTalismanSeDef))]
     public sealed class TianziPeachTalismanSe : StatusEffect
     {
-        public const int Interval = 4;
+        public const int Interval = 3;
 
         protected override void OnAdded(Unit unit)
         {

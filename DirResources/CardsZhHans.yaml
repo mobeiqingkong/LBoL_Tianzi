@@ -179,7 +179,7 @@ TianziOverwhelming:
 TianziDanceSword:
   Name: 环舞之剑
   Description: |-
-    立刻扣除 |e:1| 点白色法力（仅白色）。
+    立刻扣除 |e:1| 点{Mana1}。
     造成 {Damage} 点伤害。
     施加 {Value1} 回合|虚弱|。
     下回合获得{Mana}，抽 |e:1| 张牌；若未能扣除法力则不会获得费用。
@@ -435,7 +435,7 @@ TianziPeachTalisman:
   Name: 桃符「固若金汤的仙桃」
   Description: |-
     获得 |e:1| 回合|天衣无缝|和 {Value1} 点|绝壁|。
-    每 |e:4| 个自然回合结束后，下回合开始时再次触发上述效果。
+    每 |e:3| 个自然回合结束后，下回合开始时再次触发上述效果。
   FlavorText: 桃符贴在门框上，连天狗的团扇都敲不开。
 
 TianziMortalJourney:
