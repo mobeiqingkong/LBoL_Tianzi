@@ -40,7 +40,7 @@ namespace TianziMod.Cards
             config.UpgradedShield = 6;
             config.Value1 = 2; // 最多放逐张数
 
-            config.Keywords = Keyword.Exile | Keyword.Echo;
+            config.Keywords = Keyword.Exile;
             config.UpgradedKeywords = Keyword.Exile | Keyword.Echo;
 
             config.Illustrator = "";

@@ -28,7 +28,7 @@ namespace TianziMod.Cards
             config.Rarity = Rarity.Uncommon;
             config.Type = CardType.Ability;
             config.TargetType = TargetType.Self;
-            config.Keywords = Keyword.Initial | Keyword.Replenish;
+            config.Keywords = Keyword.None;
             config.UpgradedKeywords = Keyword.Initial | Keyword.Replenish;
             config.Mana = new ManaGroup() { Philosophy = 1 };
             config.UpgradedMana = new ManaGroup() { Philosophy = 1 };

@@ -26,7 +26,7 @@ namespace TianziMod.Cards
             config.Rarity = Rarity.Uncommon;
             config.Type = CardType.Ability;
             config.TargetType = TargetType.Self;
-            config.Keywords = Keyword.Initial;
+            config.Keywords = Keyword.None;
             config.UpgradedKeywords = Keyword.Initial;
             config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
