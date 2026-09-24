@@ -42,8 +42,8 @@ namespace TianziMod.Cards
             config.UpgradedValue1 = 3;
             config.Mana = new ManaGroup() { Any = 1 };
 
-            config.Keywords = Keyword.Accuracy;
-            config.UpgradedKeywords = Keyword.Accuracy;
+            config.Keywords = Keyword.Accuracy | Keyword.Exile;
+            config.UpgradedKeywords = Keyword.Accuracy | Keyword.Exile;
 
             List<string> effects = new List<string>()
             {
