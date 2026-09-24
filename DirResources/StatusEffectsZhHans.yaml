@@ -53,13 +53,14 @@ TianziWeatherTyphoon:
   Name: 台风
   Description: |-
     所有敌人无法获得|格挡|或|护盾|。
-  Brief: 所有敌人无法获得|格挡|或|护盾|。
+    立刻清除所有敌人已有的|格挡|和|护盾|。
+  Brief: 敌人无法获得|格挡|或|护盾|，并清除已有的。
 
-TianziWeatherCalm:
-  Name: 无风
+TianziWeatherSun:
+  Name: 烈日
   Description: |-
-    最后一次造成未被格挡伤害的单位获得 |e:2| 层|自愈|。{PlayerName}受到未被格挡伤害的话，自愈会转移给对手，自愈也会提高1层。
-  Brief: 造成未被格挡伤害的一方获得|自愈|。
+    每个敌人回合结束时，失去最大生命值的 |e:1|%。
+  Brief: 敌人回合结束时失去 |e:1|% 最大生命值。
 
 TianziPeachBoostSe:
   Name: 仙桃增幅
@@ -133,9 +134,9 @@ TianziMeditationSe:
 TianziEnduranceSe:
   Name: 天人的耐性
   Description: |-
-    {OwnerName}回合开始时通过|保留格挡|保留上回合至多 |e:10| 点|格挡|，
+    {OwnerName}回合开始时获得 |e:10| 点|格挡|，
     并获得 |e:1| 点|灵力|（最多累计 |e:3| 点）。
-  Brief: 保留至多|e:10|格挡并获得|灵力|。
+  Brief: 回合开始获得|e:10|格挡和|灵力|。
 TianziPureWishSe:
   Name: 清霖之愿
   Description: |-

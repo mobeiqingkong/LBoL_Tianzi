@@ -72,6 +72,16 @@ namespace TianziMod.Patches
             bar.TweenHp(unit.Hp, unit.MaxHp, unit.Shield, unit.Block, instant: true);
         }
 
+        public static void RefreshBadge(HealthBar bar)
+        {
+            if (bar == null)
+                return;
+            Transform badge = FindNamed(bar.transform, BadgeName);
+            if (badge == null || !badge.gameObject.activeSelf)
+                return;
+            PlaceBadgeBesideDefense(bar, badge);
+        }
+
         public static void UpdateBadge(HealthBar bar, int temp)
         {
             Transform badge = EnsureBadge(bar);
@@ -107,10 +117,16 @@ namespace TianziMod.Patches
             if (badgeRt == null || blockRt == null)
                 return;
 
+            // 格挡归零后父节点还会淡出约 0.2 秒，不能用 active 判断，否则绝壁会停在旧位置
+            int blockVal = tr.Field("_block").GetValue<int>();
+            int shieldVal = tr.Field("_shield").GetValue<int>();
+            bool hasBlock = blockVal > 0;
+            bool hasShield = shieldVal > 0;
+
             RectTransform anchorRt = blockRt;
-            if (blockParent.gameObject.activeInHierarchy)
+            if (hasBlock)
                 anchorRt = blockRt;
-            else if (shieldParent != null && shieldParent.gameObject.activeInHierarchy)
+            else if (hasShield && shieldParent != null)
                 anchorRt = shieldParent as RectTransform ?? blockRt;
 
             badgeRt.anchorMin = anchorRt.anchorMin;
@@ -125,15 +141,10 @@ namespace TianziMod.Patches
 
             float gap = 2f;
             float width = Mathf.Max(anchorRt.rect.width, 1f);
-            if (blockParent.gameObject.activeInHierarchy ||
-                (shieldParent != null && shieldParent.gameObject.activeInHierarchy))
-            {
+            if (hasBlock || hasShield)
                 badgeRt.localPosition = anchorRt.localPosition + new Vector3(width + gap, 0f, 0f);
-            }
             else
-            {
                 badgeRt.localPosition = blockRt.localPosition;
-            }
         }
 
         /// <summary>
@@ -350,6 +361,27 @@ namespace TianziMod.Patches
             }
             for (int i = root.childCount - 1; i >= 0; i--)
                 CollectAndDedup(root.GetChild(i), name, ref keep);
+        }
+    }
+
+    /// <summary>
+    /// 格挡/护盾淡出结束后父节点才关闭，布局才会左移。绝壁数字要在那之后再摆一次。
+    /// </summary>
+    [HarmonyPatch(typeof(HealthBar), nameof(HealthBar.SetShield))]
+    internal static class HealthBarSetShieldPatch
+    {
+        private static void Postfix(HealthBar __instance)
+        {
+            if (TianziTempHpHud.TempOf(__instance) <= 0)
+                return;
+            TianziTempHpHud.RefreshBadge(__instance);
+            string delayId = "TianziTempBadge" + __instance.GetInstanceID();
+            DOTween.Kill(delayId);
+            DOVirtual.DelayedCall(0.21f, delegate
+            {
+                if (__instance != null)
+                    TianziTempHpHud.RefreshBadge(__instance);
+            }).SetUpdate(isIndependentUpdate: true).SetId(delayId);
         }
     }
 

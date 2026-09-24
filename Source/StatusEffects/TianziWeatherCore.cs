@@ -114,7 +114,7 @@ namespace TianziMod.StatusEffects
             ids.Add(nameof(TianziWeatherHail));
             ids.Add(nameof(TianziWeatherFog));
             ids.Add(nameof(TianziWeatherTyphoon));
-            ids.Add(nameof(TianziWeatherCalm));
+            ids.Add(nameof(TianziWeatherSun));
             return ids;
         }
 
@@ -127,7 +127,7 @@ namespace TianziMod.StatusEffects
             Hail = 4,
             Fog = 5,
             Typhoon = 6,
-            Calm = 7,
+            Sun = 7,
         }
 
         /// <summary>移除当前所有天气，并随机施加一种新天气。</summary>
@@ -181,7 +181,7 @@ namespace TianziMod.StatusEffects
                 case Kind.Typhoon:
                     return new ApplyStatusEffectAction<TianziWeatherTyphoon>(owner, 0, duration, null, null, 0.2f);
                 default:
-                    return new ApplyStatusEffectAction<TianziWeatherCalm>(owner, 0, duration, null, null, 0.2f);
+                    return new ApplyStatusEffectAction<TianziWeatherSun>(owner, 0, duration, null, null, 0.2f);
             }
         }
 

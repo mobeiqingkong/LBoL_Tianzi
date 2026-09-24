@@ -21,11 +21,11 @@ namespace TianziMod.Cards
             CardConfig config = GetDefaultCardConfig();
             config.Colors = new List<ManaColor>() { ManaColor.White };
             config.Cost = new ManaGroup() { White = 3 };
-            config.UpgradedCost = new ManaGroup() { Any = 1, White = 1 };
+            config.UpgradedCost = new ManaGroup() { Any = 2, White = 1 };
             config.Rarity = Rarity.Uncommon;
             config.Type = CardType.Ability;
             config.TargetType = TargetType.Self;
-            config.RelativeEffects = new List<string>() { nameof(Spirit), nameof(TurnStartDontLoseBlock) };
+            config.RelativeEffects = new List<string>() { nameof(Spirit) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "";
             config.RelativeKeyword = Keyword.Block;
@@ -37,8 +37,7 @@ namespace TianziMod.Cards
 
 
     /// <summary>
-    /// 天人的耐性：回合开始时保留上回合至多 10 点格挡，
-    /// 并获得 1 点灵力（最多累计 3 点）。
+    /// 天人的耐性：回合开始时获得 10 点格挡，并获得 1 点灵力（最多累计 3 点）。
     /// </summary>
     [EntityLogic(typeof(TianziEnduranceDef))]
     public sealed class TianziEndurance : TianziCard

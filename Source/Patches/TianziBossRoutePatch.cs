@@ -190,9 +190,9 @@ namespace TianziMod.Patches
 
             string chat = isChapterTianzi
                 ? ((TianziChapterBoss)enemy).KeepsakeDebutChat
-                : "把我的道具还给我！";
+                : "把我的宝贝还给我！";
             if (string.IsNullOrEmpty(chat))
-                chat = "把我的道具还给我！";
+                chat = "把我的宝贝还给我！";
 
             // 等登场动画再出字，避免被 debut 清掉
             __instance.Chat(chat, 3.5f, ChatWidget.CloudType.RightTalk, 1.2f);

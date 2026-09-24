@@ -140,7 +140,7 @@ namespace TianziMod.StatusEffects
     }
 
     // ================================================================
-    //  天人的耐性：参考「保留格挡」，回合开始保留至多 10 点格挡；并获得灵力（最多 3）
+    //  天人的耐性：回合开始获得 10 点格挡，并获得 1 点灵力（最多 3）
     // ================================================================
     public sealed class TianziEnduranceSeDef : TianziStatusEffectTemplate
     {
@@ -151,7 +151,7 @@ namespace TianziMod.StatusEffects
             config.HasLevel = false;
             config.IsStackable = false;
             config.HasCount = true;
-            config.RelativeEffects = new List<string>() { nameof(TurnStartDontLoseBlock) };
+            config.RelativeEffects = new List<string>() { nameof(Spirit) };
             return config;
         }
     }
@@ -159,59 +159,28 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziEnduranceSeDef))]
     public sealed class TianziEnduranceSe : StatusEffect
     {
-        private const int MaxKeepBlock = 10;
+        private const int TurnBlock = 10;
+        private const int MaxSpirit = 3;
 
         protected override void OnAdded(Unit unit)
         {
-            // 回合结束时挂上「保留格挡」，跳过下回合开始的清空
-            base.ReactOwnerEvent<UnitEventArgs>(
-                base.Battle.Player.TurnEnding,
-                new EventSequencedReactor<UnitEventArgs>(this.OnTurnEnding)
-            );
-            // LoseBlockGraze 之后立刻把超额格挡削到 10
-            base.ReactOwnerEvent<UnitEventArgs>(
-                base.Battle.Player.TurnStarting,
-                new EventSequencedReactor<UnitEventArgs>(this.OnTurnStarting),
-                GameEventPriority.Highest
-            );
             base.ReactOwnerEvent<UnitEventArgs>(
                 base.Battle.Player.TurnStarted,
                 new EventSequencedReactor<UnitEventArgs>(this.OnTurnStarted)
             );
         }
 
-        private IEnumerable<BattleAction> OnTurnEnding(UnitEventArgs args)
-        {
-            if (base.Battle.BattleShouldEnd)
-                yield break;
-            if (base.Battle.Player.Block <= 0)
-                yield break;
-            TurnStartDontLoseBlock existing = base.Battle.Player.GetStatusEffect<TurnStartDontLoseBlock>();
-            if (existing != null)
-                yield break;
-            yield return new ApplyStatusEffectAction<TurnStartDontLoseBlock>(
-                base.Battle.Player, 1, null, null, null, 0.05f);
-        }
-
-        private IEnumerable<BattleAction> OnTurnStarting(UnitEventArgs args)
-        {
-            if (base.Battle.BattleShouldEnd)
-                yield break;
-            int block = base.Battle.Player.Block;
-            int excess = block - MaxKeepBlock;
-            if (excess <= 0)
-                yield break;
-            base.NotifyActivating();
-            yield return new LoseBlockShieldAction(base.Battle.Player, excess, 0);
-        }
-
         private IEnumerable<BattleAction> OnTurnStarted(UnitEventArgs args)
         {
-            if (base.Count < 3)
-            {
-                base.Count += 1;
-                yield return new ApplyStatusEffectAction<Spirit>(base.Battle.Player, 1, null, null, null, 0.1f);
-            }
+            if (base.Battle.BattleShouldEnd)
+                yield break;
+            base.NotifyActivating();
+            yield return new CastBlockShieldAction(
+                base.Battle.Player, base.Battle.Player, TurnBlock, 0, BlockShieldType.Direct, false);
+            if (base.Count >= MaxSpirit)
+                yield break;
+            base.Count += 1;
+            yield return new ApplyStatusEffectAction<Spirit>(base.Battle.Player, 1, null, null, null, 0.1f);
         }
     }
 

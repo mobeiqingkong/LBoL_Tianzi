@@ -34,6 +34,11 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziBossPeachSeDef))]
     public sealed class TianziBossPeachSe : StatusEffect
     {
+        public override string OverrideIconName
+        {
+            get { return nameof(FlatPeach); }
+        }
+
         protected override void OnAdded(Unit unit)
         {
             if (base.Level <= 0)
@@ -209,31 +214,35 @@ namespace TianziMod.StatusEffects
 
         private IEnumerable<BattleAction> LoseRandomMana()
         {
+            // 按当前每一滴费用等概率抽一点，而不是在“有的颜色”里等概率抽一种
             ManaGroup pool = base.Battle.BattleMana;
-            List<ManaColor> colors = new List<ManaColor>();
-            if (pool.White > 0) colors.Add(ManaColor.White);
-            if (pool.Blue > 0) colors.Add(ManaColor.Blue);
-            if (pool.Black > 0) colors.Add(ManaColor.Black);
-            if (pool.Red > 0) colors.Add(ManaColor.Red);
-            if (pool.Green > 0) colors.Add(ManaColor.Green);
-            if (pool.Colorless > 0) colors.Add(ManaColor.Colorless);
-            if (pool.Philosophy > 0) colors.Add(ManaColor.Philosophy);
-            if (colors.Count == 0)
+            if (pool.Amount <= 0)
                 yield break;
 
-            ManaColor pick = colors[base.GameRun.BattleRng.NextInt(0, colors.Count)];
-            ManaGroup lose = default(ManaGroup);
-            switch (pick)
+            int roll = base.GameRun.BattleRng.NextInt(0, pool.Amount);
+            ManaColor[] order = new ManaColor[]
             {
-                case ManaColor.White: lose = new ManaGroup() { White = 1 }; break;
-                case ManaColor.Blue: lose = new ManaGroup() { Blue = 1 }; break;
-                case ManaColor.Black: lose = new ManaGroup() { Black = 1 }; break;
-                case ManaColor.Red: lose = new ManaGroup() { Red = 1 }; break;
-                case ManaColor.Green: lose = new ManaGroup() { Green = 1 }; break;
-                case ManaColor.Colorless: lose = new ManaGroup() { Colorless = 1 }; break;
-                case ManaColor.Philosophy: lose = new ManaGroup() { Philosophy = 1 }; break;
+                ManaColor.White, ManaColor.Blue, ManaColor.Black, ManaColor.Red,
+                ManaColor.Green, ManaColor.Colorless, ManaColor.Philosophy,
+            };
+            ManaColor pick = ManaColor.White;
+            bool found = false;
+            foreach (ManaColor color in order)
+            {
+                int amount = pool.GetValue(color);
+                if (amount <= 0)
+                    continue;
+                if (roll < amount)
+                {
+                    pick = color;
+                    found = true;
+                    break;
+                }
+                roll -= amount;
             }
-            yield return new LoseManaAction(lose);
+            if (!found)
+                yield break;
+            yield return new LoseManaAction(ManaGroup.FromColor(pick, 1));
         }
     }
 

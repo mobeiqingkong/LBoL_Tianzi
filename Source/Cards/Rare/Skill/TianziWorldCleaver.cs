@@ -26,7 +26,7 @@ namespace TianziMod.Cards
             CardConfig config = GetDefaultCardConfig();
             config.Colors = new List<ManaColor>() { ManaColor.White, ManaColor.Red };
             // X 费最低需求不能含 Hybrid/Any：CanAfford 禁止把它们当作可用法力
-            config.Cost = new ManaGroup(){HybridColor = 0};
+            config.Cost = new ManaGroup(){ Hybrid = 1};
             config.IsXCost = true;
             config.Rarity = Rarity.Rare;
             config.Type = CardType.Skill;
@@ -79,17 +79,29 @@ namespace TianziMod.Cards
             if (x > n)
                 yield return new GainManaAction(new ManaGroup() { Philosophy = x - n });
 
-            HashSet<CardType> kinds = new HashSet<CardType>();
+            int attacks = 0;
+            int defenses = 0;
+            int skills = 0;
+            int junkKinds = 0;
             foreach (Card c in dumped)
-                kinds.Add(c.CardType);
+            {
+                if (c.CardType == CardType.Attack)
+                    attacks++;
+                else if (c.CardType == CardType.Defense)
+                    defenses++;
+                else if (c.CardType == CardType.Skill)
+                    skills++;
+                else if (c.CardType == CardType.Ability || c.CardType == CardType.Status || c.CardType == CardType.Misfortune)
+                    junkKinds++;
+            }
 
-            if (kinds.Contains(CardType.Attack))
-                yield return BuffAction<Firepower>(1, 0, 0, 0, 0.2f);
-            if (kinds.Contains(CardType.Defense))
-                yield return BuffAction<Spirit>(1, 0, 0, 0, 0.2f);
-            if (kinds.Contains(CardType.Skill))
-                yield return new GainManaAction(new ManaGroup() { Philosophy = 2 });
-            if (kinds.Contains(CardType.Ability) || kinds.Contains(CardType.Status) || kinds.Contains(CardType.Misfortune))
+            if (attacks > 0)
+                yield return BuffAction<Firepower>(attacks, 0, 0, 0, 0.2f);
+            if (defenses > 0)
+                yield return BuffAction<Spirit>(defenses, 0, 0, 0, 0.2f);
+            if (skills > 0)
+                yield return new GainManaAction(new ManaGroup() { Philosophy = 2 * skills });
+            if (junkKinds > 0)
             {
                 List<Card> junk = new List<Card>();
                 foreach (Card c in base.Battle.HandZone)

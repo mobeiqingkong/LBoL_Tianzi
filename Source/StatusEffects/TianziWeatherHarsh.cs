@@ -5,9 +5,11 @@ using LBoL.ConfigData;
 using LBoL.Core;
 using LBoL.Core.Battle;
 using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.Cards;
 using LBoL.Core.StatusEffects;
 using LBoL.Core.Units;
 using LBoLEntitySideloader.Attributes;
+using TianziMod.GunName;
 
 namespace TianziMod.StatusEffects
 {
@@ -140,7 +142,8 @@ namespace TianziMod.StatusEffects
         protected override void RegisterHooks()
         {
             this.HookAllEnemies();
-            this.StripEnemyBlockShield();
+            foreach (BattleAction action in this.ClearEnemyBlockShield())
+                this.React(action);
             base.ReactOwnerEvent<UnitEventArgs>(
                 base.Battle.EnemySpawned,
                 new EventSequencedReactor<UnitEventArgs>(this.OnEnemySpawned)
@@ -154,18 +157,19 @@ namespace TianziMod.StatusEffects
         private IEnumerable<BattleAction> OnEnemySpawned(UnitEventArgs args)
         {
             this.HookAllEnemies();
-            this.StripEnemyBlockShield();
-            yield break;
+            foreach (BattleAction action in this.ClearEnemyBlockShield())
+                yield return action;
         }
 
-        private void StripEnemyBlockShield()
+        private IEnumerable<BattleAction> ClearEnemyBlockShield()
         {
             foreach (EnemyUnit enemy in base.Battle.AllAliveEnemies)
             {
-                if (enemy == null)
+                if (enemy == null || !enemy.IsAlive)
                     continue;
-                if (enemy.Block > 0 || enemy.Shield > 0)
-                    enemy.LoseBlockShield(enemy.Block, enemy.Shield);
+                if (enemy.Block <= 0 && enemy.Shield <= 0)
+                    continue;
+                yield return new LoseBlockShieldAction(enemy, enemy.Block, enemy.Shield, false);
             }
         }
 
@@ -183,226 +187,64 @@ namespace TianziMod.StatusEffects
     }
 
     // ================================================================
-    //  无风：
-    //  · 刚出现的那个「主角回合周期」内：最后一次造成未被格挡生命伤害的单位
-    //    （含敌人）在下一次主角 TurnStarting 时获得 2 层自愈并立刻结算；
-    //  · 之后每次未被格挡伤害按转移逻辑（换手 +1）。
+    //  烈日：每个敌人回合结束时，扣除其 1% 最大生命值
     // ================================================================
-    public sealed class TianziWeatherCalmDef : TianziStatusEffectTemplate
+    public sealed class TianziWeatherSunDef : TianziStatusEffectTemplate
     {
         public override StatusEffectConfig MakeConfig() { return TianziWeather.BaseConfig(); }
     }
 
-    /// <summary>战斗内「未被格挡生命伤害」最后一击记录（供无风首回合判定）。</summary>
-    public static class TianziUnblockedHit
+    [EntityLogic(typeof(TianziWeatherSunDef))]
+    public sealed class TianziWeatherSun : TianziWeatherSeBase
     {
-        private static BattleController _battle;
-        private static Unit _dealer;
-        private static int _turn;
+        private readonly List<EnemyUnit> _hooked = new List<EnemyUnit>();
 
-        public static void Ensure(BattleController battle)
+        private void HookEnemy(EnemyUnit enemy)
         {
-            if (battle == null || battle.Player == null)
+            if (enemy == null || this._hooked.Contains(enemy))
                 return;
-            if (_battle == battle)
-                return;
-            _battle = battle;
-            _dealer = null;
-            _turn = -1;
-            battle.Player.DamageReceived.AddHandler(
-                new GameEventHandler<DamageEventArgs>(OnDamageReceived),
-                GameEventPriority.Lowest);
-            battle.EnemySpawned.AddHandler(
-                new GameEventHandler<UnitEventArgs>(OnEnemySpawned),
-                GameEventPriority.Lowest);
-            foreach (EnemyUnit enemy in battle.AllAliveEnemies)
-                HookEnemy(enemy);
-            battle.Player.TurnStarting.AddHandler(
-                new GameEventHandler<UnitEventArgs>(OnTurnStarting),
-                GameEventPriority.Lowest);
-        }
-
-        private static void OnEnemySpawned(UnitEventArgs args)
-        {
-            HookEnemy(args.Unit as EnemyUnit);
-        }
-
-        private static void HookEnemy(EnemyUnit enemy)
-        {
-            if (enemy == null)
-                return;
-            enemy.DamageReceived.AddHandler(
-                new GameEventHandler<DamageEventArgs>(OnDamageReceived),
-                GameEventPriority.Lowest);
-        }
-
-        private static void OnTurnStarting(UnitEventArgs args)
-        {
-            // 跨回合后旧记录失效（首回合判定用「施加当回合周期」内的命中）
-        }
-
-        private static void OnDamageReceived(DamageEventArgs args)
-        {
-            if (_battle == null || args == null)
-                return;
-            int hpHit = (int)Math.Round(args.DamageInfo.Damage, MidpointRounding.AwayFromZero);
-            if (hpHit <= 0)
-                return;
-            Unit dealer = args.Source;
-            if (dealer == null || !dealer.IsAlive)
-                return;
-            _dealer = dealer;
-            _turn = _battle.Player.TurnCounter;
-        }
-
-        /// <summary>记录一次命中（无风自身监听时同步写入）。</summary>
-        public static void Note(BattleController battle, Unit dealer)
-        {
-            if (battle == null || dealer == null || !dealer.IsAlive)
-                return;
-            Ensure(battle);
-            _dealer = dealer;
-            _turn = battle.Player.TurnCounter;
-        }
-
-        public static Unit Peek(BattleController battle)
-        {
-            if (battle == null || _dealer == null || !_dealer.IsAlive)
-                return null;
-            return _dealer;
-        }
-
-        public static void Clear()
-        {
-            _dealer = null;
-        }
-    }
-
-    [EntityLogic(typeof(TianziWeatherCalmDef))]
-    public sealed class TianziWeatherCalm : TianziWeatherSeBase
-    {
-        private readonly List<Unit> _hooked = new List<Unit>();
-        private Unit _holder;
-        /// <summary>刚施加后、尚未做「首回合最后一击→2 层」结算。</summary>
-        private bool _awaitInitialGrant = true;
-        private Unit _lastDealer;
-
-        private void HookUnit(Unit unit)
-        {
-            if (unit == null || this._hooked.Contains(unit))
-                return;
-            base.ReactOwnerEvent<DamageEventArgs>(
-                unit.DamageReceived,
-                new EventSequencedReactor<DamageEventArgs>(this.OnAnyDamageReceived)
+            base.ReactOwnerEvent<UnitEventArgs>(
+                enemy.TurnEnded,
+                new EventSequencedReactor<UnitEventArgs>(this.OnEnemyTurnEnded)
             );
-            this._hooked.Add(unit);
-        }
-
-        private void HookAll()
-        {
-            this.HookUnit(base.Battle.Player);
-            foreach (EnemyUnit enemy in base.Battle.AllAliveEnemies)
-                this.HookUnit(enemy);
+            this._hooked.Add(enemy);
         }
 
         protected override void RegisterHooks()
         {
-            TianziUnblockedHit.Ensure(base.Battle);
-            this.HookAll();
-            // 施加前同回合已造成的未被格挡伤害也算进「最后一次」
-            this._lastDealer = TianziUnblockedHit.Peek(base.Battle);
-            this._awaitInitialGrant = true;
+            foreach (EnemyUnit enemy in base.Battle.AllAliveEnemies)
+                this.HookEnemy(enemy);
             base.ReactOwnerEvent<UnitEventArgs>(
-                base.Battle.Player.TurnStarted,
-                new EventSequencedReactor<UnitEventArgs>(this.OnPlayerTurnStarted)
+                base.Battle.EnemySpawned,
+                new EventSequencedReactor<UnitEventArgs>(this.OnEnemySpawned)
             );
         }
 
-        private IEnumerable<BattleAction> OnPlayerTurnStarted(UnitEventArgs args)
+        private IEnumerable<BattleAction> OnEnemySpawned(UnitEventArgs args)
         {
-            this.HookAll();
+            this.HookEnemy(args.Unit as EnemyUnit);
             yield break;
         }
 
-        private IEnumerable<BattleAction> OnAnyDamageReceived(DamageEventArgs args)
+        private IEnumerable<BattleAction> OnEnemyTurnEnded(UnitEventArgs args)
         {
-            if (base.Battle.BattleShouldEnd)
+            EnemyUnit enemy = args.Unit as EnemyUnit;
+            if (base.Battle.BattleShouldEnd || enemy == null || !enemy.IsAlive || enemy.MaxHp <= 0)
                 yield break;
-            int hpHit = (int)Math.Round(args.DamageInfo.Damage, MidpointRounding.AwayFromZero);
-            if (hpHit <= 0)
+            int dmg = enemy.MaxHp / 100;
+            if (dmg <= 0)
                 yield break;
-            Unit dealer = args.Source;
-            if (dealer == null || !dealer.IsAlive)
-                yield break;
-
-            TianziUnblockedHit.Note(base.Battle, dealer);
-            this._lastDealer = dealer;
-
-            // 首回合周期内只记「最后一击」，等 TurnStarting 统一发 2 层
-            if (this._awaitInitialGrant)
-                yield break;
-
-            foreach (BattleAction action in this.ClaimRegen(dealer))
-                yield return action;
-        }
-
-        private IEnumerable<BattleAction> GrantInitial()
-        {
-            Unit gainer = this._lastDealer;
-            if (gainer == null || !gainer.IsAlive)
-                yield break;
-
-            foreach (Unit u in base.Battle.AllAliveUnits)
-            {
-                TianziRegenSe other = u.GetStatusEffect<TianziRegenSe>();
-                if (other != null)
-                    yield return new RemoveStatusEffectAction(other, true, 0.1f);
-            }
-
-            this._holder = gainer;
             base.NotifyActivating();
-            yield return new ApplyStatusEffectAction<TianziRegenSe>(gainer, 2, null, null, null, 0.1f);
-            yield return new HealAction(gainer, gainer, 2, HealType.Normal, 0.1f);
-        }
-
-        private IEnumerable<BattleAction> ClaimRegen(Unit gainer)
-        {
-            if (gainer == null)
-                yield break;
-
-            int carried = 0;
-            if (this._holder != null && this._holder.IsAlive)
-                carried = TianziRegen.Get(this._holder);
-
-            foreach (Unit u in base.Battle.AllAliveUnits)
-            {
-                TianziRegenSe other = u.GetStatusEffect<TianziRegenSe>();
-                if (other != null)
-                    yield return new RemoveStatusEffectAction(other, true, 0.1f);
-            }
-
-            int amount;
-            if (this._holder == gainer)
-                amount = carried > 0 ? carried : 2;
-            else
-                amount = carried > 0 ? carried + 1 : 2;
-
-            this._holder = gainer;
-            base.NotifyActivating();
-            yield return new ApplyStatusEffectAction<TianziRegenSe>(gainer, amount, null, null, null, 0.1f);
-            yield return new HealAction(gainer, gainer, amount, HealType.Normal, 0.1f);
+            yield return new DamageAction(
+                base.Battle.Player,
+                enemy,
+                DamageInfo.HpLose(dmg),
+                GunNameID.GetGunFromId(4540),
+                GunType.Single);
         }
 
         protected override IEnumerable<BattleAction> OnWeatherTurnStarting(UnitEventArgs args)
         {
-            // 首个主角回合周期结束时：把 2 层自愈给「最后一击」单位（可含敌人）
-            if (this._awaitInitialGrant)
-            {
-                this._awaitInitialGrant = false;
-                foreach (BattleAction action in this.GrantInitial())
-                    yield return action;
-            }
-
             foreach (BattleAction action in this.TickDuration())
                 yield return action;
         }
