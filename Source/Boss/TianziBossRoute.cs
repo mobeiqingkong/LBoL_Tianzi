@@ -74,6 +74,19 @@ namespace TianziMod.Boss
             }
         }
 
+        /// <summary>模组天子选一面 Boss 时，池中不出现本模组 Boss。</summary>
+        public static void EnsureNoModBossForModPlayer(Stage stage)
+        {
+            if (stage == null || stage.Level != 1 || !IsModTianziPlayer(stage.GameRun))
+                return;
+
+            RemoveBossFromPool(stage.BossPool, ChapterBossGroupId);
+            bool picked = (stage.Boss != null && stage.Boss.Id == ChapterBossGroupId)
+                || stage.SelectedBoss == ChapterBossGroupId;
+            if (picked)
+                RerollBoss(stage, stage.GameRun, ChapterBossGroupId);
+        }
+
         /// <summary>模组天子：二幕若抽到原版天子则重抽。</summary>
         public static void EnsureNoVanillaTianziForModPlayer(GameRunController run)
         {
@@ -87,7 +100,7 @@ namespace TianziMod.Boss
 
                 RemoveBossFromPool(stage.BossPool, VanillaAct2BossGroupId);
                 if (stage.Boss != null && stage.Boss.Id == VanillaAct2BossGroupId)
-                    RerollAct2Boss(stage, run);
+                    RerollBoss(stage, run, VanillaAct2BossGroupId);
             }
         }
 
@@ -113,17 +126,17 @@ namespace TianziMod.Boss
             remove?.Invoke(pool, new object[] { groupId });
         }
 
-        private static void RerollAct2Boss(Stage stage, GameRunController run)
+        private static void RerollBoss(Stage stage, GameRunController run, string excludeId)
         {
             RepeatableRandomPool<string> pool = stage.BossPool as RepeatableRandomPool<string>;
             if (pool == null)
                 return;
-            RemoveBossFromPool(pool, VanillaAct2BossGroupId);
-            RandomGen rng = run.RootRng ?? run.StationRng;
+            RemoveBossFromPool(pool, excludeId);
+            RandomGen rng = run == null ? null : (run.RootRng ?? run.StationRng);
             if (rng == null)
                 return;
             string id = pool.SampleOrDefault(rng);
-            if (!string.IsNullOrEmpty(id))
+            if (!string.IsNullOrEmpty(id) && id != excludeId)
                 ForceBoss(stage, id);
         }
     }

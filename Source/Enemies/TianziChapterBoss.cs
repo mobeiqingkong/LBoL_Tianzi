@@ -30,6 +30,8 @@ namespace TianziMod.Enemies
         private MoveKind _last = MoveKind.StatusGuard;
         private bool _altCycle;
         private bool _rainbowUsed;
+        private int _pendingVulnerable;
+        private int _pendingWeak;
 
         // Move yaml 顺序：0 要石浮游炮 / 1 天穹斩 / 2 因果之剑 / 3 防御 / 4 彩符
         private string MoveKeystone { get { return base.GetMove(0); } }
@@ -50,8 +52,11 @@ namespace TianziMod.Enemies
             this._last = MoveKind.StatusGuard;
             this._altCycle = false;
             this._rainbowUsed = false;
+            this._pendingVulnerable = 0;
+            this._pendingWeak = 0;
 
             base.ReactBattleEvent(battle.BattleStarted, this.OnBattleStarted);
+            base.ReactBattleEvent(battle.Player.TurnStarted, this.OnPlayerTurnStarted);
         }
 
         private IEnumerable<BattleAction> OnBattleStarted(GameEventArgs args)
@@ -179,14 +184,28 @@ namespace TianziMod.Enemies
                 yield return action;
         }
 
+        private IEnumerable<BattleAction> OnPlayerTurnStarted(UnitEventArgs args)
+        {
+            if (this._pendingVulnerable <= 0 && this._pendingWeak <= 0)
+                yield break;
+            int vulnerable = this._pendingVulnerable;
+            int weak = this._pendingWeak;
+            this._pendingVulnerable = 0;
+            this._pendingWeak = 0;
+            if (vulnerable > 0)
+                yield return new ApplyStatusEffectAction<Vulnerable>(
+                    base.Battle.Player, null, vulnerable, null, null, 0.1f);
+            if (weak > 0)
+                yield return new ApplyStatusEffectAction<Weak>(
+                    base.Battle.Player, null, weak, null, null, 0.1f);
+        }
+
         private IEnumerable<BattleAction> SkySlashDebuffActions()
         {
-            // N/H：易伤1 + 虚弱1；L：易伤1 + 虚弱2
-            int weakDur = base.Difficulty == GameDifficulty.Lunatic ? 2 : 1;
-            yield return new ApplyStatusEffectAction<Vulnerable>(
-                base.Battle.Player, null, 1, null, null, 0.1f);
-            yield return new ApplyStatusEffectAction<Weak>(
-                base.Battle.Player, null, weakDur, null, null, 0.1f);
+            // 负面改到玩家下回合开始时才获得。N/H：易伤1 + 虚弱1；L：易伤1 + 虚弱2
+            this._pendingVulnerable = 1;
+            this._pendingWeak = base.Difficulty == GameDifficulty.Lunatic ? 2 : 1;
+            yield break;
         }
 
         private IEnumerable<BattleAction> KarmaAttackActions()

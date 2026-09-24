@@ -32,8 +32,8 @@ namespace TianziMod.Cards
 
             config.Value1 = 5;
             config.UpgradedValue1 = 4;
-            config.Keywords = Keyword.Initial;
-            config.UpgradedKeywords = Keyword.Initial;
+            config.Keywords = Keyword.Initial | Keyword.Debut;
+            config.UpgradedKeywords = Keyword.Initial | Keyword.Debut;
 
             config.Illustrator = "";
             config.RelativeKeyword = Keyword.Exile | Keyword.Debut;
@@ -52,7 +52,6 @@ namespace TianziMod.Cards
     public sealed class TianziHeavenRoam : TianziCard
     {
         private int _plays;
-        private bool _debut = true;
 
         protected override void OnEnterBattle(BattleController battle)
         {
@@ -97,9 +96,8 @@ namespace TianziMod.Cards
             if (interaction != null && interaction.SelectedCards.Count > 0)
                 yield return new ExileCardAction(interaction.SelectedCards[0]);
             yield return new DrawManyCardAction(1);
-            if (this._debut)
+            if (this.IsDebut && this.DebutActive)
             {
-                this._debut = false;
                 yield return new AddCardsToHandAction(
                     new Card[] { Library.CreateCard<LBoL.EntityLib.Cards.Neutral.NoColor.WManaCard>() });
             }

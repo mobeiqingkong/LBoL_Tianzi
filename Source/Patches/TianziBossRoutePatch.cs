@@ -34,6 +34,8 @@ namespace TianziMod.Patches
 
         static void Postfix(Stage __instance)
         {
+            if (__instance.Level == 1)
+                TianziBossRoute.EnsureNoModBossForModPlayer(__instance);
             if (__instance.Level != 2)
                 return;
             TianziBossRoute.EnsureNoVanillaTianziForModPlayer(__instance.GameRun);
