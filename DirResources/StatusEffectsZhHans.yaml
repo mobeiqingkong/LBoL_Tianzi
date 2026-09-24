@@ -168,8 +168,8 @@ TianziHeavenlyTempoSe:
   Name: 天人永不落俗
   Description: |-
     奇数回合开始时获得 {Count} 点|火力|。
-    偶数回合开始时获得当前|火力|的 {Level} 倍的|格挡|。
-  Brief: 奇数|火力|，偶数|格挡|。
+    偶数回合开始时获得当前|火力|的 {Level} 倍|格挡|（至多 |e:25| 点）。
+  Brief: 奇数|火力|，偶数|格挡|至多 |e:25|。
 TianziPeachEternitySe:
   Name: “野生桃奶”
   Description: |-

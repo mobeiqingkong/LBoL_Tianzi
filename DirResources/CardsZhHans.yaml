@@ -337,12 +337,12 @@ TianziPeachBlossom:
 TianziHeavenlyTempo:
   Name: 天人永不落俗
   Description: |-
-    {PlayerName}的回合开始时，奇数回合获得 |e:1| 点|火力|；
-    偶数回合获得当前|火力|的 {Value1} 倍的|格挡|。
+    {PlayerName}的回合开始时，奇数回合获得 {Value1} 点|火力|；
+    偶数回合获得当前|火力|的 {Value2} 倍|格挡|（至多 |e:25| 点）。
   UpgradedDescription: |-
-    {PlayerName}的回合开始时，奇数回合获得 |e:1| 点|火力|；
-    偶数回合获得当前|火力|的 {Value1} 倍的|格挡|。
-    多次打出时，火力获取叠加，格挡倍数取更高者。
+    {PlayerName}的回合开始时，奇数回合获得 {Value1} 点|火力|；
+    偶数回合获得当前|火力|的 {Value2} 倍|格挡|（至多 |e:25| 点）。
+    多次打出时，火力获取叠加。
 
 TianziFinalBlade:
   Name: 终绝的一剑
