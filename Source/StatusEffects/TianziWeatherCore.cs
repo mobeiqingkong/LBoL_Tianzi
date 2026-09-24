@@ -101,6 +101,23 @@ namespace TianziMod.StatusEffects
     {
         public const int WeatherKindCount = 8;
 
+        /// <summary>卡面关联状态：全部天气种类。预报是「下回合才释放」时再带上。</summary>
+        public static List<string> RelativeIds(bool includeForecast)
+        {
+            List<string> ids = new List<string>();
+            if (includeForecast)
+                ids.Add(nameof(TianziWeatherForecastSe));
+            ids.Add(nameof(TianziWeatherClear));
+            ids.Add(nameof(TianziWeatherMist));
+            ids.Add(nameof(TianziWeatherCloud));
+            ids.Add(nameof(TianziWeatherAzure));
+            ids.Add(nameof(TianziWeatherHail));
+            ids.Add(nameof(TianziWeatherFog));
+            ids.Add(nameof(TianziWeatherTyphoon));
+            ids.Add(nameof(TianziWeatherCalm));
+            return ids;
+        }
+
         public enum Kind
         {
             Clear = 0,

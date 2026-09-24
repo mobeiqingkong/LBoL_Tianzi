@@ -24,17 +24,7 @@ namespace TianziMod.TianziUlt
             config.Value1 = 10; // 每场战斗首次额外伤害（合并进同一段）
             config.Value2 = 3; // 天气持续回合
             config.Keywords = Keyword.Accuracy;
-            config.RelativeEffects = new List<string>()
-            {
-                nameof(TianziWeatherClear),
-                nameof(TianziWeatherMist),
-                nameof(TianziWeatherCloud),
-                nameof(TianziWeatherAzure),
-                nameof(TianziWeatherHail),
-                nameof(TianziWeatherFog),
-                nameof(TianziWeatherTyphoon),
-                nameof(TianziWeatherCalm),
-            };
+            config.RelativeEffects = TianziWeather.RelativeIds(includeForecast: false);
             return config;
         }
     }
