@@ -58,7 +58,7 @@ TianziWeatherTyphoon:
 TianziWeatherCalm:
   Name: 无风
   Description: |-
-    最后一次造成未被格挡伤害的单位获得 |e:2| 层|自愈|。
+    最后一次造成未被格挡伤害的单位获得 |e:2| 层|自愈|。{PlayerName}受到未被格挡伤害的话，自愈会转移给对手，自愈也会提高1层。
   Brief: 造成未被格挡伤害的一方获得|自愈|。
 
 TianziPeachBoostSe:

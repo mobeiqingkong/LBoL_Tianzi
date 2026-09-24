@@ -110,9 +110,9 @@ TianziSecondSlash:
 TianziTemperamentSword:
   Name: 气质之剑
   Description: |-
-    造成 {Damage} 点伤害。
     |因果|：上一张打出的牌为攻击牌则施加 {Value1} 回合|易伤|；
     为防御或技能牌则施加 {Value1} 回合|虚弱|。
+    造成 {Damage} 点伤害。
 
 TianziScarletFlameWheel:
   Name: 绯焰射击

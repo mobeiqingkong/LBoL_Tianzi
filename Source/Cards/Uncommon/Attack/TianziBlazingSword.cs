@@ -53,6 +53,12 @@ namespace TianziMod.Cards
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
+            foreach (Unit enemy in selector.GetUnits(base.Battle))
+            {
+                if (!enemy.IsAlive)
+                    continue;
+                yield return base.DebuffAction<Vulnerable>(enemy, 1, base.Value1, 0, 0, true, 0.2f);
+            }
             // 额外支付的费用点数（不计颜色）：超出 X 费最低需求的每一费 +1 段
             int paid = consumingMana.Amount;
             int required = base.XCostRequiredMana.Amount;
@@ -63,12 +69,7 @@ namespace TianziMod.Cards
             base.CardGuns = new Guns(base.GunName, hits, true);
             foreach (GunPair gunPair in base.CardGuns.GunPairs)
                 yield return base.AttackAction(selector, gunPair);
-            foreach (Unit enemy in selector.GetUnits(base.Battle))
-            {
-                if (!enemy.IsAlive)
-                    continue;
-                yield return base.DebuffAction<Vulnerable>(enemy, 1, base.Value1, 0, 0, true, 0.2f);
-            }
+            
         }
     }
 }

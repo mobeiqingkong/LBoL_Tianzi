@@ -52,7 +52,7 @@ namespace TianziMod.Cards
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
-            yield return base.AttackAction(selector);
+            
 
             Card previous = this.PreviousPlayedCard;
             CardType kind = previous == null ? CardType.Unknown : previous.CardType;
@@ -73,6 +73,7 @@ namespace TianziMod.Cards
                 null,
                 null))
                 yield return action;
+            yield return base.AttackAction(selector);
         }
 
         private IEnumerable<BattleAction> DebuffAll(UnitSelector selector, bool vuln)
