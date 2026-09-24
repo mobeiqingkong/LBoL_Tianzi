@@ -1,0 +1,322 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using LBoL.ConfigData;
+using LBoL.Presentation.Units;
+using UnityEngine;
+
+namespace LBoL.Presentation.Bullet;
+
+public class Gun : MonoBehaviour
+{
+	public struct GunBulletStats
+	{
+		public int TotalBullets;
+
+		public int PeakPerFrame;
+	}
+
+	public bool BelongToPlayer { get; set; }
+
+	public UnitView Target { get; private set; }
+
+	public List<UnitView> Targets { get; private set; }
+
+	public int Id { get; private set; }
+
+	public string Name { get; private set; }
+
+	public string Spell { get; private set; }
+
+	public string Sequence { get; private set; }
+
+	public string Animation { get; private set; }
+
+	public float? ForceHitTime { get; private set; }
+
+	public bool ForceHitAnimation { get; private set; }
+
+	public float ForceHitAnimationSpeed { get; private set; }
+
+	public float? ForceShowEndStartTime { get; private set; }
+
+	public string Shooter { get; private set; }
+
+	public List<Piece> Pieces { get; } = new List<Piece>();
+
+
+	public float ShootEnd { get; set; }
+
+	public List<Launcher> Launchers { get; } = new List<Launcher>();
+
+
+	public List<Launcher> ChildLaunchers { get; } = new List<Launcher>();
+
+
+	public bool LastWaveHitFlag { get; private set; }
+
+	public bool NoPiece { get; private set; }
+
+	public float StartTime { get; set; }
+
+	public Vector2 ShootV2 { get; set; }
+
+	public bool HasAnimation { get; private set; }
+
+	public void SetGun(GunConfig config)
+	{
+		Id = config.Id;
+		Name = config.Name;
+		Spell = config.Spell;
+		Sequence = config.Sequence;
+		Animation = config.Animation;
+		ForceHitTime = config.ForceHitTime;
+		ForceHitAnimation = config.ForceHitAnimation;
+		ForceHitAnimationSpeed = config.ForceHitAnimationSpeed;
+		ForceShowEndStartTime = config.ForceShowEndStartTime;
+		Shooter = config.Shooter;
+		int num = Id * 100;
+		bool flag = false;
+		int num2 = 0;
+		for (int i = num; i < num + 100; i++)
+		{
+			PieceConfig pieceConfig = PieceConfig.FromId(i);
+			if (pieceConfig == null)
+			{
+				break;
+			}
+			num2++;
+			Piece item = new Piece(pieceConfig);
+			Pieces.Add(item);
+			if (pieceConfig.LastWave)
+			{
+				flag = true;
+			}
+		}
+		if (num2 == 0)
+		{
+			NoPiece = true;
+			if (!ForceHitTime.HasValue)
+			{
+				Debug.LogWarning("Gun has no piece: " + Name);
+			}
+		}
+		else if (!flag && !ForceHitTime.HasValue)
+		{
+			Debug.LogError("Gun has no LastWave: " + Name);
+		}
+		foreach (Piece piece in Pieces)
+		{
+			if (piece.ShootType == 0)
+			{
+				HasAnimation = true;
+				break;
+			}
+		}
+		foreach (Piece piece2 in Pieces)
+		{
+			if (piece2.ShootType == 2)
+			{
+				Piece pieceById = GetPieceById(piece2.ParentPiece);
+				if (pieceById == null)
+				{
+					throw new InvalidOperationException("Gun内没有对应的ParentPiece，GunId: " + Id);
+				}
+				pieceById.IsParentPieceType2 = true;
+				pieceById.ChildPiecesType2.Add(piece2);
+			}
+		}
+		foreach (Piece piece3 in Pieces)
+		{
+			if (piece3.ShootType == 3)
+			{
+				Piece pieceById2 = GetPieceById(piece3.ParentPiece);
+				if (pieceById2 == null)
+				{
+					throw new InvalidOperationException("Gun内没有对应的ParentPiece，GunId: " + Id);
+				}
+				pieceById2.IsParentPieceType3 = true;
+				pieceById2.ChildPiecesType3.Add(piece3);
+			}
+		}
+	}
+
+	public void Aim(bool belongToPlayer, UnitView target, List<UnitView> targets)
+	{
+		BelongToPlayer = belongToPlayer;
+		Target = target;
+		Targets = targets;
+	}
+
+	public void LastWaveHit()
+	{
+		LastWaveHitFlag = true;
+	}
+
+	public Piece GetPieceById(int id)
+	{
+		return Pieces.FirstOrDefault((Piece piece) => piece.Id == id);
+	}
+
+	public static GunBulletStats CalcBulletStats(GunConfig config)
+	{
+		int num = config.Id * 100;
+		List<PieceConfig> list = new List<PieceConfig>();
+		for (int i = num; i < num + 100; i++)
+		{
+			PieceConfig pieceConfig = PieceConfig.FromId(i);
+			if (pieceConfig == null)
+			{
+				break;
+			}
+			list.Add(pieceConfig);
+		}
+		Dictionary<int, int> dictionary = new Dictionary<int, int>();
+		foreach (PieceConfig item in list)
+		{
+			if (item.ShootType == 0 || item.ShootType == 1)
+			{
+				ProcessPieceMax(item, 1, dictionary, list);
+			}
+		}
+		int peakPerFrame = ((dictionary.Count > 0) ? dictionary.Values.Max() : 0);
+		float num2 = 0f;
+		foreach (PieceConfig item2 in list)
+		{
+			if (item2.ShootType == 0 || item2.ShootType == 1)
+			{
+				num2 += ProcessPieceAvg(item2, 1f, list);
+			}
+		}
+		GunBulletStats result = default(GunBulletStats);
+		result.TotalBullets = Mathf.RoundToInt(num2);
+		result.PeakPerFrame = peakPerFrame;
+		return result;
+	}
+
+	private static int ProcessPieceMax(PieceConfig pc, int multiplier, Dictionary<int, int> frameCounts, List<PieceConfig> allPieces)
+	{
+		int num = 0;
+		for (int i = 0; i < pc.Group; i++)
+		{
+			int num2 = MaxWayCount(pc.Way, i);
+			int key = pc.StartTime + i * pc.GInterval;
+			frameCounts.TryGetValue(key, out var value);
+			frameCounts[key] = value + num2 * multiplier;
+			num += num2;
+		}
+		int num3 = num * multiplier;
+		int num4 = 0;
+		foreach (PieceConfig allPiece in allPieces)
+		{
+			if (allPiece.Id / 100 * 100 + allPiece.ParentPiece == pc.Id)
+			{
+				if (allPiece.ShootType == 2)
+				{
+					num4 += ProcessPieceMax(allPiece, num3, frameCounts, allPieces);
+				}
+				else if (allPiece.ShootType == 3)
+				{
+					num4 += CountPieceMax(allPiece, num3, allPieces);
+				}
+			}
+		}
+		return num3 + num4;
+	}
+
+	private static int CountPieceMax(PieceConfig pc, int multiplier, List<PieceConfig> allPieces)
+	{
+		int num = 0;
+		for (int i = 0; i < pc.Group; i++)
+		{
+			num += MaxWayCount(pc.Way, i);
+		}
+		int num2 = num * multiplier;
+		foreach (PieceConfig allPiece in allPieces)
+		{
+			if (allPiece.Id / 100 * 100 + allPiece.ParentPiece == pc.Id && (allPiece.ShootType == 2 || allPiece.ShootType == 3))
+			{
+				num2 += CountPieceMax(allPiece, num2, allPieces);
+			}
+		}
+		return num2;
+	}
+
+	private static float ProcessPieceAvg(PieceConfig pc, float multiplier, List<PieceConfig> allPieces)
+	{
+		float num = 0f;
+		for (int i = 0; i < pc.Group; i++)
+		{
+			num += AvgPlus33WayCount(pc.Way, i);
+		}
+		float num2 = num * multiplier;
+		float num3 = 0f;
+		foreach (PieceConfig allPiece in allPieces)
+		{
+			if (allPiece.Id / 100 * 100 + allPiece.ParentPiece == pc.Id)
+			{
+				if (allPiece.ShootType == 2)
+				{
+					num3 += ProcessPieceAvg(allPiece, num2, allPieces);
+				}
+				else if (allPiece.ShootType == 3)
+				{
+					num3 += CountPieceAvg(allPiece, num2, allPieces);
+				}
+			}
+		}
+		return num2 + num3;
+	}
+
+	private static float CountPieceAvg(PieceConfig pc, float multiplier, List<PieceConfig> allPieces)
+	{
+		float num = 0f;
+		for (int i = 0; i < pc.Group; i++)
+		{
+			num += AvgPlus33WayCount(pc.Way, i);
+		}
+		float num2 = num * multiplier;
+		foreach (PieceConfig allPiece in allPieces)
+		{
+			if (allPiece.Id / 100 * 100 + allPiece.ParentPiece == pc.Id && (allPiece.ShootType == 2 || allPiece.ShootType == 3))
+			{
+				num2 += CountPieceAvg(allPiece, num2, allPieces);
+			}
+		}
+		return num2;
+	}
+
+	private static int MaxWayCount(int[][] way, int groupId)
+	{
+		if (way == null || way.Length == 0)
+		{
+			return 1;
+		}
+		int num = ((way[0].Length != 0) ? way[0][0] : 0);
+		int num2 = ((way[0].Length > 1) ? way[0][1] : 0);
+		if (way.Length == 1)
+		{
+			return Mathf.CeilToInt(num + num2);
+		}
+		int num3 = ((way[1].Length != 0) ? way[1][0] : 0);
+		int num4 = ((way[1].Length > 1) ? way[1][1] : 0);
+		return Mathf.CeilToInt(num + num2 + (num3 + num4) * groupId);
+	}
+
+	private static float AvgPlus33WayCount(int[][] way, int groupId)
+	{
+		if (way == null || way.Length == 0)
+		{
+			return 1f;
+		}
+		int num = ((way[0].Length != 0) ? way[0][0] : 0);
+		float num2 = ((way[0].Length > 1) ? ((float)way[0][1] * 0.33f) : 0f);
+		if (way.Length == 1)
+		{
+			return Mathf.Max(1f, (float)num + num2);
+		}
+		int num3 = ((way[1].Length != 0) ? way[1][0] : 0);
+		float num4 = ((way[1].Length > 1) ? ((float)way[1][1] * 0.33f) : 0f);
+		return Mathf.Max(1f, (float)num + num2 + ((float)num3 + num4) * (float)groupId);
+	}
+}

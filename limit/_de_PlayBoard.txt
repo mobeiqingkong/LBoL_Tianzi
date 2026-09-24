@@ -1,0 +1,2448 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using Cysharp.Threading.Tasks;
+using DG.Tweening;
+using LBoL.Base;
+using LBoL.Base.Extensions;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.Cards;
+using LBoL.Core.StatusEffects;
+using LBoL.Core.Units;
+using LBoL.Presentation.Effect;
+using LBoL.Presentation.InputSystemExtend;
+using LBoL.Presentation.UI.Dialogs;
+using LBoL.Presentation.UI.ExtraWidgets;
+using LBoL.Presentation.UI.Widgets;
+using LBoL.Presentation.Units;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
+using UnityEngine.Pool;
+using UnityEngine.UI;
+
+namespace LBoL.Presentation.UI.Panels;
+
+public sealed class PlayBoard : UiPanel, IPointerDownHandler, IEventSystemHandler, IPointerUpHandler, IPointerEnterHandler, IPointerExitHandler
+{
+	private abstract class RequestEntry
+	{
+		private readonly WeakReference<PlayBoard> _playBoard = new WeakReference<PlayBoard>(null);
+
+		public PlayBoard PlayBoard
+		{
+			get
+			{
+				if (!_playBoard.TryGetTarget(out var target))
+				{
+					return null;
+				}
+				return target;
+			}
+			set
+			{
+				_playBoard.SetTarget(value);
+			}
+		}
+
+		public abstract bool Verify(bool isCommitting);
+
+		public abstract void Prepay();
+
+		public abstract void Commit();
+
+		public abstract void Rewind();
+	}
+
+	private sealed class UseCardRequestEntry : RequestEntry
+	{
+		private readonly Card _card;
+
+		private readonly UnitSelector _selector;
+
+		private readonly ConsumingMana _consumingMana;
+
+		private readonly bool _kicker;
+
+		private readonly ManaGroup _originalCost;
+
+		public UseCardRequestEntry(Card card, UnitSelector selector, ConsumingMana consumingMana, bool kicker)
+		{
+			bool kicker2 = kicker;
+			ManaGroup cost = card.Cost;
+			_card = card;
+			_selector = selector;
+			_consumingMana = consumingMana;
+			_kicker = kicker2;
+			_originalCost = cost;
+		}
+
+		public override bool Verify(bool isCommitting)
+		{
+			if (isCommitting && _originalCost != _card.Cost)
+			{
+				PlayBoard playBoard = base.PlayBoard;
+				if (playBoard != null)
+				{
+					playBoard.ShowErrorChat("ErrorChat.CardCostChanged".LocalizeWithChar(playBoard.GameRun));
+				}
+				return false;
+			}
+			return base.PlayBoard.UseCardVerify(_card, _selector, _consumingMana, isCommitting);
+		}
+
+		public override void Prepay()
+		{
+			UiManager.GetPanel<BattleManaPanel>().Prepay(_consumingMana);
+		}
+
+		public override void Commit()
+		{
+			base.PlayBoard.Battle.RequestUseCard(_card, _selector, _consumingMana.TotalMana, _kicker);
+		}
+
+		public override void Rewind()
+		{
+			Debug.LogWarning($"Rewind card: '{_card.DebugName}' -> {_selector}");
+			base.PlayBoard.RewindCard(_card, _consumingMana);
+		}
+
+		public override string ToString()
+		{
+			return $"UseCard: {_card.DebugName} --{_consumingMana}--> {_selector}";
+		}
+	}
+
+	private sealed class UseUsRequestEntry : RequestEntry
+	{
+		private readonly UnitSelector _selector;
+
+		public UseUsRequestEntry(UnitSelector selector)
+		{
+			_selector = selector;
+		}
+
+		public override bool Verify(bool isCommitting)
+		{
+			return base.PlayBoard.UseUsVerify(_selector);
+		}
+
+		public override void Prepay()
+		{
+		}
+
+		public override void Commit()
+		{
+			base.PlayBoard.Battle.RequestUseUs(_selector);
+		}
+
+		public override void Rewind()
+		{
+			Debug.LogWarning($"Rewind US -> {_selector}");
+			base.PlayBoard.RewindUs();
+		}
+
+		public override string ToString()
+		{
+			return $"UseUS: {_selector}";
+		}
+	}
+
+	private sealed class UseDollRequestEntry : RequestEntry
+	{
+		private readonly Doll _doll;
+
+		private readonly UnitSelector _selector;
+
+		public UseDollRequestEntry(Doll doll, UnitSelector selector)
+		{
+			_doll = doll;
+			_selector = selector;
+		}
+
+		public override bool Verify(bool isCommitting)
+		{
+			return base.PlayBoard.UseDollVerify(_doll, _selector);
+		}
+
+		public override void Prepay()
+		{
+		}
+
+		public override void Commit()
+		{
+			base.PlayBoard.Battle.RequestUseDoll(_doll, _selector);
+		}
+
+		public override void Rewind()
+		{
+			Debug.LogWarning($"Rewind doll: '{_doll.DebugName}' -> {_selector}");
+			base.PlayBoard.RewindDoll(_doll);
+		}
+
+		public override string ToString()
+		{
+			return $"UseDoll: {_doll.DebugName} -> {_selector}";
+		}
+	}
+
+	private sealed class EndTurnRequestEntry : RequestEntry
+	{
+		public override bool Verify(bool isCommitting)
+		{
+			return true;
+		}
+
+		public override void Prepay()
+		{
+		}
+
+		public override void Commit()
+		{
+			base.PlayBoard.Battle.RequestEndPlayerTurn();
+		}
+
+		public override void Rewind()
+		{
+			Debug.LogWarning("Rewind end-turn");
+			base.PlayBoard.endTurnButton.gameObject.SetActive(value: true);
+		}
+
+		public override string ToString()
+		{
+			return "EndTurn";
+		}
+	}
+
+	public enum InteractionStatus
+	{
+		Inactive,
+		Normal,
+		CardSelected,
+		CardTargetSelecting,
+		CardUsingConfirming,
+		UsTargetSelecting,
+		DollTargetSelecting
+	}
+
+	private IObjectPool<Transform> _manaConsumeEffectPool;
+
+	private IObjectPool<Transform> _manaLoseEffectPool;
+
+	private IObjectPool<ManaFlyEffect> _manaFlyEffectPool;
+
+	private readonly PriorityQueue<Action, float> _effectTimeoutActionQueue = new PriorityQueue<Action, float>();
+
+	private readonly HashSet<Selectable> _unitSelectableSet = new HashSet<Selectable>();
+
+	private readonly Dictionary<Selectable, bool> _unitSelectableInteractableBeforeBlock = new Dictionary<Selectable, bool>();
+
+	private bool _unitGamepadSelectionBlocked;
+
+	private readonly Queue<RequestEntry> _requests = new Queue<RequestEntry>();
+
+	[SerializeField]
+	private CardUi cardUi;
+
+	[SerializeField]
+	private Button endTurnButton;
+
+	[SerializeField]
+	private CanvasGroup endTurnEdgeCg;
+
+	[SerializeField]
+	private TargetSelector targetSelector;
+
+	[SerializeField]
+	private RectTransform effectLayer;
+
+	[SerializeField]
+	private Transform manaConsumeEffect;
+
+	[SerializeField]
+	private Transform manaLoseEffect;
+
+	[SerializeField]
+	private ManaFlyEffect manaFlyEffect;
+
+	private const float CardOriginWidth = 530f;
+
+	private const float CardOriginHeight = 740f;
+
+	private const float CardHalfWidth = 185.5f;
+
+	private const float CardHalfHeight = 259f;
+
+	private const string K_CardNotInHand = "CardNotInHand";
+
+	private const string K_CardCostChanged = "CardCostChanged";
+
+	private const string K_UsUsedThisBattle = "UsUsedThisBattle";
+
+	private const string K_UsUsedThisTurn = "UsUsedThisTurn";
+
+	private const string K_TargetAlreadyDead = "TargetAlreadyDead";
+
+	private const string K_MoneyNotEnough = "MoneyNotEnough";
+
+	private const string K_LowMana = "LowMana";
+
+	private const string K_LowPower = "LowPower";
+
+	private const string K_LowMagic = "LowMagic";
+
+	private const string K_LowLoyalty = "LowLoyalty";
+
+	private const string K_HandFull = "HandFull";
+
+	private const string K_EmptyDraw = "EmptyDraw";
+
+	private float _pointerX;
+
+	private float _pointerY;
+
+	private float _screenScale = 1f;
+
+	private bool _pointered;
+
+	private InteractionStatus _status;
+
+	private bool _pointerUpUse;
+
+	private int? _hoveringIndex;
+
+	private HandCard _activeHand;
+
+	private DollInfoWidget _activeDoll;
+
+	private bool _pointerInHandZone;
+
+	private bool _pointerInUseZone;
+
+	private int _playerContinousTurnCounter;
+
+	private bool _isTempLockedFromMinimize;
+
+	public bool IsTargetSelecting
+	{
+		get
+		{
+			InteractionStatus status = _status;
+			return status == InteractionStatus.CardTargetSelecting || status == InteractionStatus.UsTargetSelecting || status == InteractionStatus.DollTargetSelecting;
+		}
+	}
+
+	public override PanelLayer Layer => PanelLayer.Base;
+
+	public CardUi CardUi => cardUi;
+
+	public Transform ActiveHandParent => targetSelector.transform;
+
+	private bool PlayerInTurn { get; set; }
+
+	private Coroutine PlayerInTurnSetter { get; set; }
+
+	public bool IsTempLockedFromMinimize
+	{
+		get
+		{
+			return _isTempLockedFromMinimize;
+		}
+		set
+		{
+			_isTempLockedFromMinimize = value;
+			cardUi.SetPendingCardsAlpha(value ? 0.2f : 1f);
+		}
+	}
+
+	private void InitEffects()
+	{
+		_manaConsumeEffectPool = CreateEffectPool(manaConsumeEffect, 3f, delegate(Transform g)
+		{
+			_manaConsumeEffectPool.Release(g);
+		});
+		_manaLoseEffectPool = CreateEffectPool(manaLoseEffect, 1f, delegate(Transform g)
+		{
+			_manaLoseEffectPool.Release(g);
+		});
+		_manaFlyEffectPool = CreateEffectPool(manaFlyEffect, 1f, delegate(ManaFlyEffect g)
+		{
+			_manaFlyEffectPool.Release(g);
+		});
+		RecycleEffectsAsync();
+	}
+
+	private ObjectPool<T> CreateEffectPool<T>(T template, float duration, Action<T> releaseAction) where T : Component
+	{
+		return new ObjectPool<T>(() => UnityEngine.Object.Instantiate(template, effectLayer, worldPositionStays: false), delegate(T g)
+		{
+			g.gameObject.SetActive(value: true);
+			_effectTimeoutActionQueue.Enqueue(delegate
+			{
+				releaseAction(g);
+			}, Time.time + duration);
+		}, delegate(T g)
+		{
+			if ((bool)g)
+			{
+				g.gameObject.SetActive(value: false);
+			}
+		}, UnityEngine.Object.Destroy);
+	}
+
+	private async UniTaskVoid RecycleEffectsAsync()
+	{
+		while (true)
+		{
+			if (_effectTimeoutActionQueue.TryPeek(out var element, out var priority))
+			{
+				if (priority < Time.time)
+				{
+					_effectTimeoutActionQueue.Dequeue();
+					element();
+				}
+				else
+				{
+					await UniTask.Yield();
+				}
+			}
+			else
+			{
+				await UniTask.Yield();
+			}
+		}
+	}
+
+	public float PlayManaGainEffect(ManaColor color, Vector3? fromPosition, Vector3 toPosition)
+	{
+		_manaConsumeEffectPool.Get().position = toPosition;
+		AudioManager.PlayUi("ManaGain");
+		if (fromPosition.HasValue)
+		{
+			Vector3 valueOrDefault = fromPosition.GetValueOrDefault();
+			ManaFlyEffect manaFlyEffect = _manaFlyEffectPool.Get();
+			manaFlyEffect.SetColor(color);
+			Vector3 vector = effectLayer.InverseTransformPoint(valueOrDefault);
+			Vector3 vector2 = effectLayer.InverseTransformPoint(toPosition);
+			manaFlyEffect.transform.localPosition = vector;
+			Vector3 vector3 = Vector3.Lerp(vector, vector2, 0.3f) - new Vector3(100f, 0f);
+			Vector3[] path = new Vector3[2] { vector3, vector2 };
+			manaFlyEffect.transform.DOLocalPath(path, 0.3f, PathType.CatmullRom).SetEase(Ease.OutSine).SetUpdate(isIndependentUpdate: true);
+			AudioManager.PlayUi("ManaFly");
+		}
+		return 0.2f;
+	}
+
+	public float PlayManaConsumeEffect(ManaColor color, Vector3 fromPosition, Vector3? toPosition)
+	{
+		_manaConsumeEffectPool.Get().position = fromPosition;
+		AudioManager.PlayUi("ManaConsume");
+		if (toPosition.HasValue)
+		{
+			Vector3 valueOrDefault = toPosition.GetValueOrDefault();
+			ManaFlyEffect manaFlyEffect = _manaFlyEffectPool.Get();
+			manaFlyEffect.SetColor(color);
+			Vector3 vector = effectLayer.InverseTransformPoint(fromPosition);
+			Vector3 vector2 = effectLayer.InverseTransformPoint(valueOrDefault);
+			vector2 += new Vector3(220f, 330f);
+			manaFlyEffect.transform.localPosition = vector;
+			Vector3 vector3 = Vector3.Lerp(vector, vector2, 0.5f) - new Vector3(0f, 100f);
+			Vector3[] path = new Vector3[2] { vector3, vector2 };
+			manaFlyEffect.transform.DOLocalPath(path, 0.3f, PathType.CatmullRom).SetEase(Ease.OutQuad).SetUpdate(isIndependentUpdate: true);
+			AudioManager.PlayUi("ManaFly");
+		}
+		return 0.2f;
+	}
+
+	public float PlayManaLoseEffect(ManaColor color, Vector3 fromPosition, Vector3? toPosition)
+	{
+		_manaLoseEffectPool.Get().position = fromPosition;
+		AudioManager.PlayUi("ManaLose");
+		if (toPosition.HasValue)
+		{
+			Vector3 valueOrDefault = toPosition.GetValueOrDefault();
+			ManaFlyEffect manaFlyEffect = _manaFlyEffectPool.Get();
+			manaFlyEffect.SetColor(color);
+			Vector3 vector = effectLayer.InverseTransformPoint(fromPosition);
+			Vector3 vector2 = effectLayer.InverseTransformPoint(valueOrDefault);
+			manaFlyEffect.transform.localPosition = vector;
+			Vector3 vector3 = Vector3.Lerp(vector, vector2, 0.5f) - new Vector3(0f, 100f);
+			Vector3[] path = new Vector3[2] { vector3, vector2 };
+			manaFlyEffect.transform.DOLocalPath(path, 0.3f, PathType.CatmullRom).SetUpdate(isIndependentUpdate: true);
+			AudioManager.PlayUi("ManaFly");
+		}
+		return 0.2f;
+	}
+
+	private void OnEnable()
+	{
+		InputSystem.onActionChange += OnActionChange;
+		Singleton<GamepadNavigationManager>.Instance.OnPanelUpdate.AddListener(OnPanelUpdate);
+	}
+
+	private void OnDisable()
+	{
+		InputSystem.onActionChange -= OnActionChange;
+		Singleton<GamepadNavigationManager>.Instance?.OnPanelUpdate.RemoveListener(OnPanelUpdate);
+	}
+
+	public override void OnInputDeviceChanged(InputDeviceType type)
+	{
+		base.OnInputDeviceChanged(type);
+		switch (type)
+		{
+		case InputDeviceType.Gamepad:
+			if (Singleton<GamepadNavigationManager>.Instance.GetTopPanel() != "MessageDialog")
+			{
+				CancelTargetSelecting();
+			}
+			break;
+		case InputDeviceType.MouseAndKeyboard:
+		{
+			CancelTargetSelecting();
+			int? hoveringIndex = _hoveringIndex;
+			if (hoveringIndex.HasValue)
+			{
+				hoveringIndex.GetValueOrDefault();
+				EndHoveringCard();
+			}
+			break;
+		}
+		}
+	}
+
+	private void OnPanelUpdate()
+	{
+		string topPanel = Singleton<GamepadNavigationManager>.Instance.GetTopPanel();
+		if (topPanel != "MessageDialog" && topPanel != "INVALID_PANEL")
+		{
+			CancelTargetSelecting();
+			int? hoveringIndex = _hoveringIndex;
+			if (hoveringIndex.HasValue)
+			{
+				hoveringIndex.GetValueOrDefault();
+				EndHoveringCard();
+			}
+		}
+	}
+
+	private void OnActionChange(object obj, InputActionChange change)
+	{
+		if (!UiManager.GetPanel<BattleHintPanel>().IsVisible && Singleton<InputDeviceManager>.Instance.CurrentInputDevice == InputDeviceType.Gamepad && PlayerInTurn)
+		{
+			BattleController battle = base.Battle;
+			if (battle != null && battle.IsWaitingPlayerInput && _status == InteractionStatus.Normal && (EventSystem.current.currentSelectedGameObject == null || !EventSystem.current.currentSelectedGameObject.activeInHierarchy))
+			{
+				cardUi.SelectDrawZone();
+			}
+		}
+	}
+
+	private void GamepadUpdate()
+	{
+		_pointerInUseZone = true;
+		switch (_status)
+		{
+		case InteractionStatus.Normal:
+		{
+			RefreshUnitNavigation();
+			int num = -1;
+			if (EventSystem.current.currentSelectedGameObject != null && EventSystem.current.currentSelectedGameObject.TryGetComponent<GamepadCardCursor>(out var component) && component.Controller.IsHandCard)
+			{
+				if (!PlayerInTurn)
+				{
+					EndHoveringCard();
+					GamepadNavigationManager.AsnycSelectGameObject(null);
+					break;
+				}
+				HandCard componentInParent = component.GetComponentInParent<HandCard>();
+				if (componentInParent != null)
+				{
+					if (componentInParent.IsActiveHand)
+					{
+						Debug.LogWarning("[PlayBoard] Detected stuck active hand card '" + componentInParent.Card?.DebugName + "' while status is Normal, force-canceling");
+						CancelTargetSelecting(refreshCards: false);
+						break;
+					}
+					num = cardUi.GetUnpendingHands().ToList().IndexOf(componentInParent);
+				}
+			}
+			if (num == -1)
+			{
+				EndHoveringCard();
+			}
+			if (num < 0 || num == _hoveringIndex)
+			{
+				break;
+			}
+			List<HandCard> list = cardUi.GetUnpendingHands().ToList();
+			int? hoveringIndex = _hoveringIndex;
+			if (hoveringIndex.HasValue)
+			{
+				int valueOrDefault2 = hoveringIndex.GetValueOrDefault();
+				HandCard handCard = list.TryGetValue(valueOrDefault2);
+				if ((bool)handCard)
+				{
+					handCard.EndHover();
+					UiManager.GetPanel<BattleManaPanel>().ClearHighlightMana();
+				}
+			}
+			int index = num;
+			HandCard handCard2 = list.TryGetValue(index);
+			if ((bool)handCard2)
+			{
+				handCard2.StartHover();
+				UiManager.GetPanel<BattleManaPanel>().SetCostHighlightForCard(handCard2.Card);
+			}
+			_hoveringIndex = num;
+			break;
+		}
+		case InteractionStatus.CardTargetSelecting:
+		{
+			TargetType? targetType = _activeHand?.Card?.Config?.TargetType;
+			if (targetType.HasValue)
+			{
+				TargetType valueOrDefault = targetType.GetValueOrDefault();
+				RefreshTargetNavigation(valueOrDefault);
+			}
+			break;
+		}
+		case InteractionStatus.UsTargetSelecting:
+		case InteractionStatus.DollTargetSelecting:
+			RefreshUnitNavigation(enemiesOnly: true);
+			break;
+		case InteractionStatus.CardSelected:
+		case InteractionStatus.CardUsingConfirming:
+			break;
+		}
+	}
+
+	public bool HandleGamepadConfirmAction()
+	{
+		switch (_status)
+		{
+		case InteractionStatus.Normal:
+		{
+			int? hoveringIndex = _hoveringIndex;
+			if (!hoveringIndex.HasValue)
+			{
+				break;
+			}
+			int valueOrDefault = hoveringIndex.GetValueOrDefault();
+			HandCard handCard = cardUi.GetUnpendingHands().ToList().TryGetValue(valueOrDefault);
+			if ((bool)handCard)
+			{
+				HandleSelectionFromKey(valueOrDefault);
+				if (handCard == _activeHand)
+				{
+					handCard.CardWidget.GetComponent<GamepadCardController>().EnableNavigation = false;
+					handCard.CardWidget.GamepadTipBattle.SetActive(value: false);
+					EventSystem.current.SetSelectedGameObject(null);
+				}
+			}
+			break;
+		}
+		case InteractionStatus.CardTargetSelecting:
+			if (_pointerInUseZone)
+			{
+				UnitSelector confirmUseSelector2 = targetSelector.GetConfirmUseSelector(Vector2.zero);
+				if (confirmUseSelector2 != null)
+				{
+					ConfirmUseCardWithSelection(confirmUseSelector2);
+				}
+			}
+			else if (_activeHand.Card.Config.TargetType != TargetType.SingleEnemy)
+			{
+				CancelTargetSelecting();
+			}
+			break;
+		case InteractionStatus.UsTargetSelecting:
+		{
+			UnitSelector confirmUseSelector = targetSelector.GetConfirmUseSelector(Vector2.zero);
+			if (confirmUseSelector != null)
+			{
+				ConfirmUseUsWithSelection(confirmUseSelector);
+				_status = InteractionStatus.Normal;
+				targetSelector.DisableSelector();
+			}
+			break;
+		}
+		}
+		return true;
+	}
+
+	public bool HandleGamepadNavigate(NavigateDirection dir)
+	{
+		switch (_status)
+		{
+		case InteractionStatus.CardTargetSelecting:
+		case InteractionStatus.UsTargetSelecting:
+		case InteractionStatus.DollTargetSelecting:
+			return true;
+		case InteractionStatus.Normal:
+			if (dir == NavigateDirection.Down && IsOnUnitSelectableWithNoDown())
+			{
+				NavigateToFirstHandCard();
+				return true;
+			}
+			break;
+		}
+		return false;
+	}
+
+	private bool IsOnUnitSelectableWithNoDown()
+	{
+		GameObject currentSelectedGameObject = EventSystem.current.currentSelectedGameObject;
+		if (currentSelectedGameObject == null)
+		{
+			return false;
+		}
+		Selectable component;
+		try
+		{
+			component = currentSelectedGameObject.GetComponent<Selectable>();
+		}
+		catch (MissingReferenceException)
+		{
+			return false;
+		}
+		if (component == null)
+		{
+			return false;
+		}
+		if (_unitSelectableSet.Contains(component))
+		{
+			return component.navigation.selectOnDown == null;
+		}
+		return false;
+	}
+
+	private void NavigateToFirstHandCard()
+	{
+		List<HandCard> list = cardUi.GetUnpendingHands().ToList();
+		if (list.Count > 0)
+		{
+			GamepadCardCursor componentInChildren = list[0].GetComponentInChildren<GamepadCardCursor>();
+			if (componentInChildren != null)
+			{
+				EventSystem.current.SetSelectedGameObject(componentInChildren.gameObject);
+			}
+		}
+	}
+
+	internal void SyncGamepadTarget(UnitView unitView)
+	{
+		if (IsTargetSelecting)
+		{
+			targetSelector.SyncGamepadTarget(unitView);
+		}
+	}
+
+	public void SetUnitGamepadSelectionBlocked(bool blocked)
+	{
+		if (_unitGamepadSelectionBlocked == blocked)
+		{
+			return;
+		}
+		if (blocked)
+		{
+			_unitSelectableInteractableBeforeBlock.Clear();
+			foreach (Selectable item in EnumerateUnitGamepadSelectables())
+			{
+				if (!(item == null))
+				{
+					_unitSelectableInteractableBeforeBlock[item] = item.interactable;
+					item.interactable = false;
+					if (EventSystem.current != null && EventSystem.current.currentSelectedGameObject == item.gameObject)
+					{
+						EventSystem.current.SetSelectedGameObject(null);
+					}
+				}
+			}
+			ClearAllUnitNavigation();
+		}
+		else
+		{
+			foreach (KeyValuePair<Selectable, bool> item2 in _unitSelectableInteractableBeforeBlock)
+			{
+				if (item2.Key != null)
+				{
+					item2.Key.interactable = item2.Value;
+				}
+			}
+			_unitSelectableInteractableBeforeBlock.Clear();
+		}
+		_unitGamepadSelectionBlocked = blocked;
+	}
+
+	private void RefreshUnitNavigation(bool enemiesOnly = false)
+	{
+		ClearAllUnitNavigation();
+		if (_unitGamepadSelectionBlocked)
+		{
+			return;
+		}
+		List<Selectable> list = new List<Selectable>();
+		if (!enemiesOnly)
+		{
+			UltimateSkillPanel panel = UiManager.GetPanel<UltimateSkillPanel>();
+			if (panel != null && panel.GamepadSelectable != null && panel.GamepadSelectable.gameObject.activeInHierarchy && panel.GamepadSelectable.IsInteractable())
+			{
+				list.Add(panel.GamepadSelectable);
+			}
+			UnitView player = GameDirector.Player;
+			if (player?.StatusWidget?.UnitCursor != null && player.StatusWidget.UnitCursor.gameObject.activeInHierarchy)
+			{
+				Selectable component = player.StatusWidget.UnitCursor.GetComponent<Selectable>();
+				if (component != null && component.IsInteractable())
+				{
+					list.Add(component);
+				}
+			}
+		}
+		foreach (UnitView enemy in GameDirector.Enemies)
+		{
+			if (enemy?.StatusWidget?.UnitCursor != null && enemy.StatusWidget.UnitCursor.gameObject.activeInHierarchy)
+			{
+				Selectable component2 = enemy.StatusWidget.UnitCursor.GetComponent<Selectable>();
+				if (component2 != null && component2.IsInteractable())
+				{
+					list.Add(component2);
+				}
+			}
+		}
+		if (list.Count < (enemiesOnly ? 1 : 2))
+		{
+			return;
+		}
+		foreach (Selectable item in list)
+		{
+			_unitSelectableSet.Add(item);
+		}
+		for (int i = 0; i < list.Count; i++)
+		{
+			Navigation navigation = default(Navigation);
+			navigation.mode = Navigation.Mode.Explicit;
+			Navigation navigation2 = navigation;
+			navigation2.selectOnLeft = list[(i - 1 + list.Count) % list.Count];
+			navigation2.selectOnRight = list[(i + 1) % list.Count];
+			if (!enemiesOnly)
+			{
+				navigation2.selectOnUp = list[i].FindSelectableOnUp();
+				navigation2.selectOnDown = list[i].FindSelectableOnDown();
+			}
+			list[i].navigation = navigation2;
+		}
+	}
+
+	private void RefreshTargetNavigation(TargetType targetType)
+	{
+		ClearAllUnitNavigation();
+		if (_unitGamepadSelectionBlocked)
+		{
+			return;
+		}
+		List<Selectable> list = new List<Selectable>();
+		foreach (UnitView item in GameDirector.EnumeratePotentialTargets(targetType))
+		{
+			if (!(item?.StatusWidget?.UnitCursor == null))
+			{
+				Selectable component = item.StatusWidget.UnitCursor.GetComponent<Selectable>();
+				if (component != null && component.IsInteractable())
+				{
+					list.Add(component);
+				}
+			}
+		}
+		if (list.Count < 1)
+		{
+			return;
+		}
+		foreach (Selectable item2 in list)
+		{
+			_unitSelectableSet.Add(item2);
+		}
+		for (int i = 0; i < list.Count; i++)
+		{
+			Navigation navigation = default(Navigation);
+			navigation.mode = Navigation.Mode.Explicit;
+			Navigation navigation2 = navigation;
+			navigation2.selectOnLeft = list[(i - 1 + list.Count) % list.Count];
+			navigation2.selectOnRight = list[(i + 1) % list.Count];
+			list[i].navigation = navigation2;
+		}
+	}
+
+	private void ClearAllUnitNavigation()
+	{
+		_unitSelectableSet.Clear();
+		UltimateSkillPanel panel = UiManager.GetPanel<UltimateSkillPanel>();
+		if (panel != null && panel.GamepadSelectable != null)
+		{
+			panel.GamepadSelectable.navigation = new Navigation
+			{
+				mode = Navigation.Mode.Automatic
+			};
+		}
+		UnitView player = GameDirector.Player;
+		if (player?.StatusWidget?.UnitCursor != null)
+		{
+			Selectable component = player.StatusWidget.UnitCursor.GetComponent<Selectable>();
+			if (component != null)
+			{
+				component.navigation = new Navigation
+				{
+					mode = Navigation.Mode.Automatic
+				};
+			}
+		}
+		foreach (UnitView enemy in GameDirector.Enemies)
+		{
+			if (enemy?.StatusWidget?.UnitCursor != null)
+			{
+				Selectable component2 = enemy.StatusWidget.UnitCursor.GetComponent<Selectable>();
+				if (component2 != null)
+				{
+					component2.navigation = new Navigation
+					{
+						mode = Navigation.Mode.Automatic
+					};
+				}
+			}
+		}
+	}
+
+	private IEnumerable<Selectable> EnumerateUnitGamepadSelectables()
+	{
+		UltimateSkillPanel panel = UiManager.GetPanel<UltimateSkillPanel>();
+		if (panel != null && panel.GamepadSelectable != null)
+		{
+			yield return panel.GamepadSelectable;
+		}
+		if (GameDirector.Player?.StatusWidget?.UnitCursor != null)
+		{
+			Selectable component = GameDirector.Player.StatusWidget.UnitCursor.GetComponent<Selectable>();
+			if (component != null)
+			{
+				yield return component;
+			}
+		}
+		foreach (UnitView enemy in GameDirector.Enemies)
+		{
+			if (!(enemy?.StatusWidget?.UnitCursor == null))
+			{
+				Selectable component2 = enemy.StatusWidget.UnitCursor.GetComponent<Selectable>();
+				if (component2 != null)
+				{
+					yield return component2;
+				}
+			}
+		}
+	}
+
+	public bool HandleGamepadCancel()
+	{
+		if (EventSystem.current.currentSelectedGameObject == null)
+		{
+			return false;
+		}
+		if (EventSystem.current.currentSelectedGameObject.TryGetComponent<StatusEffectWidget>(out var _))
+		{
+			EventSystem.current.currentSelectedGameObject.GetComponentInParent<UnitStatusWidget>().CancelStatusEffectSelection();
+			return true;
+		}
+		return false;
+	}
+
+	private bool RequestUseCard(Card card, UnitSelector selector, ConsumingMana consumingMana, bool kicker)
+	{
+		UseCardRequestEntry request = new UseCardRequestEntry(card, selector, consumingMana, kicker);
+		return EnqueueRequest(request);
+	}
+
+	public void RequestUseUs(UnitSelector selector)
+	{
+		UseUsRequestEntry request = new UseUsRequestEntry(selector);
+		EnqueueRequest(request);
+	}
+
+	public void RequestUseDoll(Doll doll, UnitSelector selector)
+	{
+		UseDollRequestEntry request = new UseDollRequestEntry(doll, selector);
+		EnqueueRequest(request);
+	}
+
+	private void RequestEndTurn()
+	{
+		endTurnEdgeCg.alpha = 0f;
+		endTurnButton.gameObject.SetActive(value: false);
+		EndTurnRequestEntry request = new EndTurnRequestEntry();
+		EnqueueRequest(request);
+	}
+
+	private bool EnqueueRequest(RequestEntry request)
+	{
+		request.PlayBoard = this;
+		if (base.Battle.IsWaitingPlayerInput)
+		{
+			if (!_requests.Empty())
+			{
+				Debug.LogWarning("Waiting player input while request quene is not empty");
+			}
+			if (!request.Verify(isCommitting: false))
+			{
+				return false;
+			}
+			request.Prepay();
+			request.Commit();
+		}
+		else
+		{
+			if (!request.Verify(isCommitting: false))
+			{
+				return false;
+			}
+			request.Prepay();
+			_requests.Enqueue(request);
+		}
+		return true;
+	}
+
+	public void RewindRequests()
+	{
+		foreach (RequestEntry item in _requests.Reverse())
+		{
+			item.Rewind();
+		}
+		_requests.Clear();
+	}
+
+	private void CommitRequestHead()
+	{
+		if (_requests.Empty())
+		{
+			BattleHintPanel panel = UiManager.GetPanel<BattleHintPanel>();
+			if (panel.IsVisible)
+			{
+				panel.StartBattleHint();
+			}
+			cardUi.RefreshAllCardsEdge();
+		}
+		else
+		{
+			RequestEntry requestEntry = _requests.Dequeue();
+			if (requestEntry.Verify(isCommitting: true))
+			{
+				requestEntry.Commit();
+				return;
+			}
+			RewindRequests();
+			requestEntry.Rewind();
+		}
+	}
+
+	private void OnWaitingPlayerInput()
+	{
+		CommitRequestHead();
+	}
+
+	public void Awake()
+	{
+		endTurnButton.onClick.AddListener(UI_EndTurn);
+		SimpleTooltipSource.CreateWithTooltipKeyAndArgs(endTurnButton.gameObject, "EndTurn", 5).WithPosition(TooltipDirection.Top, TooltipAlignment.Max);
+		endTurnEdgeCg.alpha = 0f;
+		endTurnButton.gameObject.SetActive(value: false);
+		InitEffects();
+	}
+
+	public override void OnLocaleChanged()
+	{
+	}
+
+	private void Update()
+	{
+		if (Singleton<InputDeviceManager>.Instance.CurrentInputDevice == InputDeviceType.Gamepad)
+		{
+			GamepadUpdate();
+		}
+		else
+		{
+			if (!_pointered || _status == InteractionStatus.Inactive || Mouse.current == null)
+			{
+				return;
+			}
+			Mouse.current.position.ReadValue().Deconstruct(out var x, out var y);
+			float num = x;
+			float num2 = y;
+			int width = Screen.width;
+			if (Math.Abs(width - 3840) > 1)
+			{
+				_screenScale = 3840f / (float)width;
+			}
+			else
+			{
+				_screenScale = 1f;
+			}
+			_pointerX = num * _screenScale;
+			_pointerY = num2 * _screenScale;
+			y = _pointerX;
+			int pointerInHandZone;
+			if (y > 0f && y < 3840f)
+			{
+				y = _pointerY;
+				pointerInHandZone = ((y > 0f && y < 600f) ? 1 : 0);
+			}
+			else
+			{
+				pointerInHandZone = 0;
+			}
+			_pointerInHandZone = (byte)pointerInHandZone != 0;
+			y = _pointerX;
+			int num3;
+			if (y > 0f && y < 3840f)
+			{
+				y = _pointerY;
+				num3 = ((y > 600f && y < 1800f) ? 1 : 0);
+			}
+			else
+			{
+				num3 = 0;
+			}
+			bool flag = (byte)num3 != 0;
+			switch (_status)
+			{
+			case InteractionStatus.Normal:
+			{
+				int? hoveringIndex = GetHoveringIndex();
+				if (hoveringIndex == _hoveringIndex)
+				{
+					break;
+				}
+				List<HandCard> list = cardUi.GetUnpendingHands().ToList();
+				int? hoveringIndex2 = _hoveringIndex;
+				if (hoveringIndex2.HasValue)
+				{
+					int valueOrDefault = hoveringIndex2.GetValueOrDefault();
+					HandCard handCard = list.TryGetValue(valueOrDefault);
+					if ((bool)handCard)
+					{
+						handCard.EndHover();
+						UiManager.GetPanel<BattleManaPanel>().ClearHighlightMana();
+					}
+				}
+				if (hoveringIndex.HasValue)
+				{
+					int valueOrDefault2 = hoveringIndex.GetValueOrDefault();
+					HandCard handCard2 = list.TryGetValue(valueOrDefault2);
+					if ((bool)handCard2)
+					{
+						handCard2.StartHover();
+						UiManager.GetPanel<BattleManaPanel>().SetCostHighlightForCard(handCard2.Card);
+					}
+				}
+				_hoveringIndex = hoveringIndex;
+				break;
+			}
+			case InteractionStatus.CardSelected:
+			case InteractionStatus.CardTargetSelecting:
+				if (_pointerInUseZone != flag)
+				{
+					_pointerInUseZone = flag;
+					if (_pointerInUseZone)
+					{
+						EnterUseZone(_activeHand);
+					}
+					else
+					{
+						LeaveUseZone(_activeHand);
+					}
+				}
+				break;
+			default:
+				_pointerInUseZone = false;
+				break;
+			case InteractionStatus.UsTargetSelecting:
+			case InteractionStatus.DollTargetSelecting:
+				break;
+			}
+		}
+	}
+
+	public void ReverifyCard()
+	{
+		if (_status == InteractionStatus.CardTargetSelecting && !UseCardVerify(_activeHand.Card, showErrorChat: true, out var _))
+		{
+			CancelTargetSelecting();
+		}
+	}
+
+	private void EnterUseZone(HandCard handCard)
+	{
+		if (UseCardVerify(handCard.Card, showErrorChat: true, out var kickerUsable))
+		{
+			BattleManaPanel panel = UiManager.GetPanel<BattleManaPanel>();
+			handCard.CardWidget.SetCardEdge((kickerUsable && panel.CurrentKickerHighlighting) ? CardWidget.EdgeStatus.HighKicker : CardWidget.EdgeStatus.High);
+			handCard.EndHover();
+			handCard.Card.PendingManaUsage = panel.HighlightingMana;
+			targetSelector.EnterUseZone(handCard);
+			_status = InteractionStatus.CardTargetSelecting;
+		}
+		else
+		{
+			handCard.CancelUse();
+			CancelTargetSelecting();
+		}
+	}
+
+	private void LeaveUseZone(HandCard handCard)
+	{
+		handCard.Card.PendingManaUsage = null;
+		if (handCard.Card.Config.TargetType != TargetType.SingleEnemy)
+		{
+			bool kickerUsable;
+			bool canUse = UseCardVerify(handCard.Card, showErrorChat: false, out kickerUsable);
+			handCard.SetUsableStatus(canUse, kickerUsable);
+			targetSelector.LeaveUseZone();
+			_status = InteractionStatus.CardSelected;
+		}
+	}
+
+	private int? GetHoveringIndex()
+	{
+		if (!PlayerInTurn)
+		{
+			return null;
+		}
+		if (_pointerInHandZone)
+		{
+			Vector2 pointerPosition2 = new Vector2(_pointerX, _pointerY);
+			for (int num = cardUi.UnpendingHandCount - 1; num >= 0; num--)
+			{
+				if (IsInCard(pointerPosition2, cardUi.CardBaseV2List[num], cardUi.CardBaseRotateList[num]))
+				{
+					return num;
+				}
+			}
+		}
+		return null;
+		static bool IsInCard(Vector2 pointerPosition, Vector2 cardRoot, float cardRotate)
+		{
+			(pointerPosition - cardRoot).Deconstruct(out var x, out var y);
+			float num2 = x;
+			float num3 = y;
+			float f = cardRotate.ToRadian();
+			y = 0f - Mathf.Sin(f);
+			float num4 = Mathf.Cos(f);
+			float num5 = y;
+			float num6 = num4;
+			y = num2 * num6 - num3 * num5;
+			float num7 = num2 * num5 + num3 * num6;
+			num2 = y;
+			num3 = num7;
+			if (num2 > -185.5f && num2 < 185.5f)
+			{
+				if (num3 > -259f)
+				{
+					return num3 < 259f;
+				}
+				return false;
+			}
+			return false;
+		}
+	}
+
+	public void OnPointerEnter(PointerEventData eventData)
+	{
+		_pointered = true;
+		targetSelector.PlayBoardHasPointer = true;
+	}
+
+	public void OnPointerExit(PointerEventData eventData)
+	{
+		_pointered = false;
+		targetSelector.PlayBoardHasPointer = false;
+		switch (_status)
+		{
+		case InteractionStatus.Normal:
+			EndHoveringCard();
+			return;
+		case InteractionStatus.CardTargetSelecting:
+		case InteractionStatus.CardUsingConfirming:
+		case InteractionStatus.UsTargetSelecting:
+		case InteractionStatus.DollTargetSelecting:
+			return;
+		}
+		CancelTargetSelecting();
+		_pointerInHandZone = false;
+		_pointerInUseZone = false;
+		_status = InteractionStatus.Normal;
+	}
+
+	private void EndHoveringCard()
+	{
+		List<HandCard> list = cardUi.GetUnpendingHands().ToList();
+		int? hoveringIndex = _hoveringIndex;
+		if (hoveringIndex.HasValue)
+		{
+			int valueOrDefault = hoveringIndex.GetValueOrDefault();
+			HandCard handCard = list.TryGetValue(valueOrDefault);
+			if ((bool)handCard)
+			{
+				handCard.EndHover();
+				UiManager.GetPanel<BattleManaPanel>().ClearHighlightMana();
+			}
+		}
+		_hoveringIndex = null;
+	}
+
+	public void OnPointerDown(PointerEventData eventData)
+	{
+		if (eventData.button == PointerEventData.InputButton.Left)
+		{
+			if (IsTempLockedFromMinimize)
+			{
+				return;
+			}
+			switch (_status)
+			{
+			case InteractionStatus.Normal:
+			{
+				int? hoveringIndex = _hoveringIndex;
+				if (hoveringIndex.HasValue)
+				{
+					int valueOrDefault = hoveringIndex.GetValueOrDefault();
+					HandCard activeHand = cardUi.GetUnpendingHands().ElementAt(valueOrDefault);
+					_activeHand = activeHand;
+					_activeHand.IsActiveHand = true;
+					_status = InteractionStatus.CardSelected;
+					_pointerUpUse = true;
+					targetSelector.EnableSelector(_activeHand);
+				}
+				break;
+			}
+			case InteractionStatus.CardSelected:
+				if (_pointerInHandZone)
+				{
+					CancelTargetSelecting();
+				}
+				break;
+			case InteractionStatus.CardTargetSelecting:
+				if (_pointerInUseZone)
+				{
+					UnitSelector confirmUseSelector3 = targetSelector.GetConfirmUseSelector(eventData.position);
+					if (confirmUseSelector3 != null)
+					{
+						ConfirmUseCardWithSelection(confirmUseSelector3);
+					}
+				}
+				else if (_activeHand.Card.Config.TargetType != TargetType.SingleEnemy)
+				{
+					CancelTargetSelecting();
+				}
+				break;
+			case InteractionStatus.UsTargetSelecting:
+			{
+				UnitSelector confirmUseSelector2 = targetSelector.GetConfirmUseSelector(eventData.position);
+				if (confirmUseSelector2 != null)
+				{
+					ConfirmUseUsWithSelection(confirmUseSelector2);
+					_status = InteractionStatus.Normal;
+					targetSelector.DisableSelector();
+				}
+				break;
+			}
+			case InteractionStatus.DollTargetSelecting:
+			{
+				UnitSelector confirmUseSelector = targetSelector.GetConfirmUseSelector(eventData.position);
+				if (confirmUseSelector != null)
+				{
+					ConfirmUseDollWithSelection(confirmUseSelector);
+					_status = InteractionStatus.Normal;
+					targetSelector.DisableSelector();
+				}
+				break;
+			}
+			default:
+				throw new ArgumentOutOfRangeException();
+			}
+		}
+		else
+		{
+			if (eventData.button != PointerEventData.InputButton.Right)
+			{
+				return;
+			}
+			InteractionStatus status = _status;
+			if (status == InteractionStatus.CardSelected || status == InteractionStatus.CardTargetSelecting || status == InteractionStatus.UsTargetSelecting || status == InteractionStatus.DollTargetSelecting)
+			{
+				CancelTargetSelecting();
+			}
+			if (_status == InteractionStatus.Normal)
+			{
+				int? hoveringIndex = _hoveringIndex;
+				if (hoveringIndex.HasValue)
+				{
+					int valueOrDefault2 = hoveringIndex.GetValueOrDefault();
+					HandCard handCard = cardUi.GetUnpendingHands().ElementAt(valueOrDefault2);
+					AudioManager.Card(3);
+					UiManager.GetPanel<CardDetailPanel>().Show(new CardDetailPayload(handCard.GetComponent<RectTransform>(), handCard.Card, preventRightClickHide: true));
+				}
+			}
+		}
+	}
+
+	public void OnPointerUp(PointerEventData eventData)
+	{
+		if (eventData.button != 0)
+		{
+			return;
+		}
+		switch (_status)
+		{
+		case InteractionStatus.CardTargetSelecting:
+			if (_pointerUpUse && _pointerInUseZone)
+			{
+				UnitSelector confirmUseSelector3 = targetSelector.GetConfirmUseSelector(eventData.position);
+				if (confirmUseSelector3 != null)
+				{
+					ConfirmUseCardWithSelection(confirmUseSelector3);
+				}
+			}
+			break;
+		case InteractionStatus.UsTargetSelecting:
+			if (_pointerUpUse)
+			{
+				UnitSelector confirmUseSelector2 = targetSelector.GetConfirmUseSelector(eventData.position);
+				if (confirmUseSelector2 != null)
+				{
+					ConfirmUseUsWithSelection(confirmUseSelector2);
+				}
+			}
+			break;
+		case InteractionStatus.DollTargetSelecting:
+			if (_pointerUpUse)
+			{
+				UnitSelector confirmUseSelector = targetSelector.GetConfirmUseSelector(eventData.position);
+				if (confirmUseSelector != null)
+				{
+					ConfirmUseDollWithSelection(confirmUseSelector);
+				}
+			}
+			break;
+		}
+		_pointerUpUse = false;
+	}
+
+	private void InstantSelectCard(HandCard hand)
+	{
+		if (_status != InteractionStatus.Normal)
+		{
+			throw new InvalidOperationException($"Cannot instant select card while status is {_status}");
+		}
+		_activeHand = hand;
+		_activeHand.IsActiveHand = true;
+		_status = InteractionStatus.CardSelected;
+		UiManager.GetPanel<BattleManaPanel>().SetCostHighlightForCard(hand.Card);
+		targetSelector.EnableSelector(_activeHand);
+		if (_pointerInUseZone)
+		{
+			EnterUseZone(hand);
+			targetSelector.ForceUpdate();
+		}
+	}
+
+	public bool HandleNavigateFromKey(NavigateDirection dir)
+	{
+		if (base.Battle == null)
+		{
+			return false;
+		}
+		List<HandCard> list = cardUi.GetUnpendingHands().ToList();
+		if (list.Count == 0)
+		{
+			return false;
+		}
+		switch (_status)
+		{
+		case InteractionStatus.Inactive:
+			return false;
+		case InteractionStatus.Normal:
+			switch (dir)
+			{
+			case NavigateDirection.Left:
+				InstantSelectCard(list[list.Count - 1]);
+				break;
+			case NavigateDirection.Right:
+				InstantSelectCard(list[0]);
+				break;
+			}
+			return true;
+		case InteractionStatus.CardSelected:
+		case InteractionStatus.CardTargetSelecting:
+		{
+			int num = list.IndexOf(_activeHand);
+			CancelTargetSelecting();
+			if (num >= 0)
+			{
+				switch (dir)
+				{
+				case NavigateDirection.Left:
+				{
+					HandCard hand;
+					if (num != 0)
+					{
+						hand = list[num - 1];
+					}
+					else
+					{
+						hand = list[list.Count - 1];
+					}
+					InstantSelectCard(hand);
+					break;
+				}
+				case NavigateDirection.Right:
+					InstantSelectCard((num + 1 >= list.Count) ? list[0] : list[num + 1]);
+					break;
+				}
+			}
+			else
+			{
+				switch (dir)
+				{
+				case NavigateDirection.Left:
+					InstantSelectCard(list[list.Count - 1]);
+					break;
+				case NavigateDirection.Right:
+					InstantSelectCard(list[0]);
+					break;
+				}
+			}
+			return true;
+		}
+		case InteractionStatus.UsTargetSelecting:
+			return false;
+		case InteractionStatus.CardUsingConfirming:
+			return false;
+		default:
+			return false;
+		}
+	}
+
+	public bool HandleConfirmAction()
+	{
+		if (base.Battle == null)
+		{
+			return false;
+		}
+		if (Singleton<InputDeviceManager>.Instance.CurrentInputDevice == InputDeviceType.Gamepad)
+		{
+			return HandleGamepadConfirmAction();
+		}
+		return false;
+	}
+
+	public bool HandleCancelAction()
+	{
+		if (IsTempLockedFromMinimize || base.Battle == null)
+		{
+			return false;
+		}
+		if (Singleton<InputDeviceManager>.Instance.CurrentInputDevice == InputDeviceType.Gamepad && HandleGamepadCancel())
+		{
+			return true;
+		}
+		switch (_status)
+		{
+		case InteractionStatus.CardSelected:
+			CancelTargetSelecting();
+			return true;
+		case InteractionStatus.CardTargetSelecting:
+			CancelTargetSelecting();
+			return true;
+		case InteractionStatus.UsTargetSelecting:
+			CancelTargetSelecting();
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	public void HandleSelectionFromKey(int index)
+	{
+		if (IsTempLockedFromMinimize || base.Battle == null)
+		{
+			return;
+		}
+		List<HandCard> list = cardUi.GetUnpendingHands().ToList();
+		switch (_status)
+		{
+		case InteractionStatus.Normal:
+			EndHoveringCard();
+			if (index >= 0 && index < list.Count)
+			{
+				InstantSelectCard(list[index]);
+			}
+			break;
+		case InteractionStatus.CardSelected:
+		case InteractionStatus.CardTargetSelecting:
+			if (index >= 0 && index < list.Count)
+			{
+				HandCard handCard = list[index];
+				if (handCard != _activeHand)
+				{
+					CancelTargetSelecting();
+					InstantSelectCard(handCard);
+				}
+				else
+				{
+					CancelTargetSelecting();
+				}
+			}
+			break;
+		case InteractionStatus.UsTargetSelecting:
+		case InteractionStatus.DollTargetSelecting:
+			if (index >= 0 && index < list.Count)
+			{
+				CancelTargetSelecting();
+				InstantSelectCard(list[index]);
+			}
+			break;
+		default:
+			throw new ArgumentOutOfRangeException();
+		case InteractionStatus.Inactive:
+		case InteractionStatus.CardUsingConfirming:
+			break;
+		}
+	}
+
+	public void HandlePoolMana(ManaColor color)
+	{
+		if (!IsTempLockedFromMinimize && base.Battle != null && !UiManager.GetPanel<BattleManaPanel>().TryPoolSingle(color))
+		{
+			Debug.LogWarning($"Cannot pool mana {color}");
+		}
+	}
+
+	public void HandleUseUsFromKey()
+	{
+		if (!IsTempLockedFromMinimize && base.Battle != null)
+		{
+			switch (_status)
+			{
+			case InteractionStatus.Normal:
+				UiManager.GetPanel<UltimateSkillPanel>().UseUsFromKey();
+				break;
+			case InteractionStatus.CardSelected:
+			case InteractionStatus.CardTargetSelecting:
+				CancelTargetSelecting();
+				UiManager.GetPanel<UltimateSkillPanel>().UseUsFromKey();
+				break;
+			default:
+				throw new ArgumentOutOfRangeException();
+			case InteractionStatus.Inactive:
+			case InteractionStatus.CardUsingConfirming:
+			case InteractionStatus.UsTargetSelecting:
+			case InteractionStatus.DollTargetSelecting:
+				break;
+			}
+		}
+	}
+
+	public void HandleEndTurnFromKey()
+	{
+		if (!IsTempLockedFromMinimize && base.Battle != null && endTurnButton.gameObject.activeSelf)
+		{
+			RequestEndTurn();
+		}
+	}
+
+	public void EnableSelector(UltimateSkill us, Vector3 fromWorldPosition, bool fromClick)
+	{
+		if (_status != InteractionStatus.Normal)
+		{
+			Debug.LogWarning($"[PlayBoard] EnableSelector for US while status is {_status}, force-canceling current selection first");
+			CancelTargetSelecting(refreshCards: false);
+		}
+		_status = InteractionStatus.UsTargetSelecting;
+		if (fromClick)
+		{
+			_pointerUpUse = true;
+		}
+		targetSelector.EnableSelector(us, fromWorldPosition);
+	}
+
+	public void EnableSelector(Doll doll, Vector3 fromWorldPosition, bool fromClick)
+	{
+		if (_status != InteractionStatus.Normal)
+		{
+			Debug.LogWarning($"[PlayBoard] EnableSelector for Doll while status is {_status}, force-canceling current selection first");
+			CancelTargetSelecting(refreshCards: false);
+		}
+		_activeDoll = GameDirector.Player.GetDoll(doll).InfoWidget;
+		_status = InteractionStatus.DollTargetSelecting;
+		if (fromClick)
+		{
+			_pointerUpUse = true;
+		}
+		targetSelector.EnableSelector(doll, fromWorldPosition);
+	}
+
+	public void CancelTargetSelecting(bool refreshCards = true)
+	{
+		InteractionStatus status = _status;
+		if (status != InteractionStatus.CardSelected && status != InteractionStatus.CardTargetSelecting && status != InteractionStatus.CardUsingConfirming && status != InteractionStatus.UsTargetSelecting && status != InteractionStatus.DollTargetSelecting)
+		{
+			if ((bool)_activeHand)
+			{
+				Debug.LogWarning($"[PlayBoard] CancelTargetSelecting called while status={_status} but _activeHand is not null, force-cleaning active hand '{_activeHand.Card?.DebugName}'");
+				HandCard activeHand = _activeHand;
+				_activeHand = null;
+				activeHand.Card.PendingManaUsage = null;
+				try
+				{
+					activeHand.CancelUse();
+				}
+				catch (Exception ex)
+				{
+					Debug.LogError("[PlayBoard] Force-cleanup CancelUse failed: " + ex.Message);
+				}
+				targetSelector.DisableSelector();
+				_pointerUpUse = false;
+				EndHoveringCard();
+			}
+			return;
+		}
+		switch (_status)
+		{
+		case InteractionStatus.CardSelected:
+		case InteractionStatus.CardTargetSelecting:
+		case InteractionStatus.CardUsingConfirming:
+			if (refreshCards)
+			{
+				cardUi.RefreshAllCardsEdge();
+			}
+			if ((bool)_activeHand)
+			{
+				_activeHand.Card.PendingManaUsage = null;
+				try
+				{
+					_activeHand.CancelUse();
+				}
+				catch (Exception ex2)
+				{
+					Debug.LogError("[PlayBoard] CancelUse failed for '" + _activeHand.Card?.DebugName + "': " + ex2.Message);
+				}
+				_activeHand = null;
+			}
+			UiManager.GetPanel<BattleManaPanel>().ClearHighlightMana();
+			break;
+		case InteractionStatus.UsTargetSelecting:
+			UiManager.GetPanel<UltimateSkillPanel>().CancelUse();
+			break;
+		case InteractionStatus.DollTargetSelecting:
+			if ((bool)_activeDoll)
+			{
+				_activeDoll.CancelUse();
+				_activeDoll = null;
+			}
+			break;
+		}
+		targetSelector.DisableSelector();
+		_status = InteractionStatus.Normal;
+		_pointerUpUse = false;
+		EndHoveringCard();
+	}
+
+	public void CancelTargetSelectingIfCardIs(HandCard hand)
+	{
+		if (hand == _activeHand)
+		{
+			Debug.Log("[PlayBoard] Cancel target selecting because hand is " + hand.Card.DebugName + ", maybe moving/discarding/exiling");
+			CancelTargetSelecting();
+		}
+	}
+
+	protected override void OnEnterBattle()
+	{
+		base.Battle.WaitingPlayerInput += OnWaitingPlayerInput;
+		base.Battle.ActionViewer.Register<StartBattleAction>(ViewStartBattle);
+		base.Battle.ActionViewer.Register<StartPlayerTurnAction>(ViewStartPlayerTurn);
+		base.Battle.ActionViewer.Register<StartAllEnemyTurnAction>(ViewStartAllEnemyTurn);
+		base.Battle.ActionViewer.Register<EndBattleAction>(ViewEndBattle);
+		base.Battle.ActionViewer.Register<EndPlayerTurnAction>(ViewEndPlayerTurn);
+		cardUi.EnterBattle(base.Battle);
+		base.Battle.Notification += OnNotification;
+		_status = InteractionStatus.Normal;
+		_hoveringIndex = null;
+		IsTempLockedFromMinimize = false;
+		base.Battle.GlobalStatusChanged += OnGlobalStatusChanged;
+		Show();
+	}
+
+	protected override void OnLeaveBattle()
+	{
+		if (_status != InteractionStatus.Normal)
+		{
+			CancelTargetSelecting(refreshCards: false);
+		}
+		base.Battle.WaitingPlayerInput -= OnWaitingPlayerInput;
+		base.Battle.ActionViewer.Unregister<StartBattleAction>(ViewStartBattle);
+		base.Battle.ActionViewer.Unregister<StartPlayerTurnAction>(ViewStartPlayerTurn);
+		base.Battle.ActionViewer.Unregister<StartAllEnemyTurnAction>(ViewStartAllEnemyTurn);
+		base.Battle.ActionViewer.Unregister<EndBattleAction>(ViewEndBattle);
+		base.Battle.ActionViewer.Unregister<EndPlayerTurnAction>(ViewEndPlayerTurn);
+		cardUi.LeaveBattle(base.Battle);
+		base.Battle.Notification -= OnNotification;
+		_status = InteractionStatus.Inactive;
+		base.Battle.GlobalStatusChanged -= OnGlobalStatusChanged;
+		Hide();
+	}
+
+	private void OnGlobalStatusChanged()
+	{
+		cardUi.RefreshAll();
+	}
+
+	private IEnumerator ViewStartBattle(StartBattleAction action)
+	{
+		UiManager.GetPanel<SystemBoard>().SetBattleStatus(BattleStatus.BattleStart);
+		yield return UiManager.GetPanel<BattleNotifier>().ShowBattleStart();
+		GameDirector.FadeInEnemyStatus();
+		_playerContinousTurnCounter = 0;
+	}
+
+	private IEnumerator ViewStartPlayerTurn(StartPlayerTurnAction action)
+	{
+		UiManager.GetPanel<SystemBoard>().SetBattleStatus(BattleStatus.PlayerTurn);
+		yield return UiManager.GetPanel<BattleNotifier>().ShowPlayerTurn(base.Battle.RoundCounter, action.IsExtra);
+		endTurnButton.gameObject.SetActive(value: true);
+		endTurnButton.GetComponent<Image>().DOFade(1f, 0.3f).From(0f)
+			.SetLink(base.gameObject);
+		PlayerInTurnSetter = StartCoroutine("PlayerInTurnRunner");
+		if (!_requests.Empty())
+		{
+			Debug.Log("Start player turn with requests not cleared: [" + string.Join(", ", _requests.Select((RequestEntry r) => r.GetType().Name)) + "]");
+			_requests.Clear();
+		}
+		if (action.IsExtra)
+		{
+			_playerContinousTurnCounter++;
+			if (base.GameRun.IsAutoSeed && base.GameRun.JadeBoxes.Empty() && _playerContinousTurnCounter >= 5)
+			{
+				GameMaster.UnlockAchievement(AchievementKey.MyTurn);
+			}
+		}
+		else
+		{
+			_playerContinousTurnCounter = 1;
+		}
+	}
+
+	private IEnumerator ViewEndPlayerTurn(EndPlayerTurnAction action)
+	{
+		CancelTargetSelecting();
+		RewindRequests();
+		endTurnButton.gameObject.SetActive(value: false);
+		if (PlayerInTurnSetter != null)
+		{
+			StopCoroutine(PlayerInTurnSetter);
+			PlayerInTurnSetter = null;
+		}
+		PlayerInTurn = false;
+		yield break;
+	}
+
+	private IEnumerator PlayerInTurnRunner()
+	{
+		yield return new WaitForSecondsRealtime(0.3f);
+		PlayerInTurn = true;
+	}
+
+	private IEnumerator ViewStartAllEnemyTurn(StartAllEnemyTurnAction action)
+	{
+		UiManager.GetPanel<SystemBoard>().SetBattleStatus(BattleStatus.EnemyTurn);
+		yield return UiManager.GetPanel<BattleNotifier>().ShowEnemyTurn(base.Battle.RoundCounter);
+	}
+
+	private IEnumerator ViewEndBattle(EndBattleAction action)
+	{
+		UiManager.GetPanel<SystemBoard>().SetBattleStatus(BattleStatus.OutOfBattle);
+		yield break;
+	}
+
+	private IEnumerator ViewStartEnemyTurn(StartEnemyTurnAction action)
+	{
+		if (action.Unit.IsExtraTurn)
+		{
+			Debug.Log($"View {action.Unit.DebugName} extra-turn (turn {action.Unit.TurnCounter})");
+		}
+		yield break;
+	}
+
+	private void OnNotification(BattleMessage message)
+	{
+		switch (message)
+		{
+		case BattleMessage.HandFull:
+			ShowErrorChat("ErrorChat.HandFull".LocalizeWithChar(base.GameRun));
+			break;
+		case BattleMessage.EmptyDraw:
+			ShowErrorChat("ErrorChat.EmptyDraw".LocalizeWithChar(base.GameRun));
+			break;
+		case BattleMessage.ZoneFull:
+		case BattleMessage.DollSlotFull:
+		case BattleMessage.DollSlotEmpty:
+		case BattleMessage.DollSlotNotEnough:
+			Debug.Log($"[PlayBoard] Show battle message for {message}");
+			break;
+		default:
+			throw new ArgumentOutOfRangeException("message", message, null);
+		}
+	}
+
+	private void ConfirmUseCardWithSelection(UnitSelector selector)
+	{
+		Card card = _activeHand.Card;
+		BattleManaPanel panel = UiManager.GetPanel<BattleManaPanel>();
+		if (!panel.TryGetConfirmUseMana(card, out var kicker, out var consuming))
+		{
+			ShowErrorChat("ErrorChat.CardCostChanged".LocalizeWithChar(base.GameRun));
+			panel.ClearHighlightMana();
+			panel.SetCostHighlightForCard(card);
+			if (UseCardVerify(card, showErrorChat: false, out var _))
+			{
+				card.PendingManaUsage = panel.HighlightingMana;
+			}
+			else
+			{
+				CancelTargetSelecting();
+			}
+		}
+		else if (card.IsXCost && consuming.Pooled.IsEmpty && GameMaster.ShowXCostEmptyUseWarning)
+		{
+			_status = InteractionStatus.CardUsingConfirming;
+			UiManager.GetDialog<MessageDialog>().Show(new MessageContent
+			{
+				TextKey = "XCostEmptyUsageWarning",
+				TextArguments = new object[1] { card.Name },
+				SubTextKey = "XCostEmptyUsageTips",
+				Icon = MessageIcon.Warning,
+				Buttons = DialogButtons.ConfirmCancel,
+				OnCancel = delegate
+				{
+					CancelTargetSelecting();
+				},
+				OnConfirm = InternalConfirmUseCard
+			});
+			Cursor.visible = true;
+		}
+		else
+		{
+			InternalConfirmUseCard();
+		}
+		void InternalConfirmUseCard()
+		{
+			GamepadCardController component = _activeHand.CardWidget.GetComponent<GamepadCardController>();
+			int num = cardUi.GetUnpendingHands().ToList().IndexOf(_activeHand);
+			if (RequestUseCard(card, selector, consuming, kicker))
+			{
+				cardUi.ConfirmUseCard(_activeHand);
+				_activeHand.CardWidget.HideTooltip();
+				component.EnableNavigation = false;
+				component.IsHandCard = false;
+				if (Singleton<InputDeviceManager>.Instance.CurrentInputDevice == InputDeviceType.Gamepad)
+				{
+					List<HandCard> list = cardUi.GetUnpendingHands().ToList();
+					if (list.Count > 0 && num >= 0)
+					{
+						int index = Mathf.Clamp(num, 0, list.Count - 1);
+						GamepadCardCursor cardCursor = list[index].CardWidget.GetComponent<GamepadCardController>().CardCursor;
+						if (cardCursor != null)
+						{
+							EventSystem.current.SetSelectedGameObject(cardCursor.gameObject);
+						}
+					}
+				}
+				else
+				{
+					GamepadNavigationManager.RefreshSelection();
+				}
+			}
+			else
+			{
+				cardUi.CancelUse(card);
+			}
+			_status = InteractionStatus.Normal;
+			_activeHand = null;
+			targetSelector.DisableSelector();
+		}
+	}
+
+	private void ConfirmUseUsWithSelection(UnitSelector selector)
+	{
+		UltimateSkill us = base.GameRun.Player.Us;
+		if (us.TargetType != TargetType.SingleEnemy)
+		{
+			Debug.LogError($"US {us.DebugName} should not invoke with selector: {selector}");
+			return;
+		}
+		RequestUseUs(selector);
+		EventSystem.current.SetSelectedGameObject(null);
+		_status = InteractionStatus.Normal;
+		targetSelector.DisableSelector();
+	}
+
+	private void ConfirmUseDollWithSelection(UnitSelector selector)
+	{
+		Doll doll = _activeDoll.Doll;
+		if (doll.TargetType != TargetType.SingleEnemy)
+		{
+			Debug.LogError($"Doll {doll.DebugName} should not invoke with selector: {selector}");
+			return;
+		}
+		RequestUseDoll(doll, selector);
+		_status = InteractionStatus.Normal;
+		targetSelector.DisableSelector();
+	}
+
+	private void UI_EndTurn()
+	{
+		if (!IsTempLockedFromMinimize)
+		{
+			RequestEndTurn();
+		}
+	}
+
+	public bool UseCardVerify(Card card, bool showErrorChat, out bool kickerUsable)
+	{
+		kickerUsable = false;
+		if (!base.Battle.Player.IsInTurn)
+		{
+			return false;
+		}
+		if (card.Zone != CardZone.Hand)
+		{
+			if (showErrorChat)
+			{
+				ShowErrorChat("ErrorChat.CardNotInHand".LocalizeWithChar(base.GameRun));
+			}
+			return false;
+		}
+		if (base.Battle.DoesHandCardPreventUse(card, out var card2))
+		{
+			if (showErrorChat)
+			{
+				card2.NotifyActivating();
+				ShowErrorChat(card2.PreventCardUsageMessage, card2.PreventCardUsageChatType);
+			}
+			return false;
+		}
+		if (base.Battle.DoesPlayerStatusEffectForbidUse(card, out var effect))
+		{
+			if (showErrorChat)
+			{
+				effect.NotifyActivating();
+				ShowErrorChat(effect.PreventCardUsageMessage);
+			}
+			return false;
+		}
+		if (card.IsForbidden || !card.CanUse)
+		{
+			if (showErrorChat)
+			{
+				ShowErrorChat(card.CantUseMessage, card.CantUseChatType);
+			}
+			return false;
+		}
+		int? moneyCost = card.Config.MoneyCost;
+		if (moneyCost.HasValue)
+		{
+			int valueOrDefault = moneyCost.GetValueOrDefault();
+			if (base.GameRun.Money < valueOrDefault)
+			{
+				if (showErrorChat)
+				{
+					ShowMoneyNotEnough();
+				}
+				return false;
+			}
+		}
+		if (card.Summoned && card.Loyalty < card.MinLoyaltyToUseSkill)
+		{
+			if (showErrorChat)
+			{
+				ShowLowLoyalty();
+			}
+			return false;
+		}
+		ManaGroup availableMana = UiManager.GetPanel<BattleManaPanel>().AvailableMana;
+		if (!availableMana.CanAfford(card.IsXCost ? card.XCostRequiredMana : card.Cost))
+		{
+			if (showErrorChat)
+			{
+				ShowLowMana();
+			}
+			return false;
+		}
+		if (card.HasKicker && availableMana.CanAfford(card.KickerTotalCost))
+		{
+			kickerUsable = true;
+		}
+		return true;
+	}
+
+	private bool UseCardVerify(Card card, UnitSelector selector, ConsumingMana consumingMana, bool isCommitting)
+	{
+		if (!base.Battle.Player.IsInTurn)
+		{
+			return false;
+		}
+		if (card.Zone != CardZone.Hand)
+		{
+			ShowErrorChat("ErrorChat.CardNotInHand".LocalizeWithChar(base.GameRun));
+			return false;
+		}
+		if (selector.Type == TargetType.SingleEnemy)
+		{
+			EnemyUnit selectedEnemy = selector.SelectedEnemy;
+			if (selectedEnemy != null && selectedEnemy.IsDead)
+			{
+				ShowErrorChat("ErrorChat.TargetAlreadyDead".LocalizeWithChar(base.GameRun));
+				return false;
+			}
+		}
+		if (base.Battle.DoesHandCardPreventUse(card, out var card2))
+		{
+			card2.NotifyActivating();
+			ShowErrorChat(card2.PreventCardUsageMessage, card2.PreventCardUsageChatType);
+			return false;
+		}
+		if (base.Battle.DoesPlayerStatusEffectForbidUse(card, out var effect))
+		{
+			effect.NotifyActivating();
+			ShowErrorChat(effect.PreventCardUsageMessage);
+			return false;
+		}
+		if (card.IsForbidden || !card.CanUse)
+		{
+			ShowErrorChat(card.CantUseMessage, card.CantUseChatType);
+			return false;
+		}
+		int? moneyCost = card.Config.MoneyCost;
+		if (moneyCost.HasValue)
+		{
+			int valueOrDefault = moneyCost.GetValueOrDefault();
+			if (base.GameRun.Money < valueOrDefault)
+			{
+				ShowMoneyNotEnough();
+				return false;
+			}
+		}
+		if (card.Summoned && card.Loyalty < card.MinLoyaltyToUseSkill)
+		{
+			ShowLowLoyalty();
+			return false;
+		}
+		if (!(isCommitting ? base.Battle.BattleMana : UiManager.GetPanel<BattleManaPanel>().AvailableMana).CanAfford(consumingMana.TotalMana))
+		{
+			ShowLowMana();
+			return false;
+		}
+		return true;
+	}
+
+	private bool UseUsVerify(UnitSelector selector)
+	{
+		if (!base.Battle.Player.HasUs)
+		{
+			ShowErrorChat("Player doesn't has US");
+			return false;
+		}
+		UltimateSkill us = base.Battle.Player.Us;
+		if (base.Battle.Player.Power < us.PowerCost)
+		{
+			ShowLowPower();
+			return false;
+		}
+		if (!us.Available)
+		{
+			if (us.BattleAvailable)
+			{
+				ShowUsUsedThisTurn();
+			}
+			else
+			{
+				ShowUsUsedThisBattle();
+			}
+			return false;
+		}
+		if (selector.Type == TargetType.SingleEnemy)
+		{
+			EnemyUnit selectedEnemy = selector.SelectedEnemy;
+			if (selectedEnemy != null && selectedEnemy.IsDead)
+			{
+				ShowErrorChat("ErrorChat.TargetAlreadyDead".LocalizeWithChar(base.GameRun));
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private bool UseDollVerify(Doll doll, UnitSelector selector)
+	{
+		if (!base.Battle.Player.IsInTurn || !doll.Usable)
+		{
+			return false;
+		}
+		if (!base.Battle.Player.Dolls.Contains(doll))
+		{
+			ShowErrorChat("Player doesn't has Doll:" + doll.DebugName);
+			return false;
+		}
+		if (doll.HasMagic && doll.Magic < doll.MagicCost)
+		{
+			ShowLowMagic();
+			return false;
+		}
+		if (selector.Type == TargetType.SingleEnemy)
+		{
+			EnemyUnit selectedEnemy = selector.SelectedEnemy;
+			if (selectedEnemy != null && selectedEnemy.IsDead)
+			{
+				ShowErrorChat("ErrorChat.TargetAlreadyDead".LocalizeWithChar(base.GameRun));
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private void RewindCard(Card card, ConsumingMana consumingMana)
+	{
+		cardUi.CancelUse(card);
+		UiManager.GetPanel<BattleManaPanel>().RefundBack(consumingMana);
+	}
+
+	private void RewindUs()
+	{
+		UiManager.GetPanel<UltimateSkillPanel>().CancelUse();
+	}
+
+	private void RewindDoll(Doll doll)
+	{
+		GameDirector.Player.GetDoll(doll)?.InfoWidget?.CancelUse();
+	}
+
+	public void SetEndTurnParticle(bool active)
+	{
+		if (base.GameRun.Battle.IsWaitingPlayerInput)
+		{
+			endTurnEdgeCg.DOFade(active ? 1 : 0, 0.33f).SetLink(endTurnEdgeCg.gameObject);
+		}
+	}
+
+	private void ShowErrorChat(string info, ChatType chatType = ChatType.PlayerThink)
+	{
+		switch (chatType)
+		{
+		case ChatType.PlayerThink:
+			GameDirector.Player.Chat(info, 3f);
+			break;
+		case ChatType.PlayerTalk:
+			GameDirector.Player.Chat(info, 3f, ChatWidget.CloudType.LeftTalk);
+			break;
+		case ChatType.MainEnemyThink:
+			GameDirector.MainEnemy.Chat(info, 3f, ChatWidget.CloudType.RightThink);
+			break;
+		case ChatType.MainEnemyTalk:
+			GameDirector.MainEnemy.Chat(info, 3f, ChatWidget.CloudType.RightTalk);
+			break;
+		default:
+			throw new ArgumentOutOfRangeException("chatType", chatType, null);
+		}
+	}
+
+	public void ShowMoneyNotEnough()
+	{
+		ShowErrorChat("ErrorChat.MoneyNotEnough".LocalizeWithChar(base.GameRun));
+	}
+
+	public void ShowLowMana()
+	{
+		ShowErrorChat("ErrorChat.LowMana".LocalizeWithChar(base.GameRun));
+	}
+
+	public void ShowLowPower()
+	{
+		ShowErrorChat("ErrorChat.LowPower".LocalizeWithChar(base.GameRun));
+	}
+
+	public void ShowLowMagic()
+	{
+		ShowErrorChat("ErrorChat.LowMagic".LocalizeWithChar(base.GameRun));
+	}
+
+	public void ShowLowLoyalty()
+	{
+		ShowErrorChat("ErrorChat.LowLoyalty".LocalizeWithChar(base.GameRun));
+	}
+
+	public void ShowUsUsedThisTurn()
+	{
+		ShowErrorChat("ErrorChat.UsUsedThisTurn".LocalizeWithChar(base.GameRun));
+	}
+
+	public void ShowUsUsedThisBattle()
+	{
+		ShowErrorChat("ErrorChat.UsUsedThisBattle".LocalizeWithChar(base.GameRun));
+	}
+
+	public void ShowDrawZone()
+	{
+		if (base.Battle != null)
+		{
+			ShowCardsPayload payload = new ShowCardsPayload
+			{
+				Name = "Game.DrawZoneOutOfOrder".LocalizeFormat(),
+				Description = "Cards.Show".LocalizeFormat(),
+				Cards = base.Battle.DrawZone,
+				InteractionType = InteractionType.None,
+				CardZone = ShowCardZone.Draw,
+				HideActualOrder = (base.GameRun.CanViewDrawZoneActualOrder <= 0)
+			};
+			UiManager.GetPanel<ShowCardsPanel>().Show(payload);
+		}
+	}
+
+	public void ShowDiscardZone()
+	{
+		if (base.Battle != null)
+		{
+			ShowCardsPayload payload = new ShowCardsPayload
+			{
+				Name = "Game.DiscardZone".LocalizeFormat(),
+				Description = "Cards.Show".LocalizeFormat(),
+				Cards = base.Battle.DiscardZone,
+				InteractionType = InteractionType.None,
+				CardZone = ShowCardZone.Discard
+			};
+			UiManager.GetPanel<ShowCardsPanel>().Show(payload);
+		}
+	}
+
+	public void ShowExileZone()
+	{
+		if (base.Battle != null)
+		{
+			ShowCardsPayload payload = new ShowCardsPayload
+			{
+				Name = "Game.ExileZone".LocalizeFormat(),
+				Description = "Cards.Show".LocalizeFormat(),
+				Cards = base.Battle.ExileZone,
+				InteractionType = InteractionType.None,
+				CardZone = ShowCardZone.Exile
+			};
+			UiManager.GetPanel<ShowCardsPanel>().Show(payload);
+		}
+	}
+
+	public ManaGroup GetHandRemainCostExcept(Card exceptCard)
+	{
+		ManaGroup empty = ManaGroup.Empty;
+		foreach (HandCard unpendingHand in cardUi.GetUnpendingHands())
+		{
+			Card card = unpendingHand.Card;
+			if (card != exceptCard)
+			{
+				if (card.IsXCost)
+				{
+					empty += card.XCostRequiredMana;
+				}
+				else
+				{
+					empty += card.Cost;
+				}
+			}
+		}
+		return empty;
+	}
+
+	public Vector3? FindActionSourceWorldPosition(GameEntity source)
+	{
+		if (source is Card card)
+		{
+			HandCard handCard = cardUi.FindHandWidget(card);
+			if ((bool)handCard)
+			{
+				return handCard.TargetWorldPosition;
+			}
+			CardWidget cardWidget = cardUi.FindFollowPlayWidget(card);
+			if ((bool)cardWidget)
+			{
+				return cardWidget.transform.position;
+			}
+			cardWidget = cardUi.FindViewWidget(card);
+			if ((bool)cardWidget)
+			{
+				return cardWidget.transform.position;
+			}
+		}
+		else if (source is StatusEffect { Owner: var owner } statusEffect)
+		{
+			if (owner == null)
+			{
+				return null;
+			}
+			UnitView unit = GameDirector.GetUnit(owner);
+			if ((bool)unit)
+			{
+				return unit.FindStatusEffectWorldPosition(statusEffect);
+			}
+			Debug.LogError("[PlayBoard] Cannot get SE action source owner " + statusEffect.Owner.DebugName + " from UnitView");
+		}
+		else if (source is Exhibit exhibit)
+		{
+			ExhibitWidget exhibitWidget = UiManager.GetPanel<SystemBoard>().FindExhibit(exhibit);
+			if ((bool)exhibitWidget)
+			{
+				return exhibitWidget.CenterWorldPosition;
+			}
+		}
+		else if (source is PlayerUnit)
+		{
+			UnitView player = GameDirector.Player;
+			if ((bool)player)
+			{
+				return CameraController.ScenePositionToWorldPositionInUI(player.transform.position);
+			}
+		}
+		else if (source is EnemyUnit enemy)
+		{
+			UnitView enemy2 = GameDirector.GetEnemy(enemy);
+			if ((bool)enemy2)
+			{
+				return CameraController.ScenePositionToWorldPositionInUI(enemy2.transform.position);
+			}
+		}
+		else if (source is Doll doll)
+		{
+			UnitView player2 = GameDirector.Player;
+			if ((bool)player2)
+			{
+				DollView doll2 = player2.GetDoll(doll);
+				if ((bool)doll2)
+				{
+					return CameraController.ScenePositionToWorldPositionInUI(doll2.transform.position);
+				}
+			}
+		}
+		return null;
+	}
+
+	public void SetCursorVisible()
+	{
+		targetSelector.SetCursorVisible();
+	}
+}

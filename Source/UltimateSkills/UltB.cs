@@ -65,6 +65,8 @@ namespace TianziMod.TianziUlt
 
         protected override IEnumerable<BattleAction> Actions(UnitSelector selector)
         {
+            // 不要再 PerformAction.Spell：Gun 511（TenshiSpell1）开火时
+            // UnitView.PerformShootRunner 会 SpellDeclare(gun.Spell)，再手写 Spell 会播两次。
             // 彩符「天穹虹华之剑」
             // 随机释放一种天气（持续 3 回合），并对目标造成一段伤害（本场首次 +Value1）。
             foreach (BattleAction action in TianziWeather.ApplyRandom(base.Battle.Player, base.Value2))

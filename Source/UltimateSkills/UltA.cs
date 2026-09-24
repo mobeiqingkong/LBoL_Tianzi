@@ -43,6 +43,7 @@ namespace TianziMod.TianziUlt
 
         protected override IEnumerable<BattleAction> Actions(UnitSelector selector)
         {
+            yield return PerformAction.Spell(Owner, "TianziUltA");
             // 气符「无念无想的境界」
             // 获得 1 回合天衣无缝 + 5 点生命值，并移除主角身上所有负面状态。
             yield return new ApplyStatusEffectAction<Invincible>(
