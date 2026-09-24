@@ -31,7 +31,7 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
 
             config.Value1 = 5;
-            config.Keywords = Keyword.Initial | Keyword.Replenish;
+            config.Keywords = Keyword.None;
             config.UpgradedKeywords = Keyword.Initial | Keyword.Replenish;
             config.Mana = new ManaGroup() { White = 1 };
             config.UpgradedMana = new ManaGroup() { White = 1 };

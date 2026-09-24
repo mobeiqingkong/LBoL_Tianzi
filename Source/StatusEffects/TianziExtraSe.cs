@@ -72,7 +72,7 @@ namespace TianziMod.StatusEffects
         {
             StatusEffectConfig config = GetDefaultStatusEffectConfig();
             config.Type = StatusEffectType.Positive;
-            // Level = 格挡倍数（取高）；Count = 奇数回合获得的火力（叠加）
+            // Level = 偶数回合格挡倍数（取高，固定 2）；Count = 奇数回合火力（叠加）
             config.HasLevel = true;
             config.LevelStackType = StackType.Max;
             config.IsStackable = true;
@@ -89,6 +89,8 @@ namespace TianziMod.StatusEffects
         {
             if (base.Count <= 0)
                 base.Count = 1;
+            if (base.Level <= 0)
+                base.Level = 1;
             base.ReactOwnerEvent<UnitEventArgs>(
                 base.Battle.Player.TurnStarted,
                 new EventSequencedReactor<UnitEventArgs>(this.OnTurnStarted));
@@ -118,8 +120,10 @@ namespace TianziMod.StatusEffects
             {
                 Firepower fpSe = base.Battle.Player.GetStatusEffect<Firepower>();
                 int fp = fpSe == null ? 0 : fpSe.Level;
-                // Level 即倍数（未升级 10 / 升级 15）
-                int block = fp * base.Level;
+                int mult = base.Level > 0 ? base.Level : 1;
+                int block = fp * mult;
+                if (block > 25)
+                    block = 25;
                 if (block <= 0)
                     yield break;
                 yield return new CastBlockShieldAction(

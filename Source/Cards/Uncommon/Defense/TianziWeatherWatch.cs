@@ -26,11 +26,7 @@ namespace TianziMod.Cards
             config.Block = 8;
             config.UpgradedBlock = 12;
             config.Value1 = 2;
-            config.RelativeEffects = new List<string>()
-            {
-                nameof(TianziWeatherClear),
-                nameof(TianziNextTurnManaSe),
-            };
+            config.RelativeEffects = TianziWeather.RelativeIds(includeForecast: true);
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "";
             config.RelativeKeyword = Keyword.Block;

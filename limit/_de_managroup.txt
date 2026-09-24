@@ -1,0 +1,964 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
+using LBoL.Base.Extensions;
+using UnityEngine;
+using Untitled.ConfigDataBuilder.Base;
+
+namespace LBoL.Base;
+
+[StructLayout(LayoutKind.Explicit)]
+[ConfigValueConverter(typeof(ManaGroupConverter), new string[] { })]
+public struct ManaGroup : IEquatable<ManaGroup>
+{
+	[FieldOffset(0)]
+	private unsafe fixed int _buffer[10];
+
+	public static readonly ManaGroup Empty;
+
+	public static readonly List<string> HybridColorShortNames = new List<string> { "HWU", "HWB", "HWR", "HWG", "HUB", "HUR", "HUG", "HBR", "HBG", "HRG" };
+
+	public static readonly List<string> HybridColorShortNamesLoopOrder = new List<string> { "HWU", "HWB", "HRW", "HGW", "HUB", "HUR", "HGU", "HBR", "HBG", "HRG" };
+
+	public static readonly List<List<ManaColor>> HybridColors = new List<List<ManaColor>>
+	{
+		new List<ManaColor>
+		{
+			ManaColor.White,
+			ManaColor.Blue
+		},
+		new List<ManaColor>
+		{
+			ManaColor.White,
+			ManaColor.Black
+		},
+		new List<ManaColor>
+		{
+			ManaColor.White,
+			ManaColor.Red
+		},
+		new List<ManaColor>
+		{
+			ManaColor.White,
+			ManaColor.Green
+		},
+		new List<ManaColor>
+		{
+			ManaColor.Blue,
+			ManaColor.Black
+		},
+		new List<ManaColor>
+		{
+			ManaColor.Blue,
+			ManaColor.Red
+		},
+		new List<ManaColor>
+		{
+			ManaColor.Blue,
+			ManaColor.Green
+		},
+		new List<ManaColor>
+		{
+			ManaColor.Black,
+			ManaColor.Red
+		},
+		new List<ManaColor>
+		{
+			ManaColor.Black,
+			ManaColor.Green
+		},
+		new List<ManaColor>
+		{
+			ManaColor.Red,
+			ManaColor.Green
+		}
+	};
+
+	[field: FieldOffset(0)]
+	public int Any { get; set; }
+
+	[field: FieldOffset(4)]
+	public int White { get; set; }
+
+	[field: FieldOffset(8)]
+	public int Blue { get; set; }
+
+	[field: FieldOffset(12)]
+	public int Black { get; set; }
+
+	[field: FieldOffset(16)]
+	public int Red { get; set; }
+
+	[field: FieldOffset(20)]
+	public int Green { get; set; }
+
+	[field: FieldOffset(24)]
+	public int Colorless { get; set; }
+
+	[field: FieldOffset(28)]
+	public int Philosophy { get; set; }
+
+	[field: FieldOffset(32)]
+	public int Hybrid { get; set; }
+
+	[field: FieldOffset(36)]
+	public int HybridColor { get; set; }
+
+	public bool IsEmpty
+	{
+		get
+		{
+			if (Any == 0 && White == 0 && Blue == 0 && Black == 0 && Red == 0 && Green == 0 && Colorless == 0 && Philosophy == 0)
+			{
+				return Hybrid == 0;
+			}
+			return false;
+		}
+	}
+
+	public int this[ManaColor color]
+	{
+		get
+		{
+			return GetValue(color);
+		}
+		set
+		{
+			SetValue(color, value);
+		}
+	}
+
+	public int Amount => Any + White + Blue + Black + Red + Green + Colorless + Philosophy + Hybrid;
+
+	public int Total => Amount;
+
+	public ManaColor MaxColor => ManaColors.Colors.MaxBy(GetValue);
+
+	public ManaColor MaxTrivialColor => ManaColors.TrivialColors.MaxBy(GetValue);
+
+	public int MaxTrivialColorAmount => GetValue(MaxTrivialColor);
+
+	public bool HasTrivial
+	{
+		get
+		{
+			if (White <= 0 && Blue <= 0 && Black <= 0 && Red <= 0)
+			{
+				return Green > 0;
+			}
+			return true;
+		}
+	}
+
+	public bool HasTrivialOrHybrid
+	{
+		get
+		{
+			if (!HasTrivial)
+			{
+				return Hybrid > 0;
+			}
+			return true;
+		}
+	}
+
+	public int ColorCount
+	{
+		get
+		{
+			int num = 0;
+			if (Any > 0)
+			{
+				num++;
+			}
+			if (White > 0)
+			{
+				num++;
+			}
+			if (Blue > 0)
+			{
+				num++;
+			}
+			if (Black > 0)
+			{
+				num++;
+			}
+			if (Red > 0)
+			{
+				num++;
+			}
+			if (Green > 0)
+			{
+				num++;
+			}
+			if (Colorless > 0)
+			{
+				num++;
+			}
+			if (Philosophy > 0)
+			{
+				num++;
+			}
+			return num;
+		}
+	}
+
+	public int SingleColorCount
+	{
+		get
+		{
+			int num = 0;
+			if (White > 0)
+			{
+				num++;
+			}
+			if (Blue > 0)
+			{
+				num++;
+			}
+			if (Black > 0)
+			{
+				num++;
+			}
+			if (Red > 0)
+			{
+				num++;
+			}
+			if (Green > 0)
+			{
+				num++;
+			}
+			if (Colorless > 0)
+			{
+				num++;
+			}
+			return num;
+		}
+	}
+
+	public int TrivialColorCount
+	{
+		get
+		{
+			int num = 0;
+			if (White > 0)
+			{
+				num++;
+			}
+			if (Red > 0)
+			{
+				num++;
+			}
+			if (Green > 0)
+			{
+				num++;
+			}
+			if (Black > 0)
+			{
+				num++;
+			}
+			if (Blue > 0)
+			{
+				num++;
+			}
+			return num;
+		}
+	}
+
+	public bool IsValid
+	{
+		get
+		{
+			if (Any >= 0 && White >= 0 && Blue >= 0 && Black >= 0 && Red >= 0 && Green >= 0 && Colorless >= 0 && Philosophy >= 0)
+			{
+				return Hybrid >= 0;
+			}
+			return false;
+		}
+	}
+
+	public bool IsInvalid => !IsValid;
+
+	public ManaGroup Corrected
+	{
+		get
+		{
+			ManaGroup result = this;
+			if (Any < 0)
+			{
+				result.Any = 0;
+			}
+			if (White < 0)
+			{
+				result.White = 0;
+			}
+			if (Blue < 0)
+			{
+				result.Blue = 0;
+			}
+			if (Black < 0)
+			{
+				result.Black = 0;
+			}
+			if (Red < 0)
+			{
+				result.Red = 0;
+			}
+			if (Green < 0)
+			{
+				result.Green = 0;
+			}
+			if (Colorless < 0)
+			{
+				result.Colorless = 0;
+			}
+			if (Philosophy < 0)
+			{
+				result.Philosophy = 0;
+			}
+			if (Hybrid < 0)
+			{
+				result.Hybrid = 0;
+			}
+			return result;
+		}
+	}
+
+	public List<ManaColor> GetHybridColors => HybridColors[HybridColor];
+
+	public unsafe int GetValue(ManaColor color)
+	{
+		if (color < ManaColor.Any || color >= (ManaColor)9)
+		{
+			throw new ArgumentException(string.Format("Invalid {0} for {1} (value = {2})", "ManaColor", GetType().Name, color));
+		}
+		return _buffer[(int)color];
+	}
+
+	public unsafe void SetValue(ManaColor color, int value)
+	{
+		if (color < ManaColor.Any || color >= (ManaColor)9)
+		{
+			throw new ArgumentException(string.Format("Invalid {0} for {1} (value = {2})", "ManaColor", GetType().Name, color));
+		}
+		_buffer[(int)color] = value;
+	}
+
+	public bool HasColor(ManaColor color)
+	{
+		return GetValue(color) > 0;
+	}
+
+	public void WriteTo(BinaryWriter writer)
+	{
+		writer.Write(Any);
+		writer.Write(White);
+		writer.Write(Blue);
+		writer.Write(Black);
+		writer.Write(Red);
+		writer.Write(Green);
+		writer.Write(Colorless);
+		writer.Write(Philosophy);
+		writer.Write(Hybrid);
+		writer.Write(HybridColor);
+	}
+
+	public static ManaGroup FromBinary(BinaryReader reader)
+	{
+		ManaGroup result = default(ManaGroup);
+		result.Any = reader.ReadInt32();
+		result.White = reader.ReadInt32();
+		result.Blue = reader.ReadInt32();
+		result.Black = reader.ReadInt32();
+		result.Red = reader.ReadInt32();
+		result.Green = reader.ReadInt32();
+		result.Colorless = reader.ReadInt32();
+		result.Philosophy = reader.ReadInt32();
+		result.Hybrid = reader.ReadInt32();
+		result.HybridColor = reader.ReadInt32();
+		return result;
+	}
+
+	public static ManaGroup Single(ManaColor color)
+	{
+		ManaGroup result = default(ManaGroup);
+		result[color] = 1;
+		return result;
+	}
+
+	public static ManaGroup FromColor(ManaColor color, int amount)
+	{
+		ManaGroup result = default(ManaGroup);
+		result[color] = amount;
+		return result;
+	}
+
+	public static ManaGroup FromComponents(IEnumerable<ManaColor> components)
+	{
+		ManaGroup empty = Empty;
+		foreach (ManaColor component in components)
+		{
+			ManaColor color = component;
+			int value = empty[color] + 1;
+			empty[color] = value;
+		}
+		return empty;
+	}
+
+	public static ManaGroup Anys(int value)
+	{
+		ManaGroup result = default(ManaGroup);
+		result.Any = value;
+		return result;
+	}
+
+	public static ManaGroup Whites(int value)
+	{
+		ManaGroup result = default(ManaGroup);
+		result.White = value;
+		return result;
+	}
+
+	public static ManaGroup Blues(int value)
+	{
+		ManaGroup result = default(ManaGroup);
+		result.Blue = value;
+		return result;
+	}
+
+	public static ManaGroup Blacks(int value)
+	{
+		ManaGroup result = default(ManaGroup);
+		result.Black = value;
+		return result;
+	}
+
+	public static ManaGroup Reds(int value)
+	{
+		ManaGroup result = default(ManaGroup);
+		result.Red = value;
+		return result;
+	}
+
+	public static ManaGroup Greens(int value)
+	{
+		ManaGroup result = default(ManaGroup);
+		result.Green = value;
+		return result;
+	}
+
+	public static ManaGroup Colorlesses(int value)
+	{
+		ManaGroup result = default(ManaGroup);
+		result.Colorless = value;
+		return result;
+	}
+
+	public static ManaGroup Philosophies(int value)
+	{
+		ManaGroup result = default(ManaGroup);
+		result.Philosophy = value;
+		return result;
+	}
+
+	public static ManaGroup Hybrids(int value, int color)
+	{
+		ManaGroup manaGroup = default(ManaGroup);
+		manaGroup.Hybrid = value;
+		ManaGroup result = manaGroup;
+		result.SetHybridColor(color);
+		return result;
+	}
+
+	public static ManaGroup Hybrids(int value, ManaColor color1, ManaColor color2)
+	{
+		ManaGroup manaGroup = default(ManaGroup);
+		manaGroup.Hybrid = value;
+		ManaGroup result = manaGroup;
+		result.SetHybridColor(color1, color2);
+		return result;
+	}
+
+	public static ManaGroup Parse(string shortString)
+	{
+		if (!TryParse(shortString, out var result))
+		{
+			throw new ArgumentException("Cannot convert " + shortString + " to ManaGroup");
+		}
+		return result;
+	}
+
+	public static bool TryParse(string shortString, out ManaGroup result)
+	{
+		result = default(ManaGroup);
+		int i = 0;
+		int num = 0;
+		for (; i < shortString.Length && char.IsDigit(shortString[i]); i++)
+		{
+			num = num * 10 + (shortString[i] - 48);
+		}
+		result.Any += num;
+		for (; i < shortString.Length; i++)
+		{
+			switch (shortString[i])
+			{
+			case ':':
+			{
+				if (i != shortString.Length - 3)
+				{
+					return false;
+				}
+				ManaColor? manaColor3 = ManaColors.FromShortName(shortString[i + 1]);
+				ManaColor? manaColor4 = ManaColors.FromShortName(shortString[i + 2]);
+				if (!manaColor3.HasValue || !manaColor4.HasValue)
+				{
+					return false;
+				}
+				result.SetHybridColor(manaColor3.Value, manaColor4.Value);
+				return true;
+			}
+			case '{':
+			{
+				i++;
+				num = 0;
+				for (; i < shortString.Length; i++)
+				{
+					char c = shortString[i];
+					if (c < '0' || c > '9')
+					{
+						break;
+					}
+					num = num * 10 + (c - 48);
+				}
+				if (i >= shortString.Length)
+				{
+					return false;
+				}
+				ManaColor? manaColor2 = ManaColors.FromShortName(shortString[i]);
+				if (!manaColor2.HasValue)
+				{
+					return false;
+				}
+				i++;
+				if (i >= shortString.Length || shortString[i] != '}')
+				{
+					return false;
+				}
+				result[manaColor2.Value] += num;
+				break;
+			}
+			default:
+			{
+				ManaColor? manaColor = ManaColors.FromShortName(shortString[i]);
+				if (!manaColor.HasValue)
+				{
+					return false;
+				}
+				ManaColor value = manaColor.Value;
+				int value2 = result[value] + 1;
+				result[value] = value2;
+				break;
+			}
+			}
+		}
+		return true;
+	}
+
+	public static ManaGroup operator +(ManaGroup lhs, ManaGroup rhs)
+	{
+		ManaGroup result = default(ManaGroup);
+		result.Any = lhs.Any + rhs.Any;
+		result.White = lhs.White + rhs.White;
+		result.Blue = lhs.Blue + rhs.Blue;
+		result.Black = lhs.Black + rhs.Black;
+		result.Red = lhs.Red + rhs.Red;
+		result.Green = lhs.Green + rhs.Green;
+		result.Colorless = lhs.Colorless + rhs.Colorless;
+		result.Philosophy = lhs.Philosophy + rhs.Philosophy;
+		result.Hybrid = lhs.Hybrid + rhs.Hybrid;
+		result.HybridColor = ((lhs.Hybrid != 0) ? lhs.HybridColor : ((rhs.Hybrid != 0) ? rhs.HybridColor : lhs.HybridColor));
+		return result;
+	}
+
+	public static ManaGroup operator -(ManaGroup lhs, ManaGroup rhs)
+	{
+		ManaGroup result = default(ManaGroup);
+		result.Any = lhs.Any - rhs.Any;
+		result.White = lhs.White - rhs.White;
+		result.Blue = lhs.Blue - rhs.Blue;
+		result.Black = lhs.Black - rhs.Black;
+		result.Red = lhs.Red - rhs.Red;
+		result.Green = lhs.Green - rhs.Green;
+		result.Colorless = lhs.Colorless - rhs.Colorless;
+		result.Philosophy = lhs.Philosophy - rhs.Philosophy;
+		result.Hybrid = lhs.Hybrid - rhs.Hybrid;
+		result.HybridColor = ((lhs.Hybrid != 0) ? lhs.HybridColor : ((rhs.Hybrid != 0) ? rhs.HybridColor : lhs.HybridColor));
+		return result;
+	}
+
+	public static ManaGroup operator *(ManaGroup mana, int multiplier)
+	{
+		ManaGroup result = default(ManaGroup);
+		result.Any = mana.Any * multiplier;
+		result.White = mana.White * multiplier;
+		result.Blue = mana.Blue * multiplier;
+		result.Black = mana.Black * multiplier;
+		result.Red = mana.Red * multiplier;
+		result.Green = mana.Green * multiplier;
+		result.Colorless = mana.Colorless * multiplier;
+		result.Philosophy = mana.Philosophy * multiplier;
+		result.Hybrid = mana.Hybrid * multiplier;
+		return result;
+	}
+
+	public bool CanAffordExact(ManaGroup cost)
+	{
+		if (Any != 0)
+		{
+			throw new InvalidOperationException(string.Format("{0}.{1} invoked with any = {2}, which mustn't be available mana.", "ManaGroup", "CanAffordExact", Any));
+		}
+		return (this - cost).IsValid;
+	}
+
+	public bool CanAfford(ManaGroup cost)
+	{
+		if (Any != 0)
+		{
+			throw new InvalidOperationException(string.Format("{0}.{1} invoked with any = {2}, which mustn't be available mana.", "ManaGroup", "CanAfford", Any));
+		}
+		if (Hybrid != 0)
+		{
+			throw new InvalidOperationException(string.Format("{0}.{1} invoked with hybrid = {2}, which mustn't be available mana.", "ManaGroup", "CanAfford", Hybrid));
+		}
+		ManaGroup manaGroup = this - cost;
+		manaGroup.Any = 0;
+		if (manaGroup.Amount < cost.Any)
+		{
+			return false;
+		}
+		int num = manaGroup.Philosophy;
+		foreach (ManaColor singleColor in ManaColors.SingleColors)
+		{
+			int num2 = manaGroup[singleColor];
+			if (num2 < 0)
+			{
+				num += num2;
+			}
+		}
+		if (cost.Hybrid > 0)
+		{
+			List<ManaColor> list = HybridColors[cost.HybridColor];
+			ManaColor color = list[0];
+			ManaColor color2 = list[1];
+			int num3 = Math.Max(0, manaGroup[color]);
+			int num4 = Math.Max(0, manaGroup[color2]);
+			int num5 = num3 + num4 - cost.Hybrid;
+			if (num5 < 0)
+			{
+				num += num5;
+			}
+		}
+		return num >= 0;
+	}
+
+	public static ManaGroup Intersect(ManaGroup a, ManaGroup b)
+	{
+		ManaGroup result = default(ManaGroup);
+		result.Any = Math.Min(a.Any, b.Any);
+		result.White = Math.Min(a.White, b.White);
+		result.Blue = Math.Min(a.Blue, b.Blue);
+		result.Black = Math.Min(a.Black, b.Black);
+		result.Red = Math.Min(a.Red, b.Red);
+		result.Green = Math.Min(a.Green, b.Green);
+		result.Colorless = Math.Min(a.Colorless, b.Colorless);
+		result.Philosophy = Math.Min(a.Philosophy, b.Philosophy);
+		result.Hybrid = Math.Min(a.Hybrid, b.Hybrid);
+		result.HybridColor = ((a.Hybrid != 0) ? a.HybridColor : ((b.Hybrid != 0) ? b.HybridColor : a.HybridColor));
+		return result;
+	}
+
+	public ManaGroup Intersect(ManaGroup other)
+	{
+		return Intersect(this, other);
+	}
+
+	public static ManaGroup Union(ManaGroup a, ManaGroup b)
+	{
+		ManaGroup result = default(ManaGroup);
+		result.Any = Math.Max(a.Any, b.Any);
+		result.White = Math.Max(a.White, b.White);
+		result.Blue = Math.Max(a.Blue, b.Blue);
+		result.Black = Math.Max(a.Black, b.Black);
+		result.Red = Math.Max(a.Red, b.Red);
+		result.Green = Math.Max(a.Green, b.Green);
+		result.Colorless = Math.Max(a.Colorless, b.Colorless);
+		result.Philosophy = Math.Max(a.Philosophy, b.Philosophy);
+		result.Hybrid = Math.Max(a.Hybrid, b.Hybrid);
+		result.HybridColor = ((a.Hybrid != 0) ? a.HybridColor : ((b.Hybrid != 0) ? b.HybridColor : a.HybridColor));
+		return result;
+	}
+
+	public ManaGroup Union(ManaGroup other)
+	{
+		return Union(this, other);
+	}
+
+	public ManaGroup ClampComponentMax(int componentMax)
+	{
+		ManaGroup result = default(ManaGroup);
+		result.Any = Math.Min(Any, componentMax);
+		result.White = Math.Min(White, componentMax);
+		result.Blue = Math.Min(Blue, componentMax);
+		result.Black = Math.Min(Black, componentMax);
+		result.Red = Math.Min(Red, componentMax);
+		result.Green = Math.Min(Green, componentMax);
+		result.Colorless = Math.Min(Colorless, componentMax);
+		result.Philosophy = Math.Min(Philosophy, componentMax);
+		result.Hybrid = Math.Min(Hybrid, componentMax);
+		result.HybridColor = HybridColor;
+		return result;
+	}
+
+	public IEnumerable<ManaColor> EnumerateColors()
+	{
+		return ManaColors.Colors.Where(HasColor);
+	}
+
+	public IEnumerable<ManaColor> EnumerateComponents()
+	{
+		int i4 = 0;
+		while (i4 < Any)
+		{
+			yield return ManaColor.Any;
+			int num = i4 + 1;
+			i4 = num;
+		}
+		i4 = 0;
+		while (i4 < White)
+		{
+			yield return ManaColor.White;
+			int num = i4 + 1;
+			i4 = num;
+		}
+		i4 = 0;
+		while (i4 < Blue)
+		{
+			yield return ManaColor.Blue;
+			int num = i4 + 1;
+			i4 = num;
+		}
+		i4 = 0;
+		while (i4 < Black)
+		{
+			yield return ManaColor.Black;
+			int num = i4 + 1;
+			i4 = num;
+		}
+		i4 = 0;
+		while (i4 < Red)
+		{
+			yield return ManaColor.Red;
+			int num = i4 + 1;
+			i4 = num;
+		}
+		i4 = 0;
+		while (i4 < Green)
+		{
+			yield return ManaColor.Green;
+			int num = i4 + 1;
+			i4 = num;
+		}
+		i4 = 0;
+		while (i4 < Colorless)
+		{
+			yield return ManaColor.Colorless;
+			int num = i4 + 1;
+			i4 = num;
+		}
+		i4 = 0;
+		while (i4 < Philosophy)
+		{
+			yield return ManaColor.Philosophy;
+			int num = i4 + 1;
+			i4 = num;
+		}
+		i4 = 0;
+		while (i4 < Hybrid)
+		{
+			yield return ManaColor.Hybrid;
+			int num = i4 + 1;
+			i4 = num;
+		}
+	}
+
+	public override string ToString()
+	{
+		StringBuilder stringBuilder = new StringBuilder();
+		if (Any > 0)
+		{
+			stringBuilder.Append(Any);
+		}
+		else if (Any < 0)
+		{
+			stringBuilder.Append("(").Append(Any).Append(")");
+		}
+		AppendValue(stringBuilder, ManaColor.White, White);
+		AppendValue(stringBuilder, ManaColor.Blue, Blue);
+		AppendValue(stringBuilder, ManaColor.Black, Black);
+		AppendValue(stringBuilder, ManaColor.Red, Red);
+		AppendValue(stringBuilder, ManaColor.Green, Green);
+		AppendValue(stringBuilder, ManaColor.Colorless, Colorless);
+		AppendValue(stringBuilder, ManaColor.Philosophy, Philosophy);
+		AppendValue(stringBuilder, ManaColor.Hybrid, Hybrid);
+		if (Hybrid > 0)
+		{
+			stringBuilder.Append(":").Append(HybridColorShortNames[HybridColor]);
+		}
+		if (stringBuilder.Length != 0)
+		{
+			return stringBuilder.ToString();
+		}
+		return "0";
+		static void AppendValue(StringBuilder builder, ManaColor color, int value)
+		{
+			if (value > 3 || value < 0)
+			{
+				builder.Append('{').Append(value).Append(color.ToShortName())
+					.Append('}');
+			}
+			else
+			{
+				for (int i = 0; i < value; i++)
+				{
+					builder.Append(color.ToShortName());
+				}
+			}
+		}
+	}
+
+	private static bool Equals(ManaGroup lhs, ManaGroup rhs)
+	{
+		if ((lhs.Hybrid != 0 || rhs.Hybrid != 0) && lhs.HybridColor != rhs.HybridColor)
+		{
+			return false;
+		}
+		return ManaColors.AllColorsWithHybrid.All((ManaColor color) => lhs[color] == rhs[color]);
+	}
+
+	public bool Equals(ManaGroup other)
+	{
+		return Equals(this, other);
+	}
+
+	public override bool Equals([MaybeNull] object obj)
+	{
+		if (obj is ManaGroup rhs)
+		{
+			return Equals(this, rhs);
+		}
+		return false;
+	}
+
+	public override int GetHashCode()
+	{
+		HashCode hashCode = default(HashCode);
+		hashCode.Add(Any);
+		hashCode.Add(White);
+		hashCode.Add(Blue);
+		hashCode.Add(Black);
+		hashCode.Add(Red);
+		hashCode.Add(Green);
+		hashCode.Add(Colorless);
+		hashCode.Add(Philosophy);
+		hashCode.Add(Hybrid);
+		hashCode.Add(HybridColor);
+		return hashCode.ToHashCode();
+	}
+
+	public static bool operator ==(ManaGroup lhs, ManaGroup rhs)
+	{
+		return Equals(lhs, rhs);
+	}
+
+	public static bool operator !=(ManaGroup lhs, ManaGroup rhs)
+	{
+		return !Equals(lhs, rhs);
+	}
+
+	public void SetHybridColor(int hybridColorCode)
+	{
+		if (hybridColorCode >= 0 && hybridColorCode <= 9)
+		{
+			HybridColor = hybridColorCode;
+		}
+		else
+		{
+			Debug.LogError("Setting Hybrid color: hybridColorCode is out of range.");
+		}
+	}
+
+	public void SetHybridColor(ManaColor color1, ManaColor color2)
+	{
+		if (color1 != color2 && ManaColors.TrivialColors.Contains(color1) && ManaColors.TrivialColors.Contains(color2))
+		{
+			for (int i = 0; i < 10; i++)
+			{
+				if (HybridColors[i].Contains(color1) && HybridColors[i].Contains(color2))
+				{
+					HybridColor = i;
+					break;
+				}
+			}
+		}
+		else
+		{
+			Debug.LogError($"Setting Hybrid color with wrong colors: {color1} and {color2}");
+		}
+	}
+
+	public void Visit(Action<int> visitor)
+	{
+		visitor(Any);
+		visitor(White);
+		visitor(Blue);
+		visitor(Black);
+		visitor(Red);
+		visitor(Green);
+		visitor(Colorless);
+		visitor(Philosophy);
+	}
+
+	public void Visit(Func<int, int> visitor)
+	{
+		Any = visitor(Any);
+		White = visitor(White);
+		Blue = visitor(Blue);
+		Black = visitor(Black);
+		Red = visitor(Red);
+		Green = visitor(Green);
+		Colorless = visitor(Colorless);
+		Philosophy = visitor(Philosophy);
+	}
+
+	public bool AllColorsAre(Predicate<int> predicator)
+	{
+		if (predicator(Any) && predicator(White) && predicator(Blue) && predicator(Black) && predicator(Red) && predicator(Green) && predicator(Colorless))
+		{
+			return predicator(Philosophy);
+		}
+		return false;
+	}
+
+	public bool AnyColorIs(Predicate<int> predicator)
+	{
+		if (!predicator(Any) && !predicator(White) && !predicator(Blue) && !predicator(Black) && !predicator(Red) && !predicator(Green) && !predicator(Colorless))
+		{
+			return predicator(Philosophy);
+		}
+		return true;
+	}
+}

@@ -24,17 +24,7 @@ namespace TianziMod.TianziUlt
             config.Value1 = 10; // 每场战斗首次额外伤害（合并进同一段）
             config.Value2 = 3; // 天气持续回合
             config.Keywords = Keyword.Accuracy;
-            config.RelativeEffects = new List<string>()
-            {
-                nameof(TianziWeatherClear),
-                nameof(TianziWeatherMist),
-                nameof(TianziWeatherCloud),
-                nameof(TianziWeatherAzure),
-                nameof(TianziWeatherHail),
-                nameof(TianziWeatherFog),
-                nameof(TianziWeatherTyphoon),
-                nameof(TianziWeatherCalm),
-            };
+            config.RelativeEffects = TianziWeather.RelativeIds(includeForecast: false);
             return config;
         }
     }
@@ -52,25 +42,20 @@ namespace TianziMod.TianziUlt
             base.GunName = TianziMod.GunName.GunNameID.GetGunFromId(511);
         }
 
-        public override DamageInfo Damage
-        {
-            get
-            {
-                int amount = base.Config.Damage;
-                if (!this._usedInThisBattle)
-                    amount += base.Value1;
-                return DamageInfo.Attack(amount, true);
-            }
-        }
-
         protected override IEnumerable<BattleAction> Actions(UnitSelector selector)
         {
+            // 不要再 PerformAction.Spell：Gun 511（TenshiSpell1）开火时
+            // UnitView.PerformShootRunner 会 SpellDeclare(gun.Spell)，再手写 Spell 会播两次。
             // 彩符「天穹虹华之剑」
             // 随机释放一种天气（持续 3 回合），并对目标造成一段伤害（本场首次 +Value1）。
+            // 面板上的 {Damage} 只显示基础伤害，首次加成不写进 Damage 属性。
             foreach (BattleAction action in TianziWeather.ApplyRandom(base.Battle.Player, base.Value2))
                 yield return action;
 
-            DamageInfo damage = this.Damage;
+            int amount = base.Config.Damage;
+            if (!this._usedInThisBattle)
+                amount += base.Value1;
+            DamageInfo damage = DamageInfo.Attack(amount, true);
             this._usedInThisBattle = true;
 
             foreach (Unit enemy in selector.GetUnits(base.Battle))

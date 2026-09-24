@@ -42,23 +42,16 @@ namespace TianziMod.Cards
             config.UpgradedValue1 = 3;
             config.Mana = new ManaGroup() { Any = 1 };
 
-            config.Keywords = Keyword.Accuracy;
-            config.UpgradedKeywords = Keyword.Accuracy;
+            config.Keywords = Keyword.Accuracy | Keyword.Exile;
+            config.UpgradedKeywords = Keyword.Accuracy | Keyword.Exile;
 
-            config.RelativeEffects = new List<string>()
+            List<string> effects = new List<string>()
             {
                 nameof(ExtraTurn),
                 nameof(TimeIsLimited),
-                nameof(TianziWeatherForecastSe),
-                nameof(TianziWeatherClear),
-                nameof(TianziWeatherMist),
-                nameof(TianziWeatherCloud),
-                nameof(TianziWeatherAzure),
-                nameof(TianziWeatherHail),
-                nameof(TianziWeatherFog),
-                nameof(TianziWeatherTyphoon),
-                nameof(TianziWeatherCalm),
             };
+            effects.AddRange(TianziWeather.RelativeIds(includeForecast: true));
+            config.RelativeEffects = effects;
             config.UpgradedRelativeEffects = config.RelativeEffects;
 
             config.Illustrator = "";

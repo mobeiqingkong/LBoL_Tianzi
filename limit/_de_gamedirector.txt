@@ -1,0 +1,1664 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using Cysharp.Threading.Tasks;
+using DG.Tweening;
+using LBoL.Base;
+using LBoL.Base.Extensions;
+using LBoL.ConfigData;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.Cards;
+using LBoL.Core.StatusEffects;
+using LBoL.Core.Units;
+using LBoL.EntityLib.Cards.Character.Reimu;
+using LBoL.EntityLib.EnemyUnits.Character;
+using LBoL.EntityLib.EnemyUnits.Normal;
+using LBoL.EntityLib.EnemyUnits.Opponent;
+using LBoL.EntityLib.Stages.NormalStages;
+using LBoL.EntityLib.StatusEffects.Enemy;
+using LBoL.Presentation.Bullet;
+using LBoL.Presentation.Effect;
+using LBoL.Presentation.UI;
+using LBoL.Presentation.UI.Panels;
+using LBoL.Presentation.UI.Widgets;
+using UnityEngine;
+
+namespace LBoL.Presentation.Units;
+
+public class GameDirector : Singleton<GameDirector>
+{
+	private const float MaxFrameTime = 0.25f;
+
+	private const string DefaultFormation = "Triangle";
+
+	[SerializeField]
+	private Transform unitRoot;
+
+	[SerializeField]
+	private Transform playerRoot;
+
+	[SerializeField]
+	private GameObject unitPrefab;
+
+	private static readonly Vector2 PlayerPosition = new Vector2(-3f, 0.5f);
+
+	private static readonly Vector3 EirinPosition = new Vector3(3f, 0.5f);
+
+	private static readonly Vector3 KaguyaPosition = new Vector3(4.4f, 0.5f);
+
+	private static bool _enemyMoveOrderVisible;
+
+	[SerializeField]
+	private Transform lore0;
+
+	[SerializeField]
+	private Transform lore1;
+
+	private static GunHitArgs _gunHitArgs;
+
+	private static bool _someoneCrashing;
+
+	private static readonly List<int> ShakeFloors = new List<int> { 5, 10, 15, 20, 30 };
+
+	private const float DefaultShakeScale = 0.08f;
+
+	private static Vector3 _cameraOffset;
+
+	private static readonly List<EffectWidget> DoremyEnvironmentEffects = new List<EffectWidget>();
+
+	public static float TimeStep { get; set; }
+
+	private float CurrentTime { get; set; }
+
+	private float Accumulator { get; set; }
+
+	private Dictionary<string, EnemyFormation> Formations { get; set; }
+
+	private static string ActiveFormation { get; set; }
+
+	public UnitView PlayerUnitView { get; private set; }
+
+	private List<UnitView> EnemyUnitViews { get; } = new List<UnitView>();
+
+
+	public static UnitView Player => Singleton<GameDirector>.Instance.PlayerUnitView;
+
+	public static UnitView MainEnemy
+	{
+		get
+		{
+			UnitView unitView = Enemies.FirstOrDefault(delegate(UnitView e)
+			{
+				Unit unit2 = e.Unit;
+				return unit2 is EnemyUnit enemyUnit2 && unit2.IsAlive && enemyUnit2.Config.Type == EnemyType.Boss;
+			});
+			if ((bool)unitView)
+			{
+				return unitView;
+			}
+			unitView = Enemies.FirstOrDefault(delegate(UnitView e)
+			{
+				Unit unit = e.Unit;
+				return unit is EnemyUnit enemyUnit && unit.IsAlive && enemyUnit.Config.Type == EnemyType.Elite;
+			});
+			if (!unitView)
+			{
+				return Enemies.FirstOrDefault((UnitView e) => e.Unit.IsAlive);
+			}
+			return unitView;
+		}
+	}
+
+	public static IReadOnlyList<UnitView> Enemies => Singleton<GameDirector>.Instance.EnemyUnitViews;
+
+	public bool PlayerEscaping => Player.Escaped;
+
+	private static Coroutine LoreChatRunner { get; set; }
+
+	private static int ShakingDamage { get; set; }
+
+	private static void SetTimeStep()
+	{
+		TimeStep = 1f / 60f;
+		if ((double)TimeStep <= 0.001)
+		{
+			Debug.LogError("TimeSteptoo fast!");
+		}
+	}
+
+	private void Update()
+	{
+		float time = Time.time;
+		float num = time - CurrentTime;
+		if (num > 0.25f)
+		{
+			num = 0.25f;
+		}
+		CurrentTime = time;
+		Accumulator += num;
+		while (Accumulator >= TimeStep)
+		{
+			MasterTick();
+			Accumulator -= TimeStep;
+		}
+	}
+
+	private void MasterTick()
+	{
+		if ((bool)PlayerUnitView)
+		{
+			PlayerUnitView.Tick();
+			foreach (DollView doll in PlayerUnitView.Dolls)
+			{
+				doll.Tick();
+			}
+		}
+		foreach (UnitView enemyUnitView in EnemyUnitViews)
+		{
+			enemyUnitView.Tick();
+		}
+		Singleton<GunManager>.Instance.Tick();
+		Singleton<EffectManager>.Instance.Tick();
+	}
+
+	private void Awake()
+	{
+		Formations = new Dictionary<string, EnemyFormation>();
+		foreach (Transform item in unitRoot)
+		{
+			EnemyFormation component = item.GetComponent<EnemyFormation>();
+			if ((bool)component)
+			{
+				Formations.Add(component.name, component);
+			}
+		}
+		SetTimeStep();
+		_cameraOffset = CameraController.MainCamera.transform.localPosition;
+	}
+
+	public void EnterBattle(BattleController battle)
+	{
+		battle.ActionViewer.Register<WaitForCoroutineAction>(WaitCoroutineViewer);
+		battle.ActionViewer.Register<WaitForYieldInstructionAction>(WaitYieldInstructionViewer);
+		battle.ActionViewer.Register<SpawnEnemyAction>(SpawnViewer);
+		battle.ActionViewer.Register<DamageAction>(DamageActionViewer);
+		battle.ActionViewer.Register<ExplodeAction>(ExplodeActionViewer);
+		battle.ActionViewer.Register<StatisticalTotalDamageAction>(StatisticalTotalDamageViewer);
+		battle.ActionViewer.Register<EndShootAction>(EndShootActionViewer);
+		battle.ActionViewer.Register<HealAction>(HealActionViewer);
+		battle.ActionViewer.Register<EnemyMoveAction>(EnemyMoveViewer);
+		battle.ActionViewer.Register<LoseAllExhibitsAction>(LoseAllExhibitsViewer);
+		battle.ActionViewer.Register<PerformAction>(PerformViewer);
+		battle.ActionViewer.Register<CastBlockShieldAction>(CastBlockShieldViewer);
+		battle.ActionViewer.Register<LoseBlockShieldAction>(LoseBlockShieldViewer);
+		battle.ActionViewer.Register<ForceKillAction>(ForceKillViewer);
+		battle.ActionViewer.Register<EscapeAction>(EscapeViewer);
+		battle.ActionViewer.Register<PlayerEscapeAction>(PlayerEscapeViewer);
+		battle.ActionViewer.Register<DieAction>(MultipleDieViewer);
+		battle.ActionViewer.Register<InstantWinAction>(InstantWinViewer);
+		battle.ActionViewer.Register<ApplyStatusEffectAction>(ApplyStatusEffectViewer);
+		battle.ActionViewer.Register<RemoveStatusEffectAction>(RemoveStatusEffectViewer);
+		battle.GlobalStatusChanged += OnGlobalStatusChanged;
+		Player.EnterBattle(battle);
+	}
+
+	public void LeaveBattle(BattleController battle)
+	{
+		battle.ActionViewer.Unregister<WaitForCoroutineAction>(WaitCoroutineViewer);
+		battle.ActionViewer.Unregister<WaitForYieldInstructionAction>(WaitYieldInstructionViewer);
+		battle.ActionViewer.Unregister<SpawnEnemyAction>(SpawnViewer);
+		battle.ActionViewer.Unregister<DamageAction>(DamageActionViewer);
+		battle.ActionViewer.Unregister<ExplodeAction>(ExplodeActionViewer);
+		battle.ActionViewer.Unregister<StatisticalTotalDamageAction>(StatisticalTotalDamageViewer);
+		battle.ActionViewer.Unregister<EndShootAction>(EndShootActionViewer);
+		battle.ActionViewer.Unregister<HealAction>(HealActionViewer);
+		battle.ActionViewer.Unregister<EnemyMoveAction>(EnemyMoveViewer);
+		battle.ActionViewer.Unregister<LoseAllExhibitsAction>(LoseAllExhibitsViewer);
+		battle.ActionViewer.Unregister<PerformAction>(PerformViewer);
+		battle.ActionViewer.Unregister<CastBlockShieldAction>(CastBlockShieldViewer);
+		battle.ActionViewer.Unregister<LoseBlockShieldAction>(LoseBlockShieldViewer);
+		battle.ActionViewer.Unregister<ForceKillAction>(ForceKillViewer);
+		battle.ActionViewer.Unregister<EscapeAction>(EscapeViewer);
+		battle.ActionViewer.Unregister<PlayerEscapeAction>(PlayerEscapeViewer);
+		battle.ActionViewer.Unregister<DieAction>(MultipleDieViewer);
+		battle.ActionViewer.Unregister<InstantWinAction>(InstantWinViewer);
+		battle.ActionViewer.Unregister<ApplyStatusEffectAction>(ApplyStatusEffectViewer);
+		battle.ActionViewer.Unregister<RemoveStatusEffectAction>(RemoveStatusEffectViewer);
+		battle.GlobalStatusChanged -= OnGlobalStatusChanged;
+		Player.LeaveBattle(battle);
+	}
+
+	public static void EscapedPlayerGetBack(bool withAnimation = true)
+	{
+		Player.PlayerGetBackViewer(withAnimation);
+	}
+
+	private void OnGlobalStatusChanged()
+	{
+		if ((bool)PlayerUnitView)
+		{
+			PlayerUnitView.OnGlobalStatusChanged();
+		}
+		foreach (UnitView enemyUnitView in EnemyUnitViews)
+		{
+			if ((bool)enemyUnitView)
+			{
+				enemyUnitView.OnGlobalStatusChanged();
+				enemyUnitView.UpdateIntentions();
+			}
+		}
+	}
+
+	public static void MovePlayer(Vector2 v2)
+	{
+		if ((object)Singleton<GameDirector>.Instance.PlayerUnitView == null)
+		{
+			Debug.LogError("There's no PlayerUnit in UnitDirector.");
+		}
+		else
+		{
+			Singleton<GameDirector>.Instance.playerRoot.localPosition = v2;
+		}
+	}
+
+	public static UniTask<UnitView> LoadPlayerAsync(PlayerUnit player, bool hidden = false)
+	{
+		return Singleton<GameDirector>.Instance.InternalLoadPlayerAsync(player, hidden);
+	}
+
+	private async UniTask<UnitView> InternalLoadPlayerAsync(PlayerUnit player, bool hidden)
+	{
+		GameObject gameObject = UnityEngine.Object.Instantiate(unitPrefab, playerRoot);
+		UnitView playerView = gameObject.GetComponent<UnitView>();
+		playerView.Unit = player;
+		playerView.SetStatusWidget(UiManager.GetPanel<UnitStatusHud>().CreateStatusWidget(player), 1f);
+		playerView.SetInfoWidget(UiManager.GetPanel<UnitStatusHud>().CreateInfoWidget(player), 1f);
+		playerView.IsHidden = hidden;
+		await playerView.LoadUnitModelAsync(player.ModelName, player: true);
+		player.SetView(playerView);
+		playerView.SetPlayerHpBarLength(player.MaxHp);
+		PlayerUnitView = playerView;
+		return playerView;
+	}
+
+	public static UniTask<UnitView> LoadEnemyAsync(EnemyUnit enemy, string formationName = null, bool hidden = false, int? forceRootIndex = null)
+	{
+		if (formationName == null)
+		{
+			formationName = "Triangle";
+		}
+		if (Singleton<GameDirector>.Instance.Formations.TryGetValue(formationName, out var value))
+		{
+			ActiveFormation = formationName;
+			return Singleton<GameDirector>.Instance.InternalLoadEnemyAsync(enemy, value, hidden, forceRootIndex);
+		}
+		ActiveFormation = "Triangle";
+		Debug.LogWarning("Formation name '" + formationName + "' not found, using default.");
+		return Singleton<GameDirector>.Instance.InternalLoadEnemyAsync(enemy, Singleton<GameDirector>.Instance.Formations["Triangle"], hidden, forceRootIndex);
+	}
+
+	public static void ClearEnemies()
+	{
+		Singleton<GameDirector>.Instance.InternalClearEnemies();
+	}
+
+	public static void ClearAll()
+	{
+		Singleton<GameDirector>.Instance.InternalClearAll();
+	}
+
+	private async UniTask<UnitView> InternalLoadEnemyAsync(EnemyUnit enemy, EnemyFormation formation, bool hidden, int? forceRootIndex)
+	{
+		int rootIndex = forceRootIndex ?? enemy.RootIndex;
+		if (rootIndex < 0 || rootIndex >= formation.enemyLocations.Count)
+		{
+			throw new ArgumentException($"Invalid root-index: {rootIndex} (formation size: {formation.enemyLocations.Count})", "rootIndex");
+		}
+		GameObject gameObject = UnityEngine.Object.Instantiate(unitPrefab, formation.enemyLocations.Values.ToList()[rootIndex]);
+		UnitView enemyView = gameObject.GetComponent<UnitView>();
+		enemyView.Unit = enemy;
+		enemyView.SetStatusWidget(UiManager.GetPanel<UnitStatusHud>().CreateStatusWidget(enemy), 0f);
+		enemyView.SetInfoWidget(UiManager.GetPanel<UnitStatusHud>().CreateInfoWidget(enemy), (!hidden) ? 1 : 0);
+		enemyView.IsHidden = hidden;
+		float? hpLength = EnemyUnitConfig.FromId(enemy.Id).HpLength;
+		await enemyView.LoadUnitModelAsync(enemy.ModelName, player: false, hpLength);
+		enemy.SetView(enemyView);
+		EnemyUnitViews.Add(enemyView);
+		enemyView.RootIndex = rootIndex;
+		enemyView.AngleIndex = formation.enemyLocations.Keys.ToList()[rootIndex];
+		return enemyView;
+	}
+
+	public static async UniTask<UnitView> LoadLoreCharacterAsync(Type characterType, Action clickAction, int index = 0)
+	{
+		EnemyUnit enemy = Library.CreateEnemyUnit(characterType);
+		MovePlayer(PlayerPosition);
+		Singleton<GameDirector>.Instance.lore0.localPosition = EirinPosition;
+		Singleton<GameDirector>.Instance.lore0.localScale = Vector3.one;
+		Singleton<GameDirector>.Instance.lore1.localPosition = KaguyaPosition;
+		Singleton<GameDirector>.Instance.lore1.localScale = Vector3.one;
+		UnitView obj = await LoadEnemyAsync(enemy, "Lore", hidden: false, index);
+		obj.ClickHandler = clickAction;
+		return obj;
+	}
+
+	private void InternalClearEnemies()
+	{
+		foreach (UnitView enemyUnitView in EnemyUnitViews)
+		{
+			UnityEngine.Object.Destroy(enemyUnitView.gameObject);
+		}
+		EnemyUnitViews.Clear();
+	}
+
+	private void InternalClearAll()
+	{
+		StopLoreChat();
+		UnityEngine.Object.Destroy(PlayerUnitView.gameObject);
+		PlayerUnitView = null;
+		InternalClearEnemies();
+		ClearDoremyEnvironment();
+	}
+
+	public static void HidePlayer()
+	{
+		UnitView playerUnitView = Singleton<GameDirector>.Instance.PlayerUnitView;
+		if ((bool)playerUnitView)
+		{
+			playerUnitView.IsHidden = true;
+		}
+	}
+
+	public static void HideAll()
+	{
+		HidePlayer();
+		foreach (UnitView enemyUnitView in Singleton<GameDirector>.Instance.EnemyUnitViews)
+		{
+			enemyUnitView.IsHidden = true;
+		}
+	}
+
+	public static void RevealPlayer(bool withStatus)
+	{
+		UnitView playerUnitView = Singleton<GameDirector>.Instance.PlayerUnitView;
+		if ((bool)playerUnitView)
+		{
+			playerUnitView.Show(withStatus);
+		}
+	}
+
+	public static void RevealAll(bool withStatus)
+	{
+		RevealPlayer(withStatus);
+		RevealAllEnemies(withStatus);
+	}
+
+	public static void RevealAllEnemies(bool withStatus)
+	{
+		foreach (UnitView enemyUnitView in Singleton<GameDirector>.Instance.EnemyUnitViews)
+		{
+			enemyUnitView.Show(withStatus);
+		}
+	}
+
+	public static void RevealEnemy(int index, bool withStatus)
+	{
+		UnitView enemy = GetEnemy(index);
+		if (enemy != null)
+		{
+			enemy.Show(withStatus);
+		}
+	}
+
+	public static void RevealEnemy(EnemyUnit enemy, bool withStatus)
+	{
+		UnitView enemy2 = GetEnemy(enemy);
+		if (enemy2 != null)
+		{
+			enemy2.Show(withStatus);
+		}
+	}
+
+	public static void FadeInEnemyStatus()
+	{
+		foreach (UnitView enemyUnitView in Singleton<GameDirector>.Instance.EnemyUnitViews)
+		{
+			enemyUnitView.SetStatusVisible(visible: true);
+		}
+	}
+
+	public static void FadeInPlayerStatus()
+	{
+		UnitView playerUnitView = Singleton<GameDirector>.Instance.PlayerUnitView;
+		if ((bool)playerUnitView)
+		{
+			playerUnitView.SetStatusVisible(visible: true);
+		}
+	}
+
+	public static void FadeOutPlayerStatus()
+	{
+		UnitView playerUnitView = Singleton<GameDirector>.Instance.PlayerUnitView;
+		if ((bool)playerUnitView)
+		{
+			playerUnitView.SetStatusVisible(visible: false);
+		}
+	}
+
+	private static void UpdateEnemyMoveOrder()
+	{
+		if (!_enemyMoveOrderVisible)
+		{
+			return;
+		}
+		foreach (var item in (from enemyView in Enemies
+			let enemy = (EnemyUnit)enemyView.Unit
+			where enemy.IsAlive
+			orderby enemy.MovePriority, enemy.RootIndex
+			select enemyView).ToList().WithIndices())
+		{
+			var (num, _) = item;
+			item.elem.SetMoveOrder(num + 1);
+		}
+	}
+
+	public static void SetEnemyMoveOrderVisible(bool visible)
+	{
+		_enemyMoveOrderVisible = visible;
+		if (visible)
+		{
+			UpdateEnemyMoveOrder();
+			{
+				foreach (UnitView enemy in Enemies)
+				{
+					if (enemy.Unit.IsAlive)
+					{
+						enemy.SetMoveOrderVisible(visible: true);
+					}
+				}
+				return;
+			}
+		}
+		foreach (UnitView enemy2 in Enemies)
+		{
+			enemy2.SetMoveOrderVisible(visible: false);
+		}
+	}
+
+	public static UnitView GetUnit(Unit unit)
+	{
+		if (unit == Player.Unit)
+		{
+			return Player;
+		}
+		if (unit is EnemyUnit enemy)
+		{
+			return GetEnemy(enemy);
+		}
+		return null;
+	}
+
+	public static UnitView GetEnemy(int index)
+	{
+		return Singleton<GameDirector>.Instance.EnemyUnitViews.TryGetValue(index);
+	}
+
+	public static UnitView GetEnemyByRootIndex(int rootIndex)
+	{
+		return Singleton<GameDirector>.Instance.EnemyUnitViews.FirstOrDefault((UnitView enemy) => enemy.RootIndex == rootIndex);
+	}
+
+	public static UnitView GetEnemy(EnemyUnit enemy)
+	{
+		return Singleton<GameDirector>.Instance.EnemyUnitViews.FirstOrDefault((UnitView e) => e.Unit == enemy);
+	}
+
+	public static void PlayerDebutAnimation()
+	{
+		Player.DebutAnimation();
+	}
+
+	public static void EnemyDebutAnimation(int index)
+	{
+		GetEnemy(index)?.DebutAnimation();
+	}
+
+	public static void EnemyDebutAnimation(EnemyUnit enemy)
+	{
+		GetEnemy(enemy)?.DebutAnimation();
+	}
+
+	public static void AllEnemiesDebutAnimation()
+	{
+		foreach (UnitView enemy in Enemies)
+		{
+			enemy.DebutAnimation();
+		}
+	}
+
+	public static IEnumerable<UnitView> EnumeratePotentialTargets(TargetType targetType)
+	{
+		if (targetType == TargetType.All || targetType == TargetType.Self)
+		{
+			yield return Player;
+		}
+		if (targetType != TargetType.All && targetType != TargetType.SingleEnemy && targetType != TargetType.RandomEnemy && targetType != TargetType.AllEnemies)
+		{
+			yield break;
+		}
+		foreach (UnitView enemy in Enemies)
+		{
+			if (enemy.Unit.IsAlive)
+			{
+				yield return enemy;
+			}
+		}
+	}
+
+	public static void DebutChat(bool hasKaguya, string playerName)
+	{
+		LoreChatRunner = Singleton<GameDirector>.Instance.StartCoroutine(DebutFlow(hasKaguya, playerName));
+	}
+
+	private static IEnumerator DebutFlow(bool hasKaguya, string playerName)
+	{
+		UnitView eirin = Enemies[0];
+		yield return new WaitForSeconds(2f);
+		if (hasKaguya)
+		{
+			UnitView kaguya = Enemies[1];
+			List<string> kaguyaChats = "Debut.KaguyaChats".LocalizeStrings().ToList();
+			Transform erinTrans = Singleton<GameDirector>.Instance.lore0;
+			Transform kaguyaTrans = Singleton<GameDirector>.Instance.lore1;
+			erinTrans.DOKill(complete: true);
+			erinTrans.DOScaleX(-1f, 0.3f);
+			kaguya.Chat(kaguyaChats[0], 3f, ChatWidget.CloudType.RightTalk);
+			yield return new WaitForSecondsRealtime(3.5f);
+			kaguya.Chat(kaguyaChats[1], 3f, ChatWidget.CloudType.RightTalk);
+			yield return new WaitForSecondsRealtime(3.1f);
+			kaguyaTrans.DOKill(complete: true);
+			DOTween.Sequence().Append(kaguyaTrans.DOScaleX(-1f, 0.2f)).Append(kaguyaTrans.DOLocalMoveX(5f, 2f).SetRelative(isRelative: true).SetEase(Ease.InSine))
+				.SetUpdate(isIndependentUpdate: true)
+				.SetAutoKill(autoKillOnCompletion: true);
+			yield return new WaitForSecondsRealtime(0.4f);
+			eirin.Chat(kaguyaChats[2], 3f, ChatWidget.CloudType.LeftTalk);
+			yield return new WaitForSecondsRealtime(4f);
+			erinTrans.DOScaleX(1f, 0.3f);
+			yield return new WaitForSecondsRealtime(0.5f);
+		}
+		List<string> eirinChats = "Debut.EirinChats".LocalizeStrings().ToList();
+		eirinChats[0] = string.Format(eirinChats[0], playerName);
+		while (true)
+		{
+			foreach (string item in eirinChats)
+			{
+				eirin.Chat(item, 3f, ChatWidget.CloudType.RightTalk);
+				yield return new WaitForSecondsRealtime(7f);
+			}
+		}
+	}
+
+	public static void ShopChat()
+	{
+		LoreChatRunner = Singleton<GameDirector>.Instance.StartCoroutine(ShopFlow());
+	}
+
+	private static IEnumerator ShopFlow()
+	{
+		UnitView takane = Enemies[0];
+		takane.PlayAnimation("debut");
+		IList<string> list = "Shop.Chats".LocalizeStrings();
+		if (list.Count == 0)
+		{
+			yield break;
+		}
+		yield return new WaitForSecondsRealtime(2f);
+		while (true)
+		{
+			foreach (string item in list)
+			{
+				takane.Chat(item, 3f, ChatWidget.CloudType.RightTalk);
+				yield return new WaitForSecondsRealtime(7f);
+			}
+		}
+	}
+
+	public static void StopLoreChat()
+	{
+		if (LoreChatRunner != null)
+		{
+			Singleton<GameDirector>.Instance.StopCoroutine(LoreChatRunner);
+		}
+		LoreChatRunner = null;
+	}
+
+	private static IEnumerator WaitCoroutineViewer(WaitForCoroutineAction action)
+	{
+		yield return action.Coroutine;
+	}
+
+	private static IEnumerator WaitYieldInstructionViewer(WaitForYieldInstructionAction action)
+	{
+		yield return action.Instruction;
+	}
+
+	private static IEnumerator DamageActionViewer(DamageAction action)
+	{
+		DamageEventArgs[] damageArgs = action.DamageArgs;
+		Unit source = damageArgs.First().Source;
+		UnitView unit = GetUnit(source);
+		if (source != null && unit == null)
+		{
+			Debug.LogWarning("Damaging source " + source.DebugName + " not found in GameDirector");
+			return null;
+		}
+		List<(UnitView, DamageInfo)> list = new List<(UnitView, DamageInfo)>();
+		DamageEventArgs[] array = damageArgs;
+		foreach (DamageEventArgs damageEventArgs in array)
+		{
+			UnitView unit2 = GetUnit(damageEventArgs.Target);
+			if (damageEventArgs.Target == null)
+			{
+				Debug.LogWarning("Damaging target is null");
+			}
+			else if (unit2 == null)
+			{
+				Debug.LogWarning("Damaging target " + damageEventArgs.Target.DebugName + " not found in GameDirector");
+			}
+			else
+			{
+				list.Add((unit2, damageEventArgs.DamageInfo));
+			}
+		}
+		ActionCause cause = action.Cause;
+		if (cause == ActionCause.Card || cause == ActionCause.Us || cause == ActionCause.EnemyAction || cause == ActionCause.StatusEffect || cause == ActionCause.Exhibit || cause == ActionCause.JadeBox || cause == ActionCause.Unit)
+		{
+			string text = action.GunName;
+			if (action.GunName == null)
+			{
+				Debug.LogWarning("Action [" + (action.Source?.DebugName ?? "<null>") + "]: GunName is null");
+				text = "Empty";
+			}
+			else if (text.IsNullOrEmpty() || text == "Empty")
+			{
+				Debug.LogWarning("Action [" + (action.Source?.DebugName ?? "<null>") + "]: GunName is empty");
+			}
+			return GunShootAction(unit, list, text, action.GunType);
+		}
+		if (action.Source is Doll doll)
+		{
+			DollView doll2 = unit.GetDoll(doll);
+			if ((bool)doll2)
+			{
+				string text2 = action.GunName;
+				if (action.GunName == null)
+				{
+					Debug.LogWarning("Action [" + (action.Source?.DebugName ?? "<null>") + "]: GunName is null");
+					text2 = "Empty";
+				}
+				else if (text2.IsNullOrEmpty() || text2 == "Empty")
+				{
+					Debug.LogWarning("Action [" + (action.Source?.DebugName ?? "<null>") + "]: GunName is empty");
+				}
+				return GunShootAction(doll2, list, text2, action.GunType);
+			}
+			return null;
+		}
+		foreach (var (unitView, damage) in list)
+		{
+			if (unitView.Unit is PlayerUnit)
+			{
+				UiManager.GetPanel<SystemBoard>().OnHpChanged();
+			}
+			unitView.OnDamageReceived(damage);
+		}
+		return null;
+	}
+
+	private static IEnumerator ExplodeActionViewer(ExplodeAction action)
+	{
+		DamageEventArgs[] damageArgs = action.DamageArgs;
+		Unit source2 = damageArgs.First().Source;
+		UnitView unit = GetUnit(source2);
+		if (source2 != null && unit == null)
+		{
+			Debug.LogWarning("Damaging source " + source2.DebugName + " not found in GameDirector");
+		}
+		List<(UnitView, DamageInfo)> list = new List<(UnitView, DamageInfo)>();
+		DamageEventArgs[] array = damageArgs;
+		foreach (DamageEventArgs damageEventArgs in array)
+		{
+			UnitView unit2 = GetUnit(damageEventArgs.Target);
+			if (damageEventArgs.Target == null)
+			{
+				Debug.LogWarning("Damaging target is null");
+			}
+			else if (unit2 == null)
+			{
+				Debug.LogWarning("Damaging target " + damageEventArgs.Target.DebugName + " not found in GameDirector");
+			}
+			else
+			{
+				list.Add((unit2, damageEventArgs.DamageInfo));
+			}
+		}
+		if (action.Cause != ActionCause.Card && action.Cause != ActionCause.Us && action.Cause != ActionCause.EnemyAction && action.Cause != ActionCause.StatusEffect)
+		{
+			foreach (var (unitView, damage) in list)
+			{
+				if (unitView.Unit is PlayerUnit)
+				{
+					UiManager.GetPanel<SystemBoard>().OnHpChanged();
+				}
+				unitView.OnDamageReceived(damage);
+			}
+			return null;
+		}
+		string text = action.GunName;
+		if (action.GunName == null)
+		{
+			Debug.LogWarning("Action [" + (action.Source?.DebugName ?? "<null>") + "]: GunName is null");
+			text = "Empty";
+		}
+		else if (text.IsNullOrEmpty() || text == "Empty")
+		{
+			Debug.LogWarning("Action [" + (action.Source?.DebugName ?? "<null>") + "]: GunName is empty");
+		}
+		GunType gunType2 = action.GunType;
+		Unit unit3 = action.DieArgs.Unit;
+		int i = action.DieArgs.Power;
+		int bluePoint = action.DieArgs.BluePoint;
+		int power2 = i;
+		int bluepoint2 = bluePoint;
+		return InternalExplodeViewer(unit, list, text, gunType2, unit3, power2, bluepoint2);
+		static IEnumerator InternalExplodeViewer(UnitView source, IList<(UnitView, DamageInfo)> targetPairs, string gunName, GunType gunType, Unit explodingUnit, int power, int bluepoint)
+		{
+			yield return GunShootAction(source, targetPairs, gunName, gunType);
+			UnitView unitView2 = GetUnit(explodingUnit);
+			if (unitView2 != null)
+			{
+				yield return unitView2.DieViewer();
+			}
+			if (explodingUnit is EnemyUnit)
+			{
+				yield return EnemyDeathPoints(unitView2.transform, power, bluepoint, 0);
+			}
+		}
+	}
+
+	private static IEnumerator GunShootAction(UnitView source, IList<(UnitView target, DamageInfo damageInfo)> pairs, string gunName, GunType type)
+	{
+		source.Targets = pairs.Select(((UnitView target, DamageInfo damageInfo) p) => p.target).ToList();
+		int count = source.Targets.Count;
+		if (count <= 2)
+		{
+			source.Target = source.Targets.First();
+		}
+		else
+		{
+			int num = (count - 1) / 2;
+			List<UnitView> list = source.Targets.ToList();
+			List<UnitView> list2 = new List<UnitView>();
+			for (int i = 0; i <= num; i++)
+			{
+				UnitView smallOne = list.First();
+				foreach (UnitView item3 in list.Where((UnitView u) => u.AngleIndex < smallOne.AngleIndex))
+				{
+					smallOne = item3;
+				}
+				list2.Add(smallOne);
+				list.Remove(smallOne);
+			}
+			source.Target = list2[num];
+		}
+		foreach (var pair in pairs)
+		{
+			UnitView item = pair.target;
+			DamageInfo item2 = pair.damageInfo;
+			item.ComingDamage = item2;
+		}
+		_gunHitArgs = new GunHitArgs(source == Player, pairs, gunName);
+		yield return source.Shoot(gunName, type);
+		yield return new WaitWhile(() => _someoneCrashing);
+	}
+
+	private static IEnumerator GunShootAction(DollView doll, IList<(UnitView target, DamageInfo damageInfo)> pairs, string gunName, GunType type)
+	{
+		List<UnitView> list = pairs.Select(((UnitView target, DamageInfo damageInfo) p) => p.target).ToList();
+		UnitView mainTarget = list.First();
+		if (list.Count > 2)
+		{
+			int num = (list.Count - 1) / 2;
+			List<UnitView> list2 = list.ToList();
+			List<UnitView> list3 = new List<UnitView>();
+			for (int i = 0; i <= num; i++)
+			{
+				UnitView smallOne = list2.First();
+				foreach (UnitView item3 in list2.Where((UnitView u) => u.AngleIndex < smallOne.AngleIndex))
+				{
+					smallOne = item3;
+				}
+				list3.Add(smallOne);
+				list2.Remove(smallOne);
+			}
+			mainTarget = list3[num];
+		}
+		foreach (var pair in pairs)
+		{
+			UnitView item = pair.target;
+			DamageInfo item2 = pair.damageInfo;
+			item.ComingDamage = item2;
+		}
+		_gunHitArgs = new GunHitArgs(sourceIsPlayer: true, pairs, gunName);
+		yield return doll.Shoot(gunName, type, mainTarget, list);
+		yield return new WaitWhile(() => _someoneCrashing);
+	}
+
+	public static void OnGunHit()
+	{
+		GunHitPresentation(_gunHitArgs);
+	}
+
+	private static void GunHitPresentation(GunHitArgs gunHitArgs)
+	{
+		float num = 0f;
+		float shakePower = 1f;
+		GunConfig gunConfig = GunConfig.FromName(gunHitArgs.GunName);
+		if (gunConfig != null)
+		{
+			shakePower = gunConfig.ShakePower;
+		}
+		foreach (var (unitView, damage) in gunHitArgs.Pairs)
+		{
+			if (num < damage.Amount)
+			{
+				num = damage.Amount;
+			}
+			unitView.HitEnd();
+			if (unitView.Unit is PlayerUnit)
+			{
+				UiManager.GetPanel<SystemBoard>().OnHpChanged();
+			}
+			unitView.OnDamageReceived(damage);
+			PopupHud.Instance.DamagePopupFromScene(damage, unitView.transform.position, gunHitArgs.SourceIsPlayer);
+		}
+		if (GameMaster.Shake)
+		{
+			ShakeWithDamage(num, shakePower);
+		}
+		if (gunHitArgs.Pairs.Any(((UnitView target, DamageInfo damageInfo) pair) => pair.target.WillCrash))
+		{
+			Singleton<GameDirector>.Instance.StartCoroutine(CrashingTimer());
+		}
+	}
+
+	private static IEnumerator CrashingTimer()
+	{
+		_someoneCrashing = true;
+		yield return new WaitForSeconds(0.3f);
+		_someoneCrashing = false;
+	}
+
+	private static void ShakeWithDamage(float damage, float shakePower)
+	{
+		ShakeWithDamage((damage * shakePower).ToInt());
+	}
+
+	private static void ShakeWithDamage(int damage)
+	{
+		ShakingDamage += damage;
+		if (ShakingDamage >= ShakeFloors[4])
+		{
+			Shake(4);
+		}
+		else if (ShakingDamage >= ShakeFloors[3])
+		{
+			Shake(3);
+		}
+		else if (ShakingDamage >= ShakeFloors[2])
+		{
+			Shake(2);
+		}
+		else if (ShakingDamage >= ShakeFloors[1])
+		{
+			Shake(1);
+		}
+		else if (ShakingDamage >= ShakeFloors[0])
+		{
+			Shake();
+		}
+	}
+
+	public static void Shake(int level = 0, bool withDamage = true)
+	{
+		if (level < 4)
+		{
+			switch (level)
+			{
+			case 0:
+				ShakeHandler(0.3f, 1f, withDamage);
+				break;
+			case 1:
+				ShakeHandler(0.3f, 1.5f, withDamage);
+				break;
+			case 2:
+				ShakeHandler(0.4f, 2f, withDamage);
+				break;
+			case 3:
+				ShakeHandler(0.4f, 3f, withDamage);
+				break;
+			}
+		}
+		else
+		{
+			ShakeHandler(0.5f, 4f, withDamage);
+		}
+	}
+
+	private static void ShakeHandler(float duration, float strength, bool withDamage)
+	{
+		Transform trans = CameraController.MainCamera.transform;
+		trans.DOKill();
+		trans.localPosition = _cameraOffset;
+		trans.DOShakePosition(duration, new Vector3(strength, strength) * 0.08f).SetUpdate(isIndependentUpdate: true).OnComplete(delegate
+		{
+			trans.localPosition = _cameraOffset;
+			if (withDamage)
+			{
+				ShakingDamage = 0;
+			}
+		});
+	}
+
+	public static void ShakeUi(int level = 0)
+	{
+		if (level < 4)
+		{
+			switch (level)
+			{
+			case 0:
+				ShakeUiHandler(0.3f, 200f);
+				break;
+			case 1:
+				ShakeUiHandler(0.3f, 300f);
+				break;
+			case 2:
+				ShakeUiHandler(0.4f, 400f);
+				break;
+			case 3:
+				ShakeUiHandler(0.4f, 600f);
+				break;
+			}
+		}
+		else
+		{
+			ShakeUiHandler(0.5f, 800f);
+		}
+	}
+
+	private static void ShakeUiHandler(float duration, float strength)
+	{
+		RectTransform trans = CameraController.UiRoot;
+		trans.DOKill();
+		trans.localPosition = Vector3.zero;
+		trans.DOShakePosition(duration, new Vector3(strength, strength) * 0.08f).SetUpdate(isIndependentUpdate: true).OnComplete(delegate
+		{
+			trans.localPosition = Vector3.zero;
+		});
+	}
+
+	private static IEnumerator StatisticalTotalDamageViewer(StatisticalTotalDamageAction action)
+	{
+		GameRunController gameRun = action.Battle.GameRun;
+		if (!gameRun.IsAutoSeed || !gameRun.JadeBoxes.Empty())
+		{
+			yield break;
+		}
+		Unit key;
+		IReadOnlyList<DamageEventArgs> value;
+		if (action.Source is YinyangCardBase)
+		{
+			foreach (KeyValuePair<Unit, IReadOnlyList<DamageEventArgs>> item in action.Args.ArgsTable)
+			{
+				item.Deconstruct(out key, out value);
+				Unit unit = key;
+				IReadOnlyList<DamageEventArgs> readOnlyList = value;
+				if (!unit.IsDead)
+				{
+					continue;
+				}
+				int num = 0;
+				foreach (DamageEventArgs item2 in readOnlyList)
+				{
+					num += item2.DamageInfo.Amount.RoundToInt(MidpointRounding.AwayFromZero);
+				}
+				if (num >= 100)
+				{
+					GameMaster.UnlockAchievement(AchievementKey.Yinyang);
+					break;
+				}
+			}
+		}
+		if (!(action.Source is Card))
+		{
+			yield break;
+		}
+		int num2 = 0;
+		foreach (KeyValuePair<Unit, IReadOnlyList<DamageEventArgs>> item3 in action.Args.ArgsTable)
+		{
+			item3.Deconstruct(out key, out value);
+			foreach (DamageEventArgs item4 in value)
+			{
+				num2 += item4.DamageInfo.Amount.RoundToInt(MidpointRounding.AwayFromZero);
+			}
+		}
+		if (num2 >= 300)
+		{
+			GameMaster.UnlockAchievement(AchievementKey.Starlight);
+		}
+	}
+
+	private static IEnumerator EndShootActionViewer(EndShootAction action)
+	{
+		UnitView unit = GetUnit(action.SourceUnit);
+		if (unit != null)
+		{
+			yield return unit.ForceEndShoot();
+		}
+	}
+
+	private static IEnumerator HealActionViewer(HealAction action)
+	{
+		HealEventArgs args = action.Args;
+		UnitView unit = GetUnit(args.Source);
+		UnitView target = GetUnit(args.Target);
+		if (unit == null)
+		{
+			Debug.LogWarning("Healing source " + args.Source.Name + " not found in GameDirector");
+			yield break;
+		}
+		if (target == null)
+		{
+			Debug.LogWarning("Healing target " + args.Target.Name + " not found in GameDirector");
+			yield break;
+		}
+		int healAmount = args.Amount.ToInt();
+		bool large = healAmount > 12;
+		if (args.HealType == HealType.Vampire)
+		{
+			Vector3 position = unit.transform.position;
+			for (int i = 0; i < 2; i++)
+			{
+				EffectManager.CreateEffectBullet(new VampireBlood
+				{
+					TargetPosition = target.transform.position
+				}, position);
+			}
+			yield return new WaitForSeconds(1.2f);
+		}
+		PopupHud.Instance.HealPopupFromScene(healAmount, target.transform.position);
+		EffectManager.CreateEffect(large ? "UnitHealLarge" : "UnitHeal", target.EffectRoot, local: true);
+		AudioManager.PlayUi(large ? "HealLarge" : "Heal");
+		if (target.Unit is PlayerUnit)
+		{
+			UiManager.GetPanel<SystemBoard>().OnHpChanged();
+		}
+		target.OnHealingReceived(args.Amount.ToInt());
+		yield return new WaitForSeconds(action.WaitTime);
+	}
+
+	private static IEnumerator EnemyMoveViewer(EnemyMoveAction action)
+	{
+		EnemyUnit enemy = action.Enemy;
+		string moveName = action.MoveName;
+		UnitView enemy2 = GetEnemy(enemy);
+		if ((bool)enemy2)
+		{
+			enemy2.ShowMovePopup(moveName, action.CloseMoveName);
+		}
+		yield break;
+	}
+
+	private static IEnumerator LoseAllExhibitsViewer(LoseAllExhibitsAction action)
+	{
+		UiManager.GetPanel<PlayBoard>().FindActionSourceWorldPosition(action.Source);
+		yield return UiManager.GetPanel<SystemBoard>().LoseAllExhibits(action.Args.Exhibits, action.Source);
+	}
+
+	private static IEnumerator PerformViewer(PerformAction action)
+	{
+		PerformAction.PerformArgs args = action.Args;
+		if (!(args is PerformAction.ViewCardArgs viewCardArgs))
+		{
+			if (!(args is PerformAction.GunArgs gunArgs))
+			{
+				if (!(args is PerformAction.DollArgs dollArgs))
+				{
+					if (!(args is PerformAction.AnimationArgs animationArgs))
+					{
+						if (!(args is PerformAction.SfxArgs sfxArgs))
+						{
+							if (!(args is PerformAction.UiSoundArgs uiSoundArgs))
+							{
+								if (!(args is PerformAction.ChatArgs chatArgs))
+								{
+									if (!(args is PerformAction.SpellArgs spellArgs))
+									{
+										if (!(args is PerformAction.EffectArgs effectArgs))
+										{
+											if (!(args is PerformAction.EffectMessageArgs effectMessageArgs))
+											{
+												if (!(args is PerformAction.SePopArgs sePopArgs))
+												{
+													if (!(args is PerformAction.SummonFriendArgs summonFriendArgs))
+													{
+														if (!(args is PerformAction.TransformModelArgs transformModelArgs))
+														{
+															if (!(args is PerformAction.DeathAnimationArgs deathAnimationArgs))
+															{
+																if (!(args is PerformAction.WaitArgs waitArgs))
+																{
+																	throw new ArgumentOutOfRangeException();
+																}
+																if (waitArgs.Unscale)
+																{
+																	yield return new WaitForSecondsRealtime(waitArgs.Time);
+																}
+																else
+																{
+																	yield return new WaitForSeconds(waitArgs.Time);
+																}
+															}
+															else
+															{
+																UnitView unit = GetUnit(deathAnimationArgs.Source);
+																if (!unit)
+																{
+																	Debug.LogWarning("[GameDirector] Perform: cannot get source view for " + deathAnimationArgs.Source.DebugName);
+																}
+																else
+																{
+																	unit.DeathAnimation();
+																}
+															}
+														}
+														else
+														{
+															UnitView unit2 = GetUnit(transformModelArgs.Source);
+															if (!unit2)
+															{
+																Debug.LogWarning("[GameDirector] Perform: cannot get source view for " + transformModelArgs.Source.DebugName);
+															}
+															else
+															{
+																yield return unit2.LoadUnitModelAsync(transformModelArgs.ModelName);
+															}
+														}
+													}
+													else
+													{
+														UiManager.GetPanel<PlayBoard>().CardUi.PlaySummonEffect(summonFriendArgs.Card);
+														yield return new WaitForSeconds(0.5f);
+													}
+												}
+												else
+												{
+													UnitView unit3 = GetUnit(sePopArgs.Source);
+													if (!unit3)
+													{
+														Debug.LogWarning("[GameDirector] Perform: cannot get source view for " + sePopArgs.Source.DebugName);
+													}
+													else if (unit3.Unit.IsAlive)
+													{
+														unit3.ShowSePopup(sePopArgs.PopContent, StatusEffectType.Positive, 0, UnitInfoWidget.SePopType.Amulet);
+													}
+												}
+											}
+											else
+											{
+												UnitView unit4 = GetUnit(effectMessageArgs.Source);
+												if (!unit4)
+												{
+													Debug.LogWarning("[GameDirector] Perform: cannot get source view for " + effectMessageArgs.Source.DebugName);
+												}
+												else
+												{
+													unit4.SendEffectMessage(effectMessageArgs.EffectName, effectMessageArgs.Message, effectMessageArgs.Args);
+												}
+											}
+											yield break;
+										}
+										UnitView unit5 = GetUnit(effectArgs.Source);
+										if (!unit5)
+										{
+											Debug.LogWarning("[GameDirector] Perform: cannot get source view for " + effectArgs.Source.DebugName);
+											yield break;
+										}
+										switch (effectArgs.EffectType)
+										{
+										case PerformAction.EffectBehavior.PlayOneShot:
+											unit5.PlayEffectOneShot(effectArgs.EffectName, effectArgs.Delay);
+											break;
+										case PerformAction.EffectBehavior.Add:
+											unit5.PlayEffectLoop(effectArgs.EffectName);
+											break;
+										case PerformAction.EffectBehavior.Remove:
+											unit5.EndEffectLoop(effectArgs.EffectName, instant: true);
+											break;
+										case PerformAction.EffectBehavior.DieOut:
+											unit5.EndEffectLoop(effectArgs.EffectName, instant: false);
+											break;
+										default:
+											throw new ArgumentOutOfRangeException();
+										}
+										if (!effectArgs.SfxId.IsNullOrEmpty())
+										{
+											AudioManager.PlaySfxDelay(effectArgs.SfxId, effectArgs.SfxDelay);
+										}
+										yield return new WaitForSeconds(effectArgs.WaitTime);
+									}
+									else
+									{
+										UnitView unit6 = GetUnit(spellArgs.Source);
+										if (!unit6)
+										{
+											Debug.LogWarning("[GameDirector] Perform: cannot get source view for " + spellArgs.Source.DebugName);
+										}
+										else
+										{
+											yield return unit6.SpellDeclare(spellArgs.SpellName);
+										}
+									}
+								}
+								else
+								{
+									UnitView unit7 = GetUnit(chatArgs.Source);
+									if (!unit7)
+									{
+										Debug.LogWarning("[GameDirector] Perform: cannot get source view for " + chatArgs.Source.DebugName);
+									}
+									else if (unit7.Unit.IsAlive && !unit7.IsHidden)
+									{
+										unit7.Chat(chatArgs.Content, chatArgs.ChatTime, (!chatArgs.Talk) ? ((!(unit7 == Player)) ? ChatWidget.CloudType.RightThink : ChatWidget.CloudType.LeftThink) : ((unit7 == Player) ? ChatWidget.CloudType.LeftTalk : ChatWidget.CloudType.RightTalk), chatArgs.Delay);
+										yield return new WaitForSecondsRealtime(chatArgs.WaitTime);
+									}
+								}
+							}
+							else
+							{
+								AudioManager.PlayUi(uiSoundArgs.Id);
+							}
+						}
+						else
+						{
+							AudioManager.PlaySfxDelay(sfxArgs.Id, sfxArgs.Delay);
+						}
+						yield break;
+					}
+					if (!animationArgs.SfxId.IsNullOrEmpty())
+					{
+						AudioManager.PlaySfxDelay(animationArgs.SfxId, animationArgs.SfxDelay);
+					}
+					if (animationArgs.ShakeLevel >= 0)
+					{
+						Shake(animationArgs.ShakeLevel);
+					}
+					if (animationArgs.AnimationName.IsNullOrEmpty())
+					{
+						Debug.LogWarning("Action need a animation name.");
+						yield break;
+					}
+					UnitView unit8 = GetUnit(animationArgs.Source);
+					if (unit8 == null)
+					{
+						Debug.LogWarning("[GameDirector] Perform: cannot get source view for " + animationArgs.Source.DebugName);
+						yield break;
+					}
+					unit8.PlayAnimation(animationArgs.AnimationName);
+					yield return new WaitForSeconds(animationArgs.WaitTime);
+				}
+				else
+				{
+					if (!string.IsNullOrWhiteSpace(dollArgs.DebugString))
+					{
+						Debug.Log("[PerformViewer] Doll perform: " + dollArgs.DebugString);
+					}
+					yield return new WaitForSeconds(dollArgs.WaitTime);
+				}
+			}
+			else if (gunArgs.GunId.IsNullOrEmpty() || gunArgs.GunId == "Empty")
+			{
+				Debug.LogWarning("Action need a gunID.");
+			}
+			else if (GunConfig.FromName(gunArgs.GunId) == null)
+			{
+				Debug.LogError("No such gun named: " + gunArgs.GunId);
+			}
+			else
+			{
+				UnitView unit9 = GetUnit(gunArgs.Source);
+				UnitView unit10 = GetUnit(gunArgs.Target);
+				if (unit9 == null || unit10 == null)
+				{
+					Debug.LogWarning("[GameDirector] Perform: cannot get source view for " + gunArgs.Source.DebugName + " or target view for " + gunArgs.Target.DebugName);
+					yield break;
+				}
+				unit9.Target = unit10;
+				unit9.Targets.Clear();
+				unit9.Targets.Add(unit10);
+				unit10.ComingDamage = DamageInfo.Attack(0f);
+				unit9.PerformShoot(gunArgs.GunId);
+				yield return new WaitForSeconds(gunArgs.WaitTime);
+			}
+		}
+		else
+		{
+			yield return UiManager.GetPanel<PlayBoard>().CardUi.ViewCardFromZone(viewCardArgs.Card, viewCardArgs.Zone);
+		}
+	}
+
+	public static void AddDeremyEnvironment(EffectWidget widget)
+	{
+		DoremyEnvironmentEffects.Add(widget);
+	}
+
+	public static void ClearDoremyEnvironment()
+	{
+		foreach (EffectWidget doremyEnvironmentEffect in DoremyEnvironmentEffects)
+		{
+			UnityEngine.Object.Destroy(doremyEnvironmentEffect.gameObject);
+		}
+		DoremyEnvironmentEffects.Clear();
+	}
+
+	private static IEnumerator SpawnViewer(SpawnEnemyAction action)
+	{
+		EnemyUnit enemyUnit = (EnemyUnit)action.Args.Unit;
+		yield return LoadEnemyAsync(enemyUnit, ActiveFormation).ToCoroutine();
+		RevealEnemy(enemyUnit, withStatus: true);
+		UnitView view = GetEnemy(enemyUnit);
+		view.SetStatusVisible(visible: true);
+		yield return new WaitForSeconds(action.WaitTime);
+		if (_enemyMoveOrderVisible)
+		{
+			UpdateEnemyMoveOrder();
+			view.SetMoveOrderVisible(visible: true);
+		}
+	}
+
+	private static IEnumerator ForceKillViewer(ForceKillAction action)
+	{
+		UnitView unit = GetUnit(action.Args.Target);
+		if ((bool)unit)
+		{
+			unit.OnForceKill();
+		}
+		yield break;
+	}
+
+	private static IEnumerator EscapeViewer(EscapeAction action)
+	{
+		Unit unit = action.Args.Unit;
+		UnitView unit2 = GetUnit(unit);
+		if ((bool)unit2)
+		{
+			if (unit is LoveGirl || unit.HasStatusEffect<DreamServant>())
+			{
+				yield return unit2.EscapeViewer(1);
+			}
+			else if (unit is FraudRabbit)
+			{
+				yield return unit2.EscapeViewer(2);
+			}
+			else
+			{
+				yield return unit2.EscapeViewer();
+			}
+			if (unit is LoveGirl)
+			{
+				yield return new WaitForSecondsRealtime(1.5f);
+			}
+		}
+		UpdateEnemyMoveOrder();
+	}
+
+	private static IEnumerator PlayerEscapeViewer(PlayerEscapeAction action)
+	{
+		return Player.PlayerEscapeViewer();
+	}
+
+	private static IEnumerator InternalDieViewer(DieEventArgs args)
+	{
+		Unit unit = args.Unit;
+		UnitView unitView = GetUnit(unit);
+		if ((bool)unitView)
+		{
+			yield return unitView.DieViewer();
+		}
+		if (unit is EnemyUnit)
+		{
+			int power = args.Power;
+			int bluePoint = args.BluePoint;
+			int money = args.Money;
+			int red = power;
+			int bluePoint2 = bluePoint;
+			int money2 = money;
+			yield return EnemyDeathPoints(unitView.transform, red, bluePoint2, money2);
+		}
+		GameRunController gameRun = unit.GameRun;
+		if (!gameRun.IsAutoSeed || !gameRun.JadeBoxes.Empty())
+		{
+			yield break;
+		}
+		if (unit is Aya && unit.TurnCounter == 0)
+		{
+			GameMaster.UnlockAchievement(AchievementKey.AyaSpecial);
+			yield break;
+		}
+		if (unit is Youmu)
+		{
+			LouguanJianSe statusEffect = unit.GetStatusEffect<LouguanJianSe>();
+			if (statusEffect != null && statusEffect.TriggerCount == 0)
+			{
+				GameMaster.UnlockAchievement(AchievementKey.YoumuSpecial);
+				yield break;
+			}
+		}
+		if (unit is Doremy { IsWokeUp: not false })
+		{
+			GameMaster.UnlockAchievement(AchievementKey.DoremySpecial);
+		}
+		else if (unit is Sakuya && gameRun.CurrentStage is BambooForest && gameRun.Player.IsExtraTurn)
+		{
+			GameMaster.UnlockAchievement(AchievementKey.SakuyaSpecial);
+		}
+	}
+
+	private static IEnumerator MultipleDieViewer(DieAction action)
+	{
+		List<Coroutine> list = new List<Coroutine>();
+		DieEventArgs[] argsList = action.ArgsList;
+		foreach (DieEventArgs dieEventArgs in argsList)
+		{
+			if (GetUnit(dieEventArgs.Unit) != null)
+			{
+				list.Add(Singleton<GameDirector>.Instance.StartCoroutine(InternalDieViewer(dieEventArgs)));
+			}
+		}
+		foreach (Coroutine item in list)
+		{
+			yield return item;
+		}
+		UpdateEnemyMoveOrder();
+	}
+
+	private static IEnumerator EnemyDeathPoints(Transform enemyTrans, int red, int bluePoint, int money)
+	{
+		int num = red;
+		int num2 = 0;
+		int num3 = bluePoint;
+		int num4 = 0;
+		while (num > 8)
+		{
+			num -= 5;
+			num2++;
+		}
+		while (num3 > 8)
+		{
+			num3 -= 5;
+			num4++;
+		}
+		for (int i = 0; i < num; i++)
+		{
+			EffectManager.CreateEffectBullet(new Point
+			{
+				Type = Point.PointType.Power,
+				TargetPosition = CameraController.ScenePositionToWorldPositionInUI(Player.transform.position)
+			}, CameraController.ScenePositionToWorldPositionInUI(enemyTrans.position), UiManager.GetPanel<GameRunVisualPanel>().transform);
+		}
+		for (int j = 0; j < num2; j++)
+		{
+			EffectManager.CreateEffectBullet(new Point
+			{
+				Type = Point.PointType.BigPower,
+				TargetPosition = CameraController.ScenePositionToWorldPositionInUI(Player.transform.position)
+			}, CameraController.ScenePositionToWorldPositionInUI(enemyTrans.position), UiManager.GetPanel<GameRunVisualPanel>().transform);
+		}
+		for (int k = 0; k < num3; k++)
+		{
+			EffectManager.CreateEffectBullet(new Point
+			{
+				Type = Point.PointType.Blue,
+				TargetPosition = Player.transform.position
+			}, enemyTrans.position);
+		}
+		for (int l = 0; l < num4; l++)
+		{
+			EffectManager.CreateEffectBullet(new Point
+			{
+				Type = Point.PointType.BigBlue,
+				TargetPosition = Player.transform.position
+			}, enemyTrans.position);
+		}
+		if (money > 0)
+		{
+			GameRunVisualPanel panel = UiManager.GetPanel<GameRunVisualPanel>();
+			UiManager.GetPanel<SystemBoard>().CreateMoneyGainVisual(CameraController.ScenePositionToWorldPositionInUI(enemyTrans.position), money, panel.transform);
+		}
+		yield return new WaitForSeconds(1f);
+		UiManager.GetPanel<UltimateSkillPanel>().GainPower(red);
+		if (money > 0)
+		{
+			UiManager.GetPanel<SystemBoard>().OnMoneyChanged();
+		}
+	}
+
+	private static IEnumerator CastBlockShieldViewer(CastBlockShieldAction action)
+	{
+		UnitView unit = GetUnit(action.Args.Source);
+		UnitView unit2 = GetUnit(action.Args.Target);
+		if (!(unit2 == null))
+		{
+			if (unit2 == unit)
+			{
+				yield return unit2.GainBlockShieldToSelfViewer(action);
+				yield break;
+			}
+			unit.CastShieldToOther(action.Cast);
+			yield return unit2.ReceiveShieldViewer(action);
+		}
+	}
+
+	private static IEnumerator LoseBlockShieldViewer(LoseBlockShieldAction action)
+	{
+		UnitView unit = GetUnit(action.Args.Target);
+		if (!(unit == null))
+		{
+			return unit.LoseBlockShieldViewer(action);
+		}
+		return null;
+	}
+
+	private IEnumerator InstantWinViewer(InstantWinAction action)
+	{
+		ClearEnemies();
+		yield break;
+	}
+
+	private IEnumerator ApplyStatusEffectViewer(ApplyStatusEffectAction action)
+	{
+		StatusEffectApplyEventArgs args = action.Args;
+		StatusEffect effect = args.Effect;
+		UnitView unit = GetUnit(action.Args.Unit);
+		if (unit != null && unit.Unit.IsAlive)
+		{
+			int number = 0;
+			if (effect.HasLevel && args.Level.HasValue)
+			{
+				number = args.Level.Value;
+			}
+			else if (effect.HasDuration && args.Duration.HasValue)
+			{
+				number = args.Duration.Value;
+			}
+			unit.ShowSePopup(effect.Name, effect.Type, number);
+			unit.OnAddStatusEffect(args.Effect, args.AddResult.Value);
+			if (effect.Config.SFX.IsNullOrEmpty() || effect.Config.SFX == "Default")
+			{
+				switch (effect.Config.Type)
+				{
+				case StatusEffectType.Positive:
+					AudioManager.PlaySfx("Buff");
+					break;
+				case StatusEffectType.Negative:
+					AudioManager.PlaySfx("Debuff");
+					break;
+				default:
+					throw new ArgumentOutOfRangeException();
+				case StatusEffectType.Special:
+					break;
+				}
+			}
+			else
+			{
+				AudioManager.PlaySfx(effect.Config.SFX);
+			}
+			if (!effect.Config.VFX.IsNullOrEmpty() && !(effect.Config.VFX == "Default"))
+			{
+				EffectManager.CreateEffect(effect.Config.VFX, unit.EffectRoot);
+			}
+			string unitEffectName = effect.UnitEffectName;
+			if (unitEffectName != null && args.AddResult == StatusEffectAddResult.Added)
+			{
+				unit.TryPlayEffectLoop(unitEffectName);
+				unit.SendEffectMessage(unitEffectName, "OnPropertyChanged", effect);
+				yield return new WaitForSeconds(0.2f);
+			}
+		}
+		yield return new WaitForSeconds(args.WaitTime);
+	}
+
+	private IEnumerator RemoveStatusEffectViewer(RemoveStatusEffectAction action)
+	{
+		StatusEffectEventArgs args = action.Args;
+		StatusEffect effect = args.Effect;
+		UnitView unit = GetUnit(action.Args.Unit);
+		if (unit != null)
+		{
+			if (unit.Unit.IsAlive)
+			{
+				unit.ShowSePopup(effect.Name, effect.Type, 0, UnitInfoWidget.SePopType.Remove);
+			}
+			unit.OnRemoveStatusEffect(effect);
+			string unitEffectName = effect.UnitEffectName;
+			if (unitEffectName != null)
+			{
+				unit.EndEffectLoop(unitEffectName, instant: true);
+			}
+		}
+		yield return new WaitForSeconds(args.WaitTime);
+	}
+}

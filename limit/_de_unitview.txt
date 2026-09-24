@@ -1,0 +1,2673 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using DG.Tweening;
+using LBoL.Base;
+using LBoL.Base.Extensions;
+using LBoL.ConfigData;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.Cards;
+using LBoL.Core.StatusEffects;
+using LBoL.Core.Units;
+using LBoL.EntityLib.EnemyUnits.Character;
+using LBoL.EntityLib.EnemyUnits.Lore;
+using LBoL.Presentation.Bullet;
+using LBoL.Presentation.Effect;
+using LBoL.Presentation.Environments;
+using LBoL.Presentation.UI;
+using LBoL.Presentation.UI.Panels;
+using LBoL.Presentation.UI.Widgets;
+using LBoL.Presentation.Units.SpecialUnits;
+using Spine;
+using Spine.Unity;
+using UnityEngine;
+
+namespace LBoL.Presentation.Units;
+
+public sealed class UnitView : MonoBehaviour, IRinView, IEnemyUnitView, IUnitView, IKokoroView, IDoremyView
+{
+	public enum ShootStatus
+	{
+		Idle,
+		Direct,
+		Complex
+	}
+
+	private enum ModelType
+	{
+		SingleSprite,
+		Spine,
+		Effect
+	}
+
+	private const float GuardEffectInterval = 0.2f;
+
+	private bool _hasBlock;
+
+	private bool _hasShield;
+
+	private string _shooterName;
+
+	private EffectWidget _shooterLoopEffect;
+
+	private Gun _complexFirstGun;
+
+	private Gun _gunInShooting;
+
+	private bool _shootCounting;
+
+	private float _shootTime;
+
+	private bool _shooterCounting;
+
+	private float _shooterTime;
+
+	private ShootStatus _status;
+
+	private Animator _animator;
+
+	private float _animatorSpeed = 1f;
+
+	private CircleCollider2D _circleCollider;
+
+	private bool _bothShield;
+
+	private bool _invincible;
+
+	private DamageInfo _comingDamage;
+
+	private bool _spineNeedReload;
+
+	private bool _doremySleeping;
+
+	private bool _hasFly;
+
+	private bool _hasBlink;
+
+	private bool _blinking;
+
+	private float _blinkTimer;
+
+	private const float BlinkMin = 2f;
+
+	private const float BlinkMax = 5f;
+
+	private const int NormalTrack = 0;
+
+	private const int BlinkEyeTrack = 1;
+
+	private const int FlyTrack = 2;
+
+	private bool _hasPose;
+
+	private bool _posing;
+
+	private float _poseTimer;
+
+	private const float PoseMin = 32f;
+
+	private const float PoseMax = 40f;
+
+	private CancellationTokenSource _fadeInCts;
+
+	private bool _showDoll;
+
+	private readonly List<DollSlotView> _slots = new List<DollSlotView>();
+
+	public readonly List<DollView> Dolls = new List<DollView>();
+
+	private const float DollMoveTime = 0.2f;
+
+	private const float DollAddAndRemoveTime = 0.05f;
+
+	private readonly List<Vector2> _slotPositions = new List<Vector2>
+	{
+		new Vector2(1.5f, 1.2f),
+		new Vector2(2f, 0.5f),
+		new Vector2(2f, -0.5f),
+		new Vector2(1.5f, -1.2f)
+	};
+
+	private readonly List<EffectBulletView> _orbs = new List<EffectBulletView>(3);
+
+	private const float MoveTime = 0.1f;
+
+	private KokoroUnitController _kokoroUnitController;
+
+	private ChatWidget _chatWidget;
+
+	private UnitStatusWidget _statusWidget;
+
+	private UnitInfoWidget _infoWidget;
+
+	private Action _clickHandler;
+
+	private bool _flip;
+
+	private bool _isHidden;
+
+	private bool _selectingVisible;
+
+	[Header("Spine")]
+	[SerializeField]
+	private Transform rendererParent;
+
+	[SerializeField]
+	private SkeletonAnimation spineSkeleton;
+
+	[SerializeField]
+	private List<SkeletonAnimation> prefabList;
+
+	[Header("Binding")]
+	[SerializeField]
+	private SpriteRenderer spriteRenderer;
+
+	[SerializeField]
+	private BoxCollider selectorCollider;
+
+	[Header("Points")]
+	[SerializeField]
+	private Transform pointsParent;
+
+	[SerializeField]
+	private Transform effectRoot;
+
+	[SerializeField]
+	private Transform effectRootIgnoreHiding;
+
+	[SerializeField]
+	private Transform chatPoint;
+
+	[SerializeField]
+	private Transform hitPoint;
+
+	[SerializeField]
+	private Transform hpBarPoint;
+
+	[SerializeField]
+	private Transform shooterPoint;
+
+	[SerializeField]
+	private Transform infoPoint;
+
+	[SerializeField]
+	private Transform dollRoot;
+
+	[Header("Resource Ref")]
+	[SerializeField]
+	private RuntimeAnimatorController simpleUnitAnimatorController;
+
+	[SerializeField]
+	private DollSlotView dollSlotTemplate;
+
+	[SerializeField]
+	private DollView dollTemplate;
+
+	private string _modelName;
+
+	private ModelType _type;
+
+	private Vector2 _offset;
+
+	private bool _flipModel;
+
+	private int _dieLevel;
+
+	private Vector2 _boxSize;
+
+	private float _shieldRadius;
+
+	private float _blockRadius;
+
+	private Vector2 _hitPointV2;
+
+	private Vector2 _hpV2;
+
+	private float _hitRep;
+
+	private float _guardRep;
+
+	private float _hpLength;
+
+	private Vector2 _infoV2;
+
+	private Vector3 _selectV3;
+
+	private Vector2 _chatV2;
+
+	private Vector2 _spellV2;
+
+	private float _spellScale;
+
+	private Color[] _spellColors;
+
+	private Sprite _spellPortrait;
+
+	private List<float> _shootStartTimeList;
+
+	private List<Vector2> _shootPointV2List;
+
+	private List<Vector2> _shooterPointV2List;
+
+	private const string FallbackCharacter = "Koishi";
+
+	private bool _unitModelLoaded;
+
+	private EffectWidget _effectModel;
+
+	private readonly Dictionary<string, EffectWidget> _effectDictionary = new Dictionary<string, EffectWidget>();
+
+	public UnitView Target { get; set; }
+
+	public List<UnitView> Targets { get; set; } = new List<UnitView>();
+
+
+	public Collider2D ActiveCollider
+	{
+		get
+		{
+			if (base.gameObject == null || !base.gameObject.activeInHierarchy)
+			{
+				return null;
+			}
+			if (!_circleCollider.enabled)
+			{
+				return BoxCollider;
+			}
+			return _circleCollider;
+		}
+	}
+
+	public BoxCollider2D BoxCollider { get; private set; }
+
+	public CollisionMath.TargetBounds CachedBounds { get; private set; }
+
+	public HitType HitType { get; private set; }
+
+	public bool WillCrash { get; private set; }
+
+	public DamageInfo ComingDamage
+	{
+		get
+		{
+			return _comingDamage;
+		}
+		set
+		{
+			_comingDamage = value;
+			HitType = ((!_comingDamage.IsGrazed) ? ((_comingDamage.DamageBlocked > 0f) ? HitType.Block : ((_comingDamage.DamageShielded > 0f) ? HitType.Shield : ((_comingDamage.Damage > 0f) ? HitType.Body : (HasBlock ? HitType.Block : (HasShield ? HitType.Shield : HitType.Body))))) : HitType.Graze);
+			if (HitType == HitType.Block)
+			{
+				_bothShield = _comingDamage.DamageShielded > 0f;
+			}
+			HitType hitType = HitType;
+			if (hitType == HitType.Block || hitType == HitType.Shield)
+			{
+				WillCrash = _comingDamage.Damage > 0f;
+			}
+		}
+	}
+
+	private EffectWidget BlockEffect { get; set; }
+
+	private EffectWidget ShieldEffect { get; set; }
+
+	private bool HasShield
+	{
+		get
+		{
+			return _hasShield;
+		}
+		set
+		{
+			_hasShield = value;
+			ShieldEffect.gameObject.SetActive(value);
+		}
+	}
+
+	private bool HasBlock
+	{
+		get
+		{
+			return _hasBlock;
+		}
+		set
+		{
+			_hasBlock = value;
+			BlockEffect.gameObject.SetActive(value);
+		}
+	}
+
+	private bool Guarding { get; set; }
+
+	private float GuardTime { get; set; }
+
+	private float GuardEffectTime { get; set; }
+
+	private Coroutine GuardCoroutine { get; set; }
+
+	private bool Crashing { get; set; }
+
+	private Spine.AnimationState State { get; set; }
+
+	private List<Spine.AnimationState> AllStates { get; } = new List<Spine.AnimationState>();
+
+
+	private bool SpineLoaded { get; set; }
+
+	private List<Spine.Animation> AllSpineAnimations { get; } = new List<Spine.Animation>();
+
+
+	private List<string> AllAnimationsNames { get; } = new List<string>();
+
+
+	private float LifeTime { get; set; }
+
+	public bool DoremySleeping
+	{
+		get
+		{
+			return _doremySleeping;
+		}
+		set
+		{
+			_doremySleeping = value;
+			if (_doremySleeping)
+			{
+				_hasBlink = false;
+				SpineIdle();
+			}
+			else
+			{
+				_hasBlink = true;
+				SpineIdle();
+			}
+		}
+	}
+
+	private float SequenceTimer { get; set; }
+
+	private TrackEntry CurrentTrack { get; set; }
+
+	private List<Vector2> SequenceKeys { get; } = new List<Vector2>();
+
+
+	private int SequenceIndicator { get; set; }
+
+	private bool Sequencing { get; set; }
+
+	private float LastGuardTime { get; set; }
+
+	private float LastHitTime { get; set; }
+
+	public bool ShowDoll
+	{
+		get
+		{
+			return _showDoll;
+		}
+		set
+		{
+			_showDoll = value;
+			dollRoot.gameObject.SetActive(value);
+		}
+	}
+
+	public UnitStatusWidget StatusWidget => _statusWidget;
+
+	public Action ClickHandler
+	{
+		get
+		{
+			return _clickHandler;
+		}
+		set
+		{
+			_clickHandler = value;
+			if (!(Unit is Takane))
+			{
+				return;
+			}
+			_infoWidget.GamepadInteractionButton.gameObject.SetActive(value: true);
+			_infoWidget.GamepadInteractionButton.OnClick.AddListener(delegate
+			{
+				_clickHandler?.Invoke();
+			});
+			if (_statusWidget?.UnitCursor != null)
+			{
+				_statusWidget.UnitCursor.OnClick.AddListener(delegate
+				{
+					_clickHandler?.Invoke();
+				});
+			}
+		}
+	}
+
+	private bool IsPlayer { get; set; }
+
+	public bool Flip
+	{
+		get
+		{
+			return _flip;
+		}
+		set
+		{
+			if (_flip != value)
+			{
+				_flip = value;
+				Transform obj = rendererParent.transform;
+				obj.localPosition = obj.localPosition.FlipX();
+				obj.localScale = obj.localScale.FlipX();
+				Transform obj2 = pointsParent.transform;
+				obj2.localScale = obj2.localScale.FlipX();
+			}
+		}
+	}
+
+	public bool IsHidden
+	{
+		get
+		{
+			return _isHidden;
+		}
+		set
+		{
+			_isHidden = value;
+			if (value)
+			{
+				Hide();
+			}
+			else
+			{
+				Show(withStatus: false);
+			}
+		}
+	}
+
+	public Transform ChatPoint => chatPoint;
+
+	public Transform HitPoint => hitPoint;
+
+	public Transform EffectRoot => effectRoot;
+
+	public Collider SelectorCollider => selectorCollider;
+
+	public bool SelectingVisible
+	{
+		get
+		{
+			return _selectingVisible;
+		}
+		set
+		{
+			if (_selectingVisible != value)
+			{
+				_selectingVisible = value;
+				int outlineType = 0;
+				HighlightManager.SetOutlineEnabled(spineSkeleton.transform.parent.gameObject, outlineType, value);
+				if (value)
+				{
+					ShowName();
+					StatusToFront();
+				}
+				else
+				{
+					HideName();
+				}
+			}
+		}
+	}
+
+	public Unit Unit { get; set; }
+
+	public bool Escaped { get; private set; }
+
+	public int RootIndex { get; set; }
+
+	public int AngleIndex { get; set; }
+
+	public void Tick()
+	{
+		LifeTime += 1f / 60f;
+		if (_shootCounting)
+		{
+			_shootTime += 1f / 60f;
+			if (!_gunInShooting.LastWaveHitFlag && _gunInShooting.ForceHitTime.HasValue && _shootTime >= _gunInShooting.ForceHitTime)
+			{
+				if (_gunInShooting.ForceHitAnimation)
+				{
+					foreach (UnitView target in _gunInShooting.Targets)
+					{
+						target.Hit(lastWave: true, _gunInShooting.ForceHitAnimationSpeed, ignoreCoolDown: true);
+					}
+				}
+				_gunInShooting.LastWaveHit();
+			}
+		}
+		if (_shooterCounting)
+		{
+			_shooterTime += 1f / 60f;
+		}
+		if (!IsHidden)
+		{
+			if (_blinking)
+			{
+				_blinkTimer -= 1f / 60f;
+				if (_blinkTimer < 0f)
+				{
+					Blink();
+				}
+			}
+			if (_posing && GameMaster.ShowPoseAnimation)
+			{
+				_poseTimer -= 1f / 60f / Time.timeScale;
+				if (_poseTimer < 0f)
+				{
+					Pose();
+				}
+			}
+		}
+		if (Sequencing)
+		{
+			if (CurrentTrack == null)
+			{
+				Sequencing = false;
+				SpineIdle(add: true);
+			}
+			else if (SequenceIndicator >= SequenceKeys.Count || CurrentTrack.IsComplete)
+			{
+				CurrentTrack.TimeScale = 1f;
+				Sequencing = false;
+				CurrentTrack = null;
+				SpineIdle(add: true);
+			}
+			else
+			{
+				SequenceTimer += 1f / 60f;
+				Vector2 vector = SequenceKeys[SequenceIndicator];
+				if (SequenceTimer >= vector.x)
+				{
+					CurrentTrack.TimeScale = vector.y;
+					int sequenceIndicator = SequenceIndicator + 1;
+					SequenceIndicator = sequenceIndicator;
+				}
+			}
+		}
+		if (!SpineLoaded)
+		{
+			UpdateAnimatorIdleSpeed();
+		}
+		Collider2D activeCollider = ActiveCollider;
+		CachedBounds = ((activeCollider != null) ? CollisionMath.TargetBounds.FromCollider(activeCollider) : CollisionMath.TargetBounds.Invalid);
+	}
+
+	private void ShootTimeSwitch(bool on)
+	{
+		if (on)
+		{
+			_shootCounting = true;
+			_shootTime = 0f;
+		}
+		else
+		{
+			_shootCounting = false;
+		}
+	}
+
+	private void ShooterTimeSwitch(bool on)
+	{
+		if (on)
+		{
+			_shooterCounting = true;
+			_shooterTime = 0f;
+		}
+		else
+		{
+			_shootCounting = false;
+		}
+	}
+
+	public IEnumerator DieViewer()
+	{
+		_statusWidget.SetVisible(visible: false);
+		yield return DieRunner();
+	}
+
+	private IEnumerator DieRunner()
+	{
+		DeathAnimation();
+		string effectName = "UnitDeath";
+		float seconds = 1f;
+		switch (_dieLevel)
+		{
+		case 0:
+			effectName = "UnitDeathSmall";
+			seconds = 0.5f;
+			break;
+		case 1:
+			effectName = "UnitDeath";
+			seconds = 1f;
+			break;
+		case 2:
+			effectName = "UnitDeathLarge";
+			seconds = 1.8f;
+			break;
+		default:
+			Debug.Log(this?.ToString() + "配置的DieLargeExplode未定义");
+			break;
+		}
+		EffectManager.CreateEffect(effectName, base.transform);
+		yield return new WaitForSeconds(seconds);
+		switch (_dieLevel)
+		{
+		case 0:
+			AudioManager.PlaySfx("UnitDeathExplodeSmall");
+			break;
+		case 1:
+			AudioManager.PlaySfx("UnitDeathExplode");
+			break;
+		case 2:
+			AudioManager.PlaySfx("UnitDeathExplodeLarge");
+			break;
+		}
+		Die();
+	}
+
+	public IEnumerator PlayerEscapeViewer()
+	{
+		_statusWidget.SetVisible(visible: false);
+		selectorCollider.gameObject.SetActive(value: false);
+		Chat("Chat.CardFraud".Localize(), 2f);
+		yield return new WaitForSecondsRealtime(2f);
+		yield return DOTween.Sequence().Append(base.transform.DOScaleX(-1f, 0.2f)).Append(base.transform.DOLocalMoveX(-0.5f, 0.3f))
+			.SetEase(Ease.InSine)
+			.SetUpdate(isIndependentUpdate: true)
+			.SetAutoKill(autoKillOnCompletion: true)
+			.WaitForCompletion();
+		Escape(reset: true);
+	}
+
+	public void PlayerGetBackViewer(bool withAnimation = true)
+	{
+		if (Escaped)
+		{
+			Escaped = false;
+			base.transform.localScale = base.transform.localScale.FlipX();
+			GameDirector.RevealPlayer(withStatus: false);
+			selectorCollider.gameObject.SetActive(value: true);
+			if (withAnimation)
+			{
+				GameDirector.PlayerDebutAnimation();
+			}
+		}
+	}
+
+	public IEnumerator EscapeViewer(int performType = 0)
+	{
+		_statusWidget.SetVisible(visible: false);
+		selectorCollider.gameObject.SetActive(value: false);
+		switch (performType)
+		{
+		case 1:
+			yield return DOTween.Sequence().Join(base.transform.DOScale(new Vector3(0.7f, 1.3f, 1f), 0.2f).SetEase(Ease.OutQuad)).Join(base.transform.DOLocalMoveY(0.5f, 0.2f).SetEase(Ease.OutQuad))
+				.SetUpdate(isIndependentUpdate: true)
+				.SetAutoKill(autoKillOnCompletion: true)
+				.WaitForCompletion();
+			break;
+		case 2:
+			SetAnimation("shoot2", 1f, stop: true);
+			yield return new WaitForSeconds(1f);
+			break;
+		default:
+			yield return DOTween.Sequence().Append(base.transform.DOScaleX(-1f, 0.2f)).Append(base.transform.DOLocalMoveX(0.5f, 0.3f))
+				.SetEase(Ease.InSine)
+				.SetUpdate(isIndependentUpdate: true)
+				.SetAutoKill(autoKillOnCompletion: true)
+				.WaitForCompletion();
+			break;
+		}
+		Escape();
+	}
+
+	public IEnumerator SpellDeclare(string spellName)
+	{
+		if (!spellName.IsNullOrEmpty())
+		{
+			SpellDeclareHandler(spellName);
+			yield return new WaitForSeconds(2f);
+		}
+	}
+
+	private void SpellDeclareHandler(string spellName)
+	{
+		if (IsPlayer)
+		{
+			SpellAnimation();
+		}
+		AudioManager.PlaySfx("SpellDeclare");
+		SpellConfig spellConfig = SpellConfig.FromId(spellName);
+		if (spellConfig == null)
+		{
+			spellName = "未填写符卡名";
+			spellConfig = SpellConfig.FromId(spellName);
+			if (spellConfig == null)
+			{
+				throw new InvalidOperationException("丢失了默认SpellConfig字段");
+			}
+		}
+		SpellPanel panel = UiManager.GetPanel<SpellPanel>();
+		panel.SetSpellNameByKey(spellName, spellConfig.Resource);
+		panel.CallSpellDeclare(_spellPortrait, _spellColors ?? GetDefaultSpellColors(), _spellV2.x, _spellV2.y, _spellScale);
+	}
+
+	public IEnumerator Shoot(string gunName, GunType type)
+	{
+		Gun gun = GunManager.CreateGun(gunName);
+		SetGunByAnimation(gun);
+		gun.Aim(Unit is PlayerUnit, Target, Targets);
+		switch (type)
+		{
+		case GunType.Single:
+			yield return ShootDirect(gun);
+			break;
+		case GunType.First:
+			yield return ShootComplexStart(gun);
+			yield return ShootComplexFire(gun, first: true);
+			break;
+		case GunType.Middle:
+			yield return ShootComplexFire(gun);
+			break;
+		case GunType.Last:
+			yield return ShootComplexFire(gun);
+			yield return ShootComplexEnd();
+			break;
+		default:
+			throw new ArgumentOutOfRangeException("type", type, null);
+		}
+	}
+
+	public void PerformShoot(string gunName)
+	{
+		Gun gun = GunManager.CreateGun(gunName);
+		SetGunByAnimation(gun);
+		gun.Aim(Unit is PlayerUnit, Target, Targets);
+		StartCoroutine(PerformShootRunner(gun));
+	}
+
+	private IEnumerator PerformShootRunner(Gun gun)
+	{
+		yield return SpellDeclare(gun.Spell);
+		GunManager.GunShoot(gun);
+	}
+
+	private IEnumerator ShootDirect(Gun gun)
+	{
+		yield return SpellDeclare(gun.Spell);
+		if (_status == ShootStatus.Idle)
+		{
+			ShootStartActs(gun, ShootStatus.Direct);
+			_gunInShooting = GunManager.GunShoot(gun);
+			ShootEndActs(_gunInShooting, instant: false);
+			yield return StartCoroutine(WaitForShowEnd(_gunInShooting.ShootEnd));
+			ShowEndActs();
+		}
+		else
+		{
+			Debug.LogWarning("在多段射击过程中触发了另一次射击。");
+			yield return null;
+		}
+	}
+
+	private IEnumerator ShootComplexStart(Gun gun)
+	{
+		yield return SpellDeclare(gun.Spell);
+		if (_status == ShootStatus.Idle)
+		{
+			ShootStartActs(gun, ShootStatus.Complex);
+			yield return new WaitForSeconds(gun.StartTime);
+			ShooterTimeSwitch(on: true);
+		}
+		else
+		{
+			Debug.LogWarning("在多段射击过程中触发了另一次射击。");
+			yield return null;
+		}
+	}
+
+	private IEnumerator ShootComplexFire(Gun gun, bool first = false)
+	{
+		if (_status == ShootStatus.Complex)
+		{
+			_gunInShooting = GunManager.GunShoot(gun, instant: true);
+			if (first)
+			{
+				_complexFirstGun = _gunInShooting;
+			}
+			yield return StartCoroutine(WaitForShowEnd(_gunInShooting.ShootEnd));
+		}
+		else
+		{
+			Debug.LogWarning("在多段射击过程中触发了另一次射击。");
+			yield return null;
+		}
+	}
+
+	private IEnumerator ShootComplexEnd()
+	{
+		if (_status == ShootStatus.Complex)
+		{
+			yield return new WaitUntil(() => _shooterTime > 0.3f);
+			ShooterTimeSwitch(on: false);
+			ShootEndActs(_complexFirstGun, instant: true);
+			yield return new WaitForSeconds(0.3f);
+			ShowEndActs();
+		}
+		else
+		{
+			Debug.LogWarning("在多段射击过程中触发了另一次射击。");
+			yield return null;
+		}
+	}
+
+	public IEnumerator ForceEndShoot()
+	{
+		if (_status == ShootStatus.Complex)
+		{
+			yield return ShootComplexForceEnd();
+		}
+	}
+
+	private IEnumerator ShootComplexForceEnd()
+	{
+		if (_status == ShootStatus.Complex)
+		{
+			yield return new WaitForSeconds(0.1f);
+			ShooterTimeSwitch(on: false);
+			ShootEndActs(_gunInShooting, instant: true);
+			yield return new WaitForSeconds(0.3f);
+			ShowEndActs();
+			yield break;
+		}
+		throw new InvalidOperationException("ComplexForceEnd called in wrong ShootType.");
+	}
+
+	private IEnumerator WaitForShowEnd(float shootEnd)
+	{
+		float shootMinTime = Mathf.Max(shootEnd, 0.1f);
+		ShootTimeSwitch(on: true);
+		yield return new WaitUntil(() => _gunInShooting.LastWaveHitFlag || _shootTime > 5f);
+		GameDirector.OnGunHit();
+		yield return new WaitUntil(() => _shootTime > shootMinTime || _shootTime > 5f);
+		ShootTimeSwitch(on: false);
+	}
+
+	private EffectWidget SpawnShooter(string shooterName, float delay)
+	{
+		_shooterName = shooterName;
+		Transform trans = shooterPoint;
+		EffectManager.CreateEffect("Shooter" + shooterName + "Start", trans, local: true);
+		return EffectManager.CreateEffect("Shooter" + shooterName + "Loop", trans, delay, 0f, local: true);
+	}
+
+	private void DestroyShooter()
+	{
+		if (_shooterName != null)
+		{
+			Transform trans = shooterPoint;
+			UnityEngine.Object.Destroy(_shooterLoopEffect.gameObject);
+			EffectManager.CreateEffect("Shooter" + _shooterName + "End", trans, local: true);
+			_shooterName = null;
+		}
+	}
+
+	private void ShootStartActs(Gun gun, ShootStatus status)
+	{
+		_status = status;
+		if (gun.Shooter != null && gun.Shooter != "Direct")
+		{
+			_shooterLoopEffect = SpawnShooter(gun.Shooter, gun.StartTime);
+		}
+		if (!gun.HasAnimation)
+		{
+			return;
+		}
+		if (gun.Sequence.IsNullOrEmpty())
+		{
+			ShootStartAnimation(gun.Animation);
+			return;
+		}
+		SequenceConfig sequenceConfig = SequenceConfig.FromId(gun.Sequence);
+		if (sequenceConfig == null)
+		{
+			ShootStartAnimation(gun.Animation);
+			return;
+		}
+		List<float> list = sequenceConfig.KeyTime.ToList();
+		List<float> list2 = sequenceConfig.Speed.ToList();
+		float num = list[0];
+		List<float> list3 = new List<float> { num };
+		for (int i = 1; i < list.Count; i++)
+		{
+			float num2 = Mathf.Max(list[i] - list[i - 1], 0f);
+			num += num2 / list2[i - 1];
+			list3.Add(num);
+		}
+		ShootStartAnimation(sequenceConfig.Animation, list3, list2);
+	}
+
+	private void ShootEndActs(Gun gun, bool instant)
+	{
+		StartCoroutine(ShootEndActsRunner(gun, instant));
+	}
+
+	private IEnumerator ShootEndActsRunner(Gun gun, bool instant)
+	{
+		if (!instant)
+		{
+			yield return new WaitForSeconds(Mathf.Max(gun.ShootEnd, 0.5f));
+		}
+		DestroyShooter();
+		if (gun.HasAnimation)
+		{
+			ShootEndAnimation(gun.Animation);
+		}
+	}
+
+	private void ShowEndActs()
+	{
+		_gunInShooting = null;
+		_status = ShootStatus.Idle;
+	}
+
+	public IEnumerator GainBlockShieldToSelfViewer(CastBlockShieldAction action)
+	{
+		bool shield = action.Args.Shield > 0f;
+		bool block = action.Args.Block > 0f;
+		ActionCause cause = action.Cause;
+		if (cause == ActionCause.Card || cause == ActionCause.Us || cause == ActionCause.EnemyAction)
+		{
+			if (action.Cast)
+			{
+				yield return CastShieldToSelf(shield, block);
+			}
+			else
+			{
+				yield return GainShieldToSelf(shield, block);
+			}
+		}
+		else
+		{
+			yield return GainShieldToSelf(shield, block);
+		}
+	}
+
+	private IEnumerator CastShieldToSelf(bool shield, bool block)
+	{
+		DefendAnimation();
+		yield return new WaitForSeconds(0.2f);
+		if (shield)
+		{
+			CreateLocalShieldEffect("CastShield");
+		}
+		else if (block)
+		{
+			CreateLocalShieldEffect("CastBlock", isShield: false);
+		}
+		AudioManager.PlaySfx("ShieldCast");
+		yield return new WaitForSeconds(0.2f);
+		UpdateShieldColliders();
+		if ((bool)_statusWidget)
+		{
+			_statusWidget.OnBlockShieldChanged();
+		}
+		yield return new WaitForSeconds(0.1f);
+	}
+
+	private IEnumerator GainShieldToSelf(bool shield, bool block)
+	{
+		if (shield)
+		{
+			CreateLocalShieldEffect("GainShield");
+		}
+		if (block)
+		{
+			CreateLocalShieldEffect("GainBlock", isShield: false);
+		}
+		AudioManager.PlaySfx("ShieldCast");
+		yield return new WaitForSeconds(0.2f);
+		UpdateShieldColliders();
+		if ((bool)_statusWidget)
+		{
+			_statusWidget.OnBlockShieldChanged();
+		}
+		yield return new WaitForSeconds(0.1f);
+	}
+
+	public void CastShieldToOther(bool cast = true)
+	{
+		if (cast)
+		{
+			DefendAnimation();
+		}
+	}
+
+	public IEnumerator ReceiveShieldViewer(CastBlockShieldAction action)
+	{
+		bool shield = action.Args.Shield > 0f;
+		bool block = action.Args.Block > 0f;
+		if (action.Cast)
+		{
+			yield return new WaitForSeconds(0.2f);
+		}
+		AudioManager.PlaySfx("ShieldCast");
+		if (shield)
+		{
+			CreateLocalShieldEffect("CastShield");
+		}
+		else if (block)
+		{
+			CreateLocalShieldEffect("CastBlock", isShield: false);
+		}
+		yield return new WaitForSeconds(0.2f);
+		UpdateShieldColliders();
+		if ((bool)_statusWidget)
+		{
+			_statusWidget.OnBlockShieldChanged();
+		}
+		yield return new WaitForSeconds(0.1f);
+	}
+
+	public IEnumerator LoseBlockShieldViewer(LoseBlockShieldAction action)
+	{
+		UpdateShieldColliders();
+		if ((bool)_statusWidget)
+		{
+			_statusWidget.OnBlockShieldChanged();
+		}
+		bool flag = false;
+		bool flag2 = false;
+		if (action.Args.Shield != 0f && Unit.Shield == 0)
+		{
+			flag = true;
+		}
+		if (action.Args.Block != 0f && Unit.Block == 0)
+		{
+			flag2 = true;
+		}
+		if (flag || flag2)
+		{
+			yield return LoseShieldEffect(flag, flag2);
+		}
+	}
+
+	private IEnumerator LoseShieldEffect(bool shield, bool block)
+	{
+		if (shield)
+		{
+			CreateLocalShieldEffect("LoseShield");
+		}
+		if (block)
+		{
+			CreateLocalShieldEffect("LoseBlock", isShield: false);
+		}
+		yield return new WaitForSeconds(0.1f);
+	}
+
+	private void UpdateShieldColliders()
+	{
+		HasShield = Unit.Shield != 0;
+		HasBlock = Unit.Block != 0;
+		if (HasBlock || HasShield)
+		{
+			BoxCollider.enabled = false;
+			_circleCollider.enabled = true;
+		}
+		else
+		{
+			BoxCollider.enabled = true;
+			_circleCollider.enabled = false;
+		}
+		if (HasBlock)
+		{
+			_circleCollider.radius = _blockRadius;
+		}
+		else if (HasShield)
+		{
+			_circleCollider.radius = _shieldRadius;
+		}
+	}
+
+	private EffectWidget CreateEternalShieldEffect(string effectName, bool isShield = true)
+	{
+		EffectWidget effectWidget = EffectManager.CreateEffect(effectName, effectRoot, 0f, null, local: true, startActive: false);
+		EffectManager.ModifyEffect(effectWidget, isShield ? _shieldRadius : _blockRadius);
+		return effectWidget;
+	}
+
+	private void CreateLocalShieldEffect(string effectName, bool isShield = true)
+	{
+		EffectManager.ModifyEffect(EffectManager.CreateEffect(effectName, effectRoot, local: true), isShield ? _shieldRadius : _blockRadius);
+	}
+
+	public void Hit(bool lastWave = false, float animationSpeed = 1f, bool ignoreCoolDown = false)
+	{
+		switch (HitType)
+		{
+		case HitType.Graze:
+			GrazeAnimation(animationSpeed);
+			break;
+		case HitType.Block:
+			if (!ComingDamage.ZeroDamage)
+			{
+				HitBlock(lastWave, animationSpeed);
+			}
+			break;
+		case HitType.Shield:
+			if (!ComingDamage.ZeroDamage)
+			{
+				HitShield(lastWave, animationSpeed);
+			}
+			break;
+		case HitType.Body:
+			if (!ComingDamage.ZeroDamage)
+			{
+				HitAnimation(animationSpeed, ignoreCoolDown);
+			}
+			break;
+		default:
+			throw new ArgumentOutOfRangeException();
+		}
+	}
+
+	private void HitBlock(bool lastWave, float speed)
+	{
+		if (WillCrash)
+		{
+			if (Crashing || lastWave)
+			{
+				Crash(_bothShield, block: true, speed);
+			}
+			else
+			{
+				Guard(_bothShield, block: true, speed);
+			}
+		}
+		else
+		{
+			Guard(_bothShield, block: true, speed);
+		}
+	}
+
+	private void HitShield(bool lastWave, float speed)
+	{
+		if (WillCrash)
+		{
+			if (Crashing || lastWave)
+			{
+				Crash(shield: true, block: false, speed);
+			}
+			else
+			{
+				Guard(shield: true, block: false, speed);
+			}
+		}
+		else
+		{
+			Guard(shield: true, block: false, speed);
+		}
+	}
+
+	private void Guard(bool shield, bool block, float speed)
+	{
+		GuardAnimation(speed);
+		GuardTime = 0f;
+		if (Guarding)
+		{
+			if (GuardEffectTime > 0.2f)
+			{
+				PlayGuardEffect(shield, block);
+			}
+		}
+		else
+		{
+			GuardCoroutine = StartCoroutine(GuardRunner(shield, block));
+		}
+	}
+
+	private IEnumerator GuardRunner(bool shield, bool block)
+	{
+		Guarding = true;
+		PlayGuardEffect(shield, block);
+		while (GuardTime < 0.3f)
+		{
+			GuardTime += Time.deltaTime;
+			GuardEffectTime += Time.deltaTime;
+			yield return null;
+		}
+		Guarding = false;
+	}
+
+	private void PlayGuardEffect(bool shield, bool block)
+	{
+		GuardEffectTime = 0f;
+		if (shield)
+		{
+			CreateLocalShieldEffect("ShieldActive");
+		}
+		if (block)
+		{
+			CreateLocalShieldEffect("BlockActive", isShield: false);
+		}
+	}
+
+	private void Crash(bool shield, bool block, float speed)
+	{
+		if (Guarding)
+		{
+			StopCoroutine(GuardCoroutine);
+			Guarding = false;
+		}
+		if (!Crashing)
+		{
+			StartCoroutine(CrashRunner(shield, block, speed));
+		}
+	}
+
+	private IEnumerator CrashRunner(bool shield, bool block, float speed)
+	{
+		Crashing = true;
+		CrashAnimation(speed);
+		UpdateShieldColliders();
+		AudioManager.PlaySfx("ShieldCrash");
+		if (shield)
+		{
+			CreateLocalShieldEffect("CrashShield");
+		}
+		if (block)
+		{
+			CreateLocalShieldEffect("CrashBlock", isShield: false);
+		}
+		yield return new WaitForSeconds(0.35f);
+		HitType = HitType.Body;
+		Crashing = false;
+	}
+
+	public void HitEnd()
+	{
+		if (WillCrash)
+		{
+			UpdateShieldColliders();
+		}
+		else
+		{
+			bool hasShield = HasShield;
+			bool hasBlock = HasBlock;
+			UpdateShieldColliders();
+			bool num = hasShield && !HasShield;
+			bool flag = hasBlock && !HasBlock;
+			if (num)
+			{
+				CreateLocalShieldEffect("LoseShield");
+			}
+			if (flag)
+			{
+				CreateLocalShieldEffect("LoseBlock", isShield: false);
+			}
+		}
+		if ((bool)_statusWidget)
+		{
+			_statusWidget.OnBlockShieldChanged();
+		}
+	}
+
+	private void SpineInitialize()
+	{
+		if (SpineLoaded)
+		{
+			return;
+		}
+		rendererParent.gameObject.SetActive(value: true);
+		spineSkeleton.gameObject.SetActive(value: true);
+		spriteRenderer.gameObject.SetActive(value: false);
+		State = spineSkeleton.state;
+		AllStates.Add(State);
+		if ((bool)_kokoroUnitController)
+		{
+			AllStates.Add(_kokoroUnitController.TopMuskState);
+		}
+		foreach (Spine.AnimationState allState in AllStates)
+		{
+			allState.Event += OnEvent;
+		}
+		foreach (Spine.Animation animation in State.Data.SkeletonData.Animations)
+		{
+			AllSpineAnimations.Add(animation);
+			AllAnimationsNames.Add(animation.Name);
+		}
+		if (!AllAnimationsNames.Contains("idle"))
+		{
+			throw new InvalidOperationException(_modelName + " has no idle animation!");
+		}
+		if (AllAnimationsNames.Contains("blink"))
+		{
+			_hasBlink = true;
+		}
+		if (AllAnimationsNames.Contains("pose1"))
+		{
+			_hasPose = true;
+		}
+		if (AllAnimationsNames.Contains("fly"))
+		{
+			_hasFly = true;
+		}
+		if (Unit is Doremy)
+		{
+			DoremySleeping = true;
+		}
+		else
+		{
+			SpineIdle();
+		}
+		SpineLoaded = true;
+	}
+
+	private void SpineClear()
+	{
+		if (SpineLoaded)
+		{
+			spineSkeleton.gameObject.SetActive(value: false);
+			spineSkeleton.transform.localScale = Vector3.one;
+			State = null;
+			AllStates.Clear();
+			AllSpineAnimations.Clear();
+			AllAnimationsNames.Clear();
+			_hasBlink = false;
+			_hasPose = false;
+			_hasFly = false;
+			DoremySleeping = false;
+			_spineNeedReload = true;
+			SpineLoaded = false;
+		}
+	}
+
+	private void OnEvent(TrackEntry trackEntry, Spine.Event e)
+	{
+		SpineEventConfig spineEventConfig = SpineEventConfig.FromName(e.Data.Name);
+		if (spineEventConfig != null)
+		{
+			if (!spineEventConfig.Effect.IsNullOrEmpty())
+			{
+				EffectWidget effectWidget = EffectManager.CreateEffect(spineEventConfig.Effect, effectRoot, local: false);
+				if (Flip)
+				{
+					effectWidget.transform.Rotate(Vector3.up, 180f);
+				}
+			}
+			if (!spineEventConfig.Sfx.IsNullOrEmpty())
+			{
+				AudioManager.PlaySfx(spineEventConfig.Sfx);
+			}
+		}
+		else
+		{
+			AudioManager.PlaySfx(e.Data.Name);
+		}
+	}
+
+	public void PlayAnimation(string animationName)
+	{
+		SetAnimation(animationName);
+		spineSkeleton.Update(0f);
+	}
+
+	private void SetAnimation(string order, float speed = 1f, bool stop = false)
+	{
+		if (SpineLoaded)
+		{
+			CurrentTrack = null;
+			if (_hasBlink)
+			{
+				StopBlinking();
+			}
+			if (_hasPose)
+			{
+				StopPosing();
+			}
+			order = order.ToLower();
+			if (AllAnimationsNames.Contains(order))
+			{
+				foreach (Spine.AnimationState allState in AllStates)
+				{
+					allState.SetAnimation(0, order, loop: false).TimeScale = (IsIdleFamilyAnimation(order) ? TimeScaleController.IdleAnimationSpeed : speed);
+				}
+				if (!stop)
+				{
+					SpineIdle(add: true);
+				}
+				return;
+			}
+			string text = order.Where((char c) => !char.IsNumber(c)).Aggregate(null, (string current, char c) => current + c);
+			if (AllAnimationsNames.Contains(text))
+			{
+				foreach (Spine.AnimationState allState2 in AllStates)
+				{
+					allState2.SetAnimation(0, text, loop: false).TimeScale = (IsIdleFamilyAnimation(text) ? TimeScaleController.IdleAnimationSpeed : speed);
+				}
+				if (!stop)
+				{
+					SpineIdle(add: true);
+				}
+			}
+			else
+			{
+				Debug.LogWarning(base.name + " has no animation: " + order);
+			}
+		}
+		else
+		{
+			SetTrigger(order);
+			_animatorSpeed = speed;
+			_animator.speed = speed;
+		}
+	}
+
+	private void SpineIdle(bool add = false)
+	{
+		float idleAnimationSpeed = TimeScaleController.IdleAnimationSpeed;
+		if (DoremySleeping)
+		{
+			if (add)
+			{
+				foreach (Spine.AnimationState allState in AllStates)
+				{
+					allState.AddAnimation(0, "sleep", loop: true, 0f).TimeScale = idleAnimationSpeed;
+				}
+			}
+			else
+			{
+				foreach (Spine.AnimationState allState2 in AllStates)
+				{
+					allState2.SetAnimation(0, "sleep", loop: true).TimeScale = idleAnimationSpeed;
+				}
+			}
+		}
+		else if (add)
+		{
+			foreach (Spine.AnimationState allState3 in AllStates)
+			{
+				allState3.AddAnimation(0, "idle", loop: true, 0f).TimeScale = idleAnimationSpeed;
+			}
+		}
+		else
+		{
+			foreach (Spine.AnimationState allState4 in AllStates)
+			{
+				allState4.SetAnimation(0, "idle", loop: true).TimeScale = idleAnimationSpeed;
+			}
+		}
+		if (_hasBlink)
+		{
+			StartBlinking();
+		}
+		if (_hasPose)
+		{
+			StartPosing();
+		}
+		if (!_hasFly)
+		{
+			return;
+		}
+		foreach (Spine.AnimationState allState5 in AllStates)
+		{
+			allState5.SetAnimation(2, "fly", loop: true).TimeScale = idleAnimationSpeed;
+		}
+	}
+
+	private void OnTimeScaleChanged(float timeScale)
+	{
+		if (SpineLoaded)
+		{
+			ApplyIdleAnimationSpeed();
+		}
+		else
+		{
+			UpdateAnimatorIdleSpeed();
+		}
+	}
+
+	private void ApplyIdleAnimationSpeed()
+	{
+		float idleAnimationSpeed = TimeScaleController.IdleAnimationSpeed;
+		foreach (Spine.AnimationState allState in AllStates)
+		{
+			for (int i = 0; i <= 2; i++)
+			{
+				for (TrackEntry trackEntry = allState.GetCurrent(i); trackEntry != null; trackEntry = trackEntry.Next)
+				{
+					if (IsIdleFamilyAnimation(trackEntry.Animation?.Name))
+					{
+						trackEntry.TimeScale = idleAnimationSpeed;
+					}
+				}
+			}
+		}
+	}
+
+	private void UpdateAnimatorIdleSpeed()
+	{
+		if (!(_animator == null) && !(_animator.runtimeAnimatorController == null))
+		{
+			_animator.speed = (_animator.GetCurrentAnimatorStateInfo(0).IsName("Idle") ? TimeScaleController.IdleAnimationSpeed : _animatorSpeed);
+		}
+	}
+
+	private static bool IsIdleFamilyAnimation(string name)
+	{
+		switch (name)
+		{
+		default:
+			return name.StartsWith("pose");
+		case null:
+			return false;
+		case "idle":
+		case "sleep":
+		case "fly":
+		case "blink":
+			return true;
+		}
+	}
+
+	private void StartBlinking()
+	{
+		_blinkTimer = UnityEngine.Random.Range(2f, 5f);
+		_blinking = true;
+	}
+
+	private void StopBlinking()
+	{
+		_blinking = false;
+	}
+
+	private void Blink()
+	{
+		_blinkTimer = UnityEngine.Random.Range(2f, 5f);
+		foreach (Spine.AnimationState allState in AllStates)
+		{
+			allState.SetAnimation(1, "blink", loop: false).TimeScale = TimeScaleController.IdleAnimationSpeed;
+		}
+	}
+
+	private void StartPosing()
+	{
+		_poseTimer = UnityEngine.Random.Range(32f, 40f);
+		_posing = true;
+	}
+
+	private void StopPosing()
+	{
+		_posing = false;
+	}
+
+	private void Pose()
+	{
+		SetAnimation("pose1");
+	}
+
+	private void ShootStartAnimation(string order, float speed = 1f)
+	{
+		List<float> keyTimes = new List<float> { 0f };
+		List<float> speeds = new List<float> { 1f };
+		ShootStartAnimation(order, keyTimes, speeds);
+	}
+
+	private void ShootStartAnimation(string order, List<float> keyTimes, List<float> speeds)
+	{
+		_invincible = true;
+		if (SpineLoaded)
+		{
+			CurrentTrack = null;
+			order = order.ToLower();
+			if (AllAnimationsNames.Contains(order + "start"))
+			{
+				float timeScale = 1f;
+				if (speeds.Count > 0)
+				{
+					timeScale = speeds[0];
+				}
+				{
+					foreach (Spine.AnimationState allState in AllStates)
+					{
+						allState.SetAnimation(0, order + "start", loop: false).TimeScale = timeScale;
+						allState.AddAnimation(0, order + "loop", loop: true, 0f);
+					}
+					return;
+				}
+			}
+			if (AllAnimationsNames.Contains(order))
+			{
+				foreach (Spine.AnimationState allState2 in AllStates)
+				{
+					TrackEntry trackEntry = allState2.SetAnimation(0, order, loop: false);
+					trackEntry.TimeScale = 1f;
+					StartSequence(trackEntry, keyTimes, speeds);
+				}
+				return;
+			}
+			Debug.LogError(base.name + " has no animation: " + order);
+		}
+		else
+		{
+			SetTrigger(order);
+		}
+	}
+
+	private void StartSequence(TrackEntry track, List<float> keyTimes, List<float> speeds)
+	{
+		CurrentTrack = track;
+		SequenceKeys.Clear();
+		if (keyTimes.Count > 0)
+		{
+			for (int i = 0; i < keyTimes.Count; i++)
+			{
+				float num = speeds.TryGetValue(i);
+				if (num <= 0f)
+				{
+					num = 1f;
+				}
+				SequenceKeys.Add(new Vector2(keyTimes[i], num));
+			}
+			SequenceTimer = 0f;
+			SequenceIndicator = 0;
+			Sequencing = true;
+			return;
+		}
+		throw new InvalidOperationException("Sequence has no keys.");
+	}
+
+	private void ShootEndAnimation(string order, float speed = 1f)
+	{
+		_invincible = false;
+		if (SpineLoaded)
+		{
+			CurrentTrack = null;
+			order = order.ToLower();
+			if (AllAnimationsNames.Contains(order + "end"))
+			{
+				foreach (Spine.AnimationState allState in AllStates)
+				{
+					allState.SetAnimation(0, order + "end", loop: false).TimeScale = speed;
+				}
+			}
+			SpineIdle(add: true);
+		}
+		else if (order == "shoot1")
+		{
+			SetTrigger("shoot1end");
+		}
+	}
+
+	private void DefendAnimation()
+	{
+		SetAnimation("defend");
+	}
+
+	private void GrazeAnimation(float speed)
+	{
+		if (!_invincible && !DoremySleeping)
+		{
+			SetAnimation("graze", speed);
+		}
+	}
+
+	private void GuardAnimation(float speed = 1f)
+	{
+		if (!_invincible && !DoremySleeping && LifeTime - LastGuardTime > _guardRep)
+		{
+			SetAnimation("guard", speed);
+			LastGuardTime = LifeTime;
+		}
+	}
+
+	private void CrashAnimation(float speed)
+	{
+		if (!_invincible)
+		{
+			SetAnimation("crash", speed);
+		}
+	}
+
+	private void HitAnimation(float speed, bool ignoreCoolDown)
+	{
+		if (!_invincible && (ignoreCoolDown || LifeTime - LastHitTime > _hitRep))
+		{
+			SetAnimation("hit", speed);
+			LastHitTime = LifeTime;
+		}
+	}
+
+	public void DeathAnimation()
+	{
+		_invincible = true;
+		SetAnimation("hit", 0.1f, stop: true);
+	}
+
+	private void SpellAnimation()
+	{
+		SetAnimation("spell");
+	}
+
+	public void DebutAnimation()
+	{
+		if (AllAnimationsNames.Contains("debut"))
+		{
+			PlayAnimation("debut");
+			Spine.Animation animation = AllSpineAnimations.FirstOrDefault((Spine.Animation anime) => anime.Name == "debut");
+			if (animation != null)
+			{
+				SetStatusVisible(visible: false, instant: true);
+				_fadeInCts = new CancellationTokenSource();
+				FadeInStatusTask(animation.Duration).Forget();
+				return;
+			}
+		}
+		SetStatusVisible(visible: true);
+	}
+
+	private void CancelFadeIn()
+	{
+		_fadeInCts?.Cancel();
+	}
+
+	private async UniTask FadeInStatusTask(float delay)
+	{
+		await UniTask.WaitForSeconds(delay, ignoreTimeScale: false, PlayerLoopTiming.Update, _fadeInCts.Token);
+		SetStatusVisible(visible: true);
+	}
+
+	private void SetTrigger(string triggerName)
+	{
+		_animator.SetTrigger(triggerName);
+	}
+
+	private void InitDollSlots()
+	{
+		if (!(Unit is PlayerUnit playerUnit))
+		{
+			return;
+		}
+		if (_slots.NotEmpty())
+		{
+			ClearDolls();
+		}
+		foreach (int item in ..playerUnit.DollSlotCount)
+		{
+			_ = item;
+			_slots.Add(CreateDollSlotView(dollRoot));
+		}
+		AdjustDollSlotsPosition(tween: false);
+		AdjustDollsPosition(tween: false);
+		if (!playerUnit.ShowDollSlotByDefault)
+		{
+			ShowDoll = false;
+		}
+	}
+
+	private void ClearDolls()
+	{
+		if (!(Unit is PlayerUnit playerUnit))
+		{
+			return;
+		}
+		foreach (DollSlotView slot in _slots)
+		{
+			slot.DOKill();
+			UnityEngine.Object.Destroy(slot.gameObject);
+		}
+		_slots.Clear();
+		foreach (DollView doll in Dolls)
+		{
+			doll.DOKill();
+			UnityEngine.Object.Destroy(doll.gameObject);
+		}
+		Dolls.Clear();
+		if (!playerUnit.ShowDollSlotByDefault)
+		{
+			ShowDoll = false;
+		}
+	}
+
+	private DollSlotView CreateDollSlotView(Transform parent)
+	{
+		ShowDoll = true;
+		DollSlotView dollSlotView = UnityEngine.Object.Instantiate(dollSlotTemplate, parent);
+		Transform obj = dollSlotView.transform;
+		obj.localPosition = obj.localPosition.WithZ(0.1f);
+		return dollSlotView;
+	}
+
+	private DollView CreateDollView(Doll doll, Transform parent)
+	{
+		ShowDoll = true;
+		DollView dollView = UnityEngine.Object.Instantiate(dollTemplate, parent);
+		dollView.name = doll.Id + "(Doll)";
+		dollView.Doll = doll;
+		return dollView;
+	}
+
+	private void AdjustDollSlotsPosition(bool tween)
+	{
+		foreach (var item2 in _slots.WithIndices())
+		{
+			int item = item2.index;
+			Transform transform = item2.elem.transform;
+			transform.DOKill();
+			if (tween)
+			{
+				transform.DOLocalMove(new Vector3(_slotPositions[item].x, _slotPositions[item].y, 0.1f), 0.2f);
+			}
+			else
+			{
+				transform.localPosition = new Vector3(_slotPositions[item].x, _slotPositions[item].y, 0.1f);
+			}
+		}
+	}
+
+	private void AdjustDollsPosition(bool tween)
+	{
+		foreach (var item2 in Dolls.WithIndices())
+		{
+			int item = item2.index;
+			Transform transform = item2.elem.transform;
+			transform.DOKill();
+			if (tween)
+			{
+				transform.DOLocalMove(_slotPositions[item], 0.2f);
+			}
+			else
+			{
+				transform.localPosition = _slotPositions[item];
+			}
+		}
+	}
+
+	public DollView GetDoll(Doll doll)
+	{
+		return Dolls.FirstOrDefault((DollView d) => d.Doll == doll);
+	}
+
+	private IEnumerator ViewAddDoll(AddDollAction action)
+	{
+		Doll doll = action.Args.Doll;
+		DollView dollView = CreateDollView(doll, dollRoot);
+		Transform obj = dollView.transform;
+		Vector3 localPosition = _slots[Dolls.Count].transform.localPosition;
+		obj.localPosition = obj.localPosition.With(localPosition.x, localPosition.y);
+		Dolls.Add(dollView);
+		yield return new WaitForSeconds(0.05f);
+	}
+
+	private IEnumerator ViewRemoveDoll(RemoveDollAction action)
+	{
+		Doll doll = action.Args.Doll;
+		DollView doll2 = GetDoll(doll);
+		if (doll2 != null)
+		{
+			UnityEngine.Object.Destroy(doll2.gameObject);
+			Dolls.Remove(doll2);
+			AdjustDollsPosition(tween: true);
+		}
+		else
+		{
+			Debug.LogError("[UnitView] Cannot find doll view for " + doll.DebugName);
+		}
+		yield return new WaitForSeconds(0.05f);
+	}
+
+	private IEnumerator ViewAddDollSlot(AddDollSlotAction action)
+	{
+		int dollSlotCount = ((PlayerUnit)Unit).DollSlotCount;
+		if (dollSlotCount < _slots.Count)
+		{
+			Debug.LogError($"[UnitView] Target doll slot count {dollSlotCount} is lesser than current ({_slots.Count})");
+			yield break;
+		}
+		for (int i = _slots.Count; i < dollSlotCount; i++)
+		{
+			_slots.Add(CreateDollSlotView(dollRoot));
+		}
+		AdjustDollSlotsPosition(tween: true);
+		AdjustDollsPosition(tween: true);
+		yield return new WaitForSeconds(0.2f);
+	}
+
+	private IEnumerator ViewRemoveDollSlot(RemoveDollSlotAction action)
+	{
+		int dollSlotCount = ((PlayerUnit)Unit).DollSlotCount;
+		if (dollSlotCount > _slots.Count)
+		{
+			Debug.LogError($"[UnitView] Target doll slot count {dollSlotCount} is lesser than current ({_slots.Count})");
+			yield break;
+		}
+		for (int i = dollSlotCount; i < _slots.Count; i++)
+		{
+			UnityEngine.Object.Destroy(_slots[i].gameObject);
+		}
+		_slots.RemoveRange(dollSlotCount, _slots.Count - dollSlotCount);
+		for (int j = dollSlotCount; j < Dolls.Count; j++)
+		{
+			UnityEngine.Object.Destroy(Dolls[j].gameObject);
+		}
+		Dolls.RemoveRange(dollSlotCount, Dolls.Count - dollSlotCount);
+		AdjustDollsPosition(tween: true);
+		AdjustDollSlotsPosition(tween: true);
+	}
+
+	private IEnumerator ViewConsumeMagic(ConsumeMagicAction action)
+	{
+		DollView doll = GetDoll(action.Args.Doll);
+		if (doll != null)
+		{
+			doll.InfoWidget.ConsumeMagic();
+		}
+		yield break;
+	}
+
+	public void UpdateIntentions()
+	{
+		if ((bool)_infoWidget)
+		{
+			_infoWidget.UpdateIntentions();
+		}
+	}
+
+	public void SetMoveOrder(int order)
+	{
+		if ((bool)_infoWidget)
+		{
+			_infoWidget.SetMoveOrder(order);
+		}
+	}
+
+	public void SetMoveOrderVisible(bool visible)
+	{
+		if ((bool)_infoWidget)
+		{
+			_infoWidget.IsMoveOrderVisible = visible;
+		}
+	}
+
+	public void ShowMovePopup(string moveName, bool closeMoveName)
+	{
+		if ((bool)_infoWidget)
+		{
+			_infoWidget.ShowMovePopup(moveName, closeMoveName);
+		}
+	}
+
+	public void SetOrb(string effectName, int orbitIndex)
+	{
+		RinOrb eb = RinOrb.CreateRinOrb(effectName, orbitIndex);
+		Transform parent = effectRoot;
+		EffectBulletView item = EffectManager.CreateEffectBullet(eb, default(Vector3), parent);
+		_orbs.Add(item);
+	}
+
+	public IEnumerator MoveOrbToEnemy(EnemyUnit enemy)
+	{
+		yield return new WaitForSeconds(0.1f);
+	}
+
+	public IEnumerator RecycleOrb()
+	{
+		yield return new WaitForSeconds(0.1f);
+	}
+
+	public void SetEffect(SkirtColor skirtColor)
+	{
+		_kokoroUnitController.SwitchToColor(skirtColor);
+	}
+
+	public IEnumerator SwitchToFace(SkirtColor skirtColor)
+	{
+		SetEffect(skirtColor);
+		foreach (Spine.AnimationState item in AllStates.Concat(_kokoroUnitController.AllMuskStates))
+		{
+			item.SetAnimation(3, "switch", loop: false);
+			item.SetAnimation(4, "face" + skirtColor.ToString().ToLower(), loop: false);
+		}
+		yield return new WaitForSeconds(0.1f);
+	}
+
+	public void SetSleep(bool sleep)
+	{
+		DoremySleeping = sleep;
+	}
+
+	public void SetEffect(bool show, int level)
+	{
+		UiManager.GetPanel<SystemBoard>().SetDoremyLevel(show, level);
+		if (show)
+		{
+			GameDirector.AddDeremyEnvironment(EffectManager.CreateEffect("DreamL" + level, LBoL.Presentation.Environments.Environment.Instance.transform));
+		}
+		else
+		{
+			GameDirector.ClearDoremyEnvironment();
+		}
+	}
+
+	public void SetStatusWidget(UnitStatusWidget widget, float initAlpha)
+	{
+		if ((bool)_statusWidget)
+		{
+			UnityEngine.Object.Destroy(_statusWidget.gameObject);
+		}
+		_statusWidget = widget;
+		_statusWidget.UnitView = this;
+		if ((bool)widget)
+		{
+			widget.TargetTransform = hpBarPoint;
+		}
+		widget.Alpha = initAlpha;
+	}
+
+	public void SetInfoWidget(UnitInfoWidget widget, float initAlpha)
+	{
+		if ((bool)_infoWidget)
+		{
+			UnityEngine.Object.Destroy(_infoWidget);
+		}
+		_infoWidget = widget;
+		_infoWidget.UnitView = this;
+		if ((bool)widget)
+		{
+			widget.TargetTransform = infoPoint;
+		}
+		widget.Alpha = initAlpha;
+	}
+
+	public void SetStatusVisible(bool visible, bool instant = false)
+	{
+		CancelFadeIn();
+		if ((bool)_statusWidget)
+		{
+			_statusWidget.SetVisible(visible, instant);
+		}
+		if ((bool)_infoWidget)
+		{
+			_statusWidget.SetVisible(visible, instant);
+		}
+	}
+
+	public void Awake()
+	{
+		SelectingVisible = false;
+		_isHidden = false;
+		IsHidden = true;
+		_status = ShootStatus.Idle;
+		_animator = GetComponent<Animator>();
+		BoxCollider = GetComponent<BoxCollider2D>();
+		_circleCollider = GetComponent<CircleCollider2D>();
+		TimeScaleController.TimeScaleChanged += OnTimeScaleChanged;
+	}
+
+	public void OnDestroy()
+	{
+		TimeScaleController.TimeScaleChanged -= OnTimeScaleChanged;
+		if (_statusWidget?.UnitCursor != null && _statusWidget.UnitCursor.transform.parent != _statusWidget.transform)
+		{
+			_statusWidget.UnitCursor.transform.SetParent(_statusWidget.transform);
+		}
+		if ((bool)_statusWidget)
+		{
+			UnityEngine.Object.Destroy(_statusWidget.gameObject);
+		}
+		if ((bool)_chatWidget)
+		{
+			UnityEngine.Object.Destroy(_chatWidget.gameObject);
+		}
+		if ((bool)_infoWidget)
+		{
+			UnityEngine.Object.Destroy(_infoWidget.gameObject);
+		}
+	}
+
+	private void Hide()
+	{
+		rendererParent.gameObject.SetActive(value: false);
+		effectRoot.gameObject.SetActive(value: false);
+		SetStatusVisible(visible: false, instant: true);
+	}
+
+	public void Show(bool withStatus)
+	{
+		_isHidden = false;
+		rendererParent.gameObject.SetActive(value: true);
+		effectRoot.gameObject.SetActive(value: true);
+		if (withStatus)
+		{
+			SetStatusVisible(visible: true);
+		}
+	}
+
+	private void Die()
+	{
+		rendererParent.gameObject.SetActive(value: false);
+		effectRoot.gameObject.SetActive(value: false);
+		effectRootIgnoreHiding.gameObject.SetActive(value: false);
+		selectorCollider.gameObject.SetActive(value: false);
+		_statusWidget.SetVisible(visible: false);
+		_infoWidget.SetVisible(visible: false);
+	}
+
+	private void Escape(bool reset = false)
+	{
+		rendererParent.gameObject.SetActive(value: false);
+		effectRoot.gameObject.SetActive(value: false);
+		effectRootIgnoreHiding.gameObject.SetActive(value: false);
+		selectorCollider.gameObject.SetActive(value: false);
+		_statusWidget.SetVisible(visible: false);
+		_infoWidget.SetVisible(visible: false);
+		if (reset)
+		{
+			Escaped = true;
+		}
+	}
+
+	public void EnterBattle(BattleController battle)
+	{
+		if (Unit is PlayerUnit)
+		{
+			battle.ActionViewer.Register<AddDollSlotAction>(ViewAddDollSlot);
+			battle.ActionViewer.Register<RemoveDollSlotAction>(ViewRemoveDollSlot);
+			battle.ActionViewer.Register<AddDollAction>(ViewAddDoll);
+			battle.ActionViewer.Register<RemoveDollAction>(ViewRemoveDoll);
+			battle.ActionViewer.Register<ConsumeMagicAction>(ViewConsumeMagic);
+			InitDollSlots();
+		}
+	}
+
+	public void LeaveBattle(BattleController battle)
+	{
+		if (Unit is PlayerUnit)
+		{
+			battle.ActionViewer.Unregister<AddDollSlotAction>(ViewAddDollSlot);
+			battle.ActionViewer.Unregister<RemoveDollSlotAction>(ViewRemoveDollSlot);
+			battle.ActionViewer.Unregister<AddDollAction>(ViewAddDoll);
+			battle.ActionViewer.Unregister<RemoveDollAction>(ViewRemoveDoll);
+			battle.ActionViewer.Unregister<ConsumeMagicAction>(ViewConsumeMagic);
+			ClearDolls();
+		}
+		UpdateShieldColliders();
+		if ((bool)_statusWidget)
+		{
+			_statusWidget.OnBlockShieldChanged();
+			_statusWidget.ClearStatusEffects();
+		}
+		foreach (KeyValuePair<string, EffectWidget> item in _effectDictionary)
+		{
+			UnityEngine.Object.Destroy(item.Value.gameObject);
+		}
+		_effectDictionary.Clear();
+	}
+
+	public void Event_OnPointerEnter()
+	{
+		ShowName();
+		StatusToFront();
+	}
+
+	public void Event_OnPointerExit()
+	{
+		HideName();
+	}
+
+	public void Event_OnPointerClick()
+	{
+		Clicked();
+	}
+
+	public void ShowName()
+	{
+		if ((bool)_infoWidget)
+		{
+			_infoWidget.IncreaseHoveringLevel();
+		}
+	}
+
+	public void HideName()
+	{
+		if ((bool)_infoWidget)
+		{
+			_infoWidget.DecreaseHoveringLevel();
+		}
+	}
+
+	private void StatusToFront()
+	{
+		UnitStatusHud panel = UiManager.GetPanel<UnitStatusHud>();
+		if ((bool)_statusWidget)
+		{
+			panel.StatusToFront(_statusWidget.transform);
+		}
+		if ((bool)_infoWidget)
+		{
+			panel.StatusToFront(_infoWidget.transform);
+		}
+	}
+
+	private void Clicked()
+	{
+		ClickHandler?.Invoke();
+	}
+
+	public void Chat(string content, float time, ChatWidget.CloudType type = ChatWidget.CloudType.LeftThink, float delay = 0f)
+	{
+		if (!_chatWidget)
+		{
+			_chatWidget = UiManager.GetPanel<UnitStatusHud>().CreateChatWidget(this);
+			_chatWidget.name = "Chat: " + base.name;
+		}
+		_chatWidget.Chat(content, time, delay, type);
+	}
+
+	private Color[] GetDefaultSpellColors()
+	{
+		Debug.LogError(_modelName + " has no spell color in config");
+		return new Color[4]
+		{
+			new Color32(104, 15, 5, byte.MaxValue),
+			new Color32(byte.MaxValue, 46, 72, byte.MaxValue),
+			new Color32(74, 0, 1, 150),
+			new Color32(byte.MaxValue, 46, 72, byte.MaxValue)
+		};
+	}
+
+	public async UniTask LoadUnitModelAsync(string modelName, bool player = false, float? forceHpLength = null)
+	{
+		if (_unitModelLoaded)
+		{
+			ClearUnitModel();
+		}
+		UnitModelConfig config = UnitModelConfig.FromName(modelName);
+		if (config != null)
+		{
+			_modelName = config.Name;
+			_type = (ModelType)config.Type;
+			_offset = config.Offset;
+			_flipModel = config.Flip;
+			_dieLevel = config.Dielevel;
+			_boxSize = config.Box;
+			_shieldRadius = config.Shield;
+			_blockRadius = config.Block;
+			_hitPointV2 = config.Hit;
+			_hpV2 = config.Hp;
+			_hitRep = config.HitRep;
+			_guardRep = config.GuardRep;
+			_hpLength = config.HpLength;
+			_infoV2 = config.Info;
+			_selectV3 = new Vector3(config.Select.x, config.Select.y, 1f);
+			_chatV2 = config.Chat;
+			_spellV2 = config.SpellPosition;
+			_spellScale = config.SpellScale;
+			IReadOnlyList<Color32> spellColor = config.SpellColor;
+			_spellColors = ((spellColor.Count == 0) ? null : ((IEnumerable<Color32>)spellColor).Select((Func<Color32, Color>)((Color32 c) => c)).ToArray());
+			BoxCollider.size = _boxSize;
+			_circleCollider.radius = _shieldRadius;
+			selectorCollider.size = _selectV3;
+			BoxCollider.enabled = true;
+			_circleCollider.enabled = false;
+			ShieldEffect = CreateEternalShieldEffect("Shield");
+			BlockEffect = CreateEternalShieldEffect("Block", isShield: false);
+			UpdateShieldColliders();
+			chatPoint.localPosition = new Vector3(_chatV2.x, _chatV2.y);
+			hitPoint.localPosition = new Vector3(_hitPointV2.x, _hitPointV2.y);
+			hpBarPoint.localPosition = new Vector3(_hpV2.x, _hpV2.y);
+			_shootStartTimeList = config.ShootStartTime.ToList();
+			_shootPointV2List = config.ShootPoint.ToList();
+			_shooterPointV2List = config.ShooterPoint.ToList();
+			try
+			{
+				Sprite spellPortrait = ((!config.HasSpellPortrait) ? null : (await ResourcesHelper.LoadSpellPortraitAsync(_modelName)));
+				_spellPortrait = spellPortrait;
+			}
+			catch
+			{
+				Debug.LogError("[UnitView] Cannot load spell portrait for " + _modelName);
+			}
+			switch (_type)
+			{
+			case ModelType.SingleSprite:
+			{
+				RuntimeAnimatorController runtimeAnimatorController2 = UnityEngine.Object.Instantiate(simpleUnitAnimatorController);
+				_animator.runtimeAnimatorController = runtimeAnimatorController2;
+				_animatorSpeed = 1f;
+				_animator.speed = TimeScaleController.IdleAnimationSpeed;
+				rendererParent.localPosition += new Vector3(_offset.x, _offset.y);
+				if (_flipModel)
+				{
+					Transform obj3 = this.spriteRenderer.transform;
+					obj3.localScale = obj3.localScale.FlipX();
+				}
+				try
+				{
+					SpriteRenderer spriteRenderer = this.spriteRenderer;
+					spriteRenderer.sprite = await ResourcesHelper.LoadSimpleUnitSpriteAsync(modelName);
+					this.spriteRenderer.gameObject.SetActive(value: true);
+					this.spriteRenderer.enabled = true;
+				}
+				catch (Exception ex)
+				{
+					Debug.LogError("Cannot load sprite unit " + modelName + ", using Koishi\n  Error: " + ex.Message);
+					_offset = UnitModelConfig.FromName("Koishi").Offset;
+					await LoadSpineAsync("Koishi");
+				}
+				break;
+			}
+			case ModelType.Spine:
+				await LoadSpineAsync(modelName);
+				break;
+			case ModelType.Effect:
+			{
+				RuntimeAnimatorController runtimeAnimatorController = UnityEngine.Object.Instantiate(simpleUnitAnimatorController);
+				_animator.runtimeAnimatorController = runtimeAnimatorController;
+				_animatorSpeed = 1f;
+				_animator.speed = TimeScaleController.IdleAnimationSpeed;
+				rendererParent.localPosition += new Vector3(_offset.x, _offset.y);
+				if (_flipModel)
+				{
+					Transform obj2 = this.spriteRenderer.transform;
+					obj2.localScale = obj2.localScale.FlipX();
+				}
+				_effectModel = EffectManager.CreateEffect(config.EffectName, this.spriteRenderer.transform, local: true);
+				this.spriteRenderer.gameObject.SetActive(value: true);
+				this.spriteRenderer.enabled = false;
+				break;
+			}
+			default:
+				throw new ArgumentOutOfRangeException();
+			}
+			if (player)
+			{
+				base.name = ((Unit.Id == _modelName) ? (Unit.Id + "(Player)") : (Unit.Id + "." + _modelName + "(Player)"));
+				IsPlayer = true;
+			}
+			else
+			{
+				base.name = ((Unit.Id == _modelName) ? (Unit.Id + "(Enemy)") : (Unit.Id + "." + _modelName + "(Enemy)"));
+				_statusWidget.BarLength = forceHpLength ?? _hpLength;
+				Flip = true;
+			}
+			_statusWidget.name = "Status: " + base.name;
+			_infoWidget.name = "Info: " + base.name;
+		}
+		else
+		{
+			Debug.LogError("No such unit model name: " + modelName);
+		}
+		infoPoint.localPosition = new Vector3(_infoV2.x, _infoV2.y);
+		_unitModelLoaded = true;
+	}
+
+	private void ClearUnitModel()
+	{
+		if ((bool)ShieldEffect)
+		{
+			UnityEngine.Object.Destroy(ShieldEffect.gameObject);
+		}
+		if ((bool)BlockEffect)
+		{
+			UnityEngine.Object.Destroy(BlockEffect.gameObject);
+		}
+		rendererParent.localPosition = Vector3.zero;
+		spriteRenderer.transform.localScale = Vector3.one;
+		switch (_type)
+		{
+		case ModelType.SingleSprite:
+			if ((bool)_animator.runtimeAnimatorController)
+			{
+				UnityEngine.Object.Destroy(_animator.runtimeAnimatorController);
+				_animator.runtimeAnimatorController = null;
+			}
+			break;
+		case ModelType.Spine:
+			SpineClear();
+			break;
+		case ModelType.Effect:
+			if ((bool)_animator.runtimeAnimatorController)
+			{
+				UnityEngine.Object.Destroy(_animator.runtimeAnimatorController);
+				_animator.runtimeAnimatorController = null;
+			}
+			if ((bool)_effectModel)
+			{
+				UnityEngine.Object.Destroy(_effectModel.gameObject);
+			}
+			break;
+		default:
+			throw new ArgumentOutOfRangeException();
+		}
+	}
+
+	public void SetPlayerHpBarLength(int maxHp)
+	{
+		_statusWidget.SetPlayerHpBarLength(maxHp);
+	}
+
+	private async UniTask LoadSpineAsync(string modelName)
+	{
+		bool flag = false;
+		foreach (SkeletonAnimation prefab in prefabList)
+		{
+			if (!(prefab.name == modelName))
+			{
+				continue;
+			}
+			UnityEngine.Object.Destroy(spineSkeleton.gameObject);
+			spineSkeleton = UnityEngine.Object.Instantiate(prefab, rendererParent);
+			if (modelName == "Kokoro")
+			{
+				_kokoroUnitController = spineSkeleton.GetComponent<KokoroUnitController>();
+				if (!_kokoroUnitController)
+				{
+					throw new InvalidOperationException("Kokoro UnitView has no effect controller.");
+				}
+			}
+			flag = true;
+			break;
+		}
+		if (!flag)
+		{
+			SkeletonDataAsset skeletonDataAsset = await ResourcesHelper.LoadSpineUnitAsync(modelName);
+			spineSkeleton.skeletonDataAsset = skeletonDataAsset;
+			if (_spineNeedReload)
+			{
+				spineSkeleton.Initialize(overwrite: true);
+			}
+		}
+		SpineInitialize();
+		rendererParent.localPosition += new Vector3(_offset.x, _offset.y);
+		if (_flipModel)
+		{
+			Transform obj = spineSkeleton.transform;
+			obj.localScale = obj.localScale.FlipX();
+		}
+	}
+
+	private void SetGunByAnimation(Gun gun)
+	{
+		bool flag = false;
+		string animation;
+		if (gun.Sequence.IsNullOrEmpty())
+		{
+			animation = gun.Animation;
+		}
+		else
+		{
+			SequenceConfig sequenceConfig = SequenceConfig.FromId(gun.Sequence);
+			if (sequenceConfig == null)
+			{
+				throw new InvalidOperationException("Lacking of Sequence: " + gun.Sequence);
+			}
+			animation = sequenceConfig.Animation;
+			gun.StartTime = sequenceConfig.StartTime;
+			flag = true;
+		}
+		int index = animation switch
+		{
+			"shoot2" => 1, 
+			"shoot3" => 2, 
+			"shoot4" => 3, 
+			_ => 0, 
+		};
+		if (!flag)
+		{
+			gun.StartTime = _shootStartTimeList.TryGetValue(index);
+		}
+		gun.ShootV2 = (Flip ? _shootPointV2List.TryGetValue(index).FlipX() : _shootPointV2List.TryGetValue(index));
+		shooterPoint.localPosition = _shooterPointV2List.TryGetValue(index);
+		gun.transform.position = base.transform.position + (Vector3)gun.ShootV2;
+	}
+
+	public void PlayEffectOneShot(string effectName, float delay)
+	{
+		EffectManager.CreateEffect(effectName, effectRoot, delay, null, local: true);
+	}
+
+	public void PlayEffectLoop(string effectName)
+	{
+		if (_effectDictionary.ContainsKey(effectName))
+		{
+			Debug.LogError("There is an other Effect in Dictionary with same effectName, don't support play dupes.");
+			return;
+		}
+		EffectWidget value = EffectManager.CreateEffect(effectName, effectRoot, local: true);
+		_effectDictionary.Add(effectName, value);
+	}
+
+	public bool TryPlayEffectLoop(string effectName)
+	{
+		if (_effectDictionary.ContainsKey(effectName))
+		{
+			return false;
+		}
+		EffectWidget value = EffectManager.CreateEffect(effectName, effectRoot, local: true);
+		_effectDictionary.Add(effectName, value);
+		return true;
+	}
+
+	public void SendEffectMessage(string effectName, string message, object args)
+	{
+		if (!_effectDictionary.TryGetValue(effectName, out var value))
+		{
+			Debug.LogWarning("[UnitView]: Cannot find effect " + effectName + " in effect table of " + base.name);
+		}
+		else
+		{
+			value.SendMessage(message, args, SendMessageOptions.DontRequireReceiver);
+		}
+	}
+
+	public void EndEffectLoop(string effectName, bool instant)
+	{
+		if (_effectDictionary.ContainsKey(effectName))
+		{
+			if (instant)
+			{
+				UnityEngine.Object.Destroy(_effectDictionary[effectName].gameObject);
+			}
+			else
+			{
+				_effectDictionary[effectName].DieOut();
+			}
+			_effectDictionary.Remove(effectName);
+		}
+		else
+		{
+			Debug.LogWarning("There is no such Effect in Dictionary: " + effectName);
+		}
+	}
+
+	public void OnMaxHpChanged()
+	{
+		if ((bool)_statusWidget)
+		{
+			_statusWidget.OnMaxHpChanged();
+		}
+	}
+
+	public void OnDamageReceived(DamageInfo damage)
+	{
+		if ((bool)_statusWidget)
+		{
+			_statusWidget.OnDamageReceived(damage);
+		}
+	}
+
+	public void OnHealingReceived(int amount)
+	{
+		if ((bool)_statusWidget)
+		{
+			_statusWidget.OnHealingReceived(amount);
+		}
+	}
+
+	public void OnForceKill()
+	{
+		if ((bool)_statusWidget)
+		{
+			_statusWidget.OnForceKill();
+		}
+	}
+
+	public void OnAddStatusEffect(StatusEffect se, StatusEffectAddResult addResult)
+	{
+		if ((bool)_statusWidget)
+		{
+			_statusWidget.OnAddStatusEffect(se, addResult);
+		}
+	}
+
+	public void OnRemoveStatusEffect(StatusEffect se)
+	{
+		if ((bool)_statusWidget)
+		{
+			_statusWidget.OnRemoveStatusEffect(se);
+		}
+	}
+
+	public Vector3? FindStatusEffectWorldPosition(StatusEffect se)
+	{
+		if ((bool)_statusWidget)
+		{
+			StatusEffectWidget statusEffectWidget = _statusWidget.FindStatusEffect(se);
+			if ((bool)statusEffectWidget)
+			{
+				return statusEffectWidget.CenterWorldPosition;
+			}
+		}
+		return null;
+	}
+
+	public void ShowSePopup(string content, StatusEffectType seType, int number = 0, UnitInfoWidget.SePopType popType = UnitInfoWidget.SePopType.Add)
+	{
+		if ((bool)_infoWidget)
+		{
+			_infoWidget.ShowSePopup(content, seType, number, popType);
+		}
+	}
+
+	public void OnGlobalStatusChanged()
+	{
+		foreach (DollView doll in Dolls)
+		{
+			doll.OnChanged();
+		}
+	}
+}

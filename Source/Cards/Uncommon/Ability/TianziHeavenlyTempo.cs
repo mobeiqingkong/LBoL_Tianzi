@@ -26,8 +26,10 @@ namespace TianziMod.Cards
             config.Rarity = Rarity.Uncommon;
             config.Type = CardType.Ability;
             config.TargetType = TargetType.Self;
-            config.Value1 = 10;
-            config.UpgradedValue1 = 15;
+            config.Value1 = 1;
+            config.UpgradedValue1 = 2;
+            config.Value2 = 1;
+            config.UpgradedValue2 = 2;
             config.RelativeEffects = new List<string>() { nameof(Firepower) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "";
@@ -40,8 +42,7 @@ namespace TianziMod.Cards
 
 
     /// <summary>
-    /// 天人合一：每回合开始时，手牌张数为奇数则获得 {Value1} 点火力；
-    /// 为偶数则获得 {Value1} ×2 点格挡。
+    /// 奇数回合获得 {Value1} 点火力（升级 2）；偶数回合获得当前火力 2 倍格挡，至多 25。
     /// </summary>
     [EntityLogic(typeof(TianziHeavenlyTempoDef))]
     public sealed class TianziHeavenlyTempo : TianziCard
@@ -49,7 +50,7 @@ namespace TianziMod.Cards
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
-            yield return BuffAction<TianziHeavenlyTempoSe>(base.Value1, 0, 0, 1, 0.2f);
+            yield return BuffAction<TianziHeavenlyTempoSe>(base.Value2, 0, 0, base.Value1, 0.2f);
             yield break;
         }
     }

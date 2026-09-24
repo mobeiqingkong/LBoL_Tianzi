@@ -34,18 +34,7 @@ namespace TianziMod.Cards
             config.Value1 = 1;
             config.Keywords = Keyword.Accuracy;
             config.UpgradedKeywords = Keyword.Accuracy;
-            config.RelativeEffects = new List<string>()
-            {
-                nameof(TianziWeatherForecastSe),
-                nameof(TianziWeatherClear),
-                nameof(TianziWeatherMist),
-                nameof(TianziWeatherCloud),
-                nameof(TianziWeatherAzure),
-                nameof(TianziWeatherHail),
-                nameof(TianziWeatherFog),
-                nameof(TianziWeatherTyphoon),
-                nameof(TianziWeatherCalm),
-            };
+            config.RelativeEffects = TianziWeather.RelativeIds(includeForecast: true);
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

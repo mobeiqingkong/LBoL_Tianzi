@@ -1,0 +1,43 @@
+using System.Collections.Generic;
+using JetBrains.Annotations;
+using LBoL.Base;
+using LBoL.Core;
+using LBoL.Core.Battle;
+using LBoL.Core.Battle.BattleActions;
+using LBoL.Core.StatusEffects;
+using LBoL.Core.Units;
+
+namespace LBoL.EntityLib.UltimateSkills;
+
+[UsedImplicitly]
+public sealed class ReimuUltW : UltimateSkill
+{
+	[UsedImplicitly]
+	public ShieldInfo Shield => new ShieldInfo(base.Value2);
+
+	public ReimuUltW()
+	{
+		base.TargetType = TargetType.AllEnemies;
+		base.GunName = "ReimuSpell2";
+	}
+
+	protected override IEnumerable<BattleAction> Actions(UnitSelector selector)
+	{
+		Unit[] targets = selector.GetUnits(base.Battle);
+		yield return PerformAction.Spell(base.Owner, "八方鬼缚阵");
+		yield return new CastBlockShieldAction(base.Owner, base.Owner, Shield, cast: false);
+		yield return new DamageAction(base.Owner, targets, Damage, base.GunName);
+		if (base.Battle.BattleShouldEnd)
+		{
+			yield break;
+		}
+		Unit[] array = targets;
+		foreach (Unit unit in array)
+		{
+			if (unit.IsAlive)
+			{
+				yield return new ApplyStatusEffectAction<Weak>(unit, null, base.Value1);
+			}
+		}
+	}
+}

@@ -54,7 +54,7 @@ TianziWeatherWatch:
   Name: 天气观测
   Description: |-
     获得 {Block} 点|格挡|。
-    下回合释放一种天气，持续 {Value1} 回合。
+    下回合释放一种|天气|，持续 {Value1} 回合。
 
 TianziHeavenlyShower:
   Name: 天界之洗礼
@@ -337,12 +337,12 @@ TianziPeachBlossom:
 TianziHeavenlyTempo:
   Name: 天人永不落俗
   Description: |-
-    {PlayerName}的回合开始时，奇数回合获得 |e:1| 点|火力|；
-    偶数回合获得当前|火力|的 {Value1} 倍的|格挡|。
+    {PlayerName}的回合开始时，奇数回合获得 {Value1} 点|火力|；
+    偶数回合获得当前|火力|的 {Value2} 倍|格挡|（至多 |e:25| 点）。
   UpgradedDescription: |-
-    {PlayerName}的回合开始时，奇数回合获得 |e:1| 点|火力|；
-    偶数回合获得当前|火力|的 {Value1} 倍的|格挡|。
-    多次打出时，火力获取叠加，格挡倍数取更高者。
+    {PlayerName}的回合开始时，奇数回合获得 {Value1} 点|火力|；
+    偶数回合获得当前|火力|的 {Value2} 倍|格挡|（至多 |e:25| 点）。
+    多次打出时，火力获取叠加。
 
 TianziFinalBlade:
   Name: 终绝的一剑
@@ -371,10 +371,9 @@ TianziUnthinkableBlade:
   Name: 非想「非想非非想之剑」
   Description: |-
     造成 {Damage} 点伤害。
-    下回合随机释放一种天气，持续 {Value1} 回合。
+    下回合随机释放一种|天气|，持续 {Value1} 回合。
     结束{PlayerName}的回合，进行一个额外的回合。
     |时间有限|{Mana}。
-    |精准|
   FlavorText: 那一剑没有名字，因为想不出来的时候，名字也就无所谓了。
 
 TianziPureDawn:
@@ -397,9 +396,8 @@ TianziScarletApocalypse:
   Name: 气符「天启气象之剑」
   Description: |-
     造成 {Damage} 点伤害。
-    下回合随机释放一种天气，持续 {Value1} 回合。
-    若打出{SelfName}时已有天气，造成原来的|e:1.5|倍的伤害。
-    |精准|
+    下回合随机释放一种|天气|，持续 {Value1} 回合。
+    若打出{SelfName}时已有|天气|，造成原来的|e:1.5|倍的伤害。
 
 TianziFinalJudgement:
   Name: 纯粹致死
@@ -530,6 +528,7 @@ TianziEarthStone:
 TianziFeast:
   Name: 庆功宴
   Description: 每当一名敌人被打败，恢复 |e:2| 点生命值，获得{Mana}，抽 |e:1| 张牌。
+
 
 TianziPeachMake:
   Name: 仙桃制成
