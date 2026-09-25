@@ -406,7 +406,7 @@ TianziFinalJudgement:
 TianziHeavenCreation:
   Name: 天界造物
   Description: |-
-    从 {Value1} 张随机的{PlayerName}角色牌中选择一张加入手中。
+    从 {Value1} 张随机的{PlayerName}的罕见牌中选择一张加入手中。
     它费用为 |e:0|，具有|放逐|、|虚无|。
 
 TianziRainbowAura:

@@ -61,9 +61,11 @@ namespace TianziMod.Cards
             {
                 if (cfg == null || !cfg.IsPooled)
                     continue;
+                if (cfg.Rarity != Rarity.Uncommon)
+                    continue;
                 if (cfg.Owner != BepinexPlugin.modUniqueID)
                     continue;
-                if (cfg.Type == CardType.Friend || cfg.Type == CardType.Unknown)
+                if (cfg.Type == CardType.Unknown)
                     continue;
                 pool.Add(cfg);
             }
