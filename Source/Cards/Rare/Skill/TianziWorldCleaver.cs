@@ -72,8 +72,6 @@ namespace TianziMod.Cards
             foreach (Card c in dumped)
                 yield return new DiscardAction(c);
 
-            if (n > 0)
-                yield return new DrawManyCardAction(n);
             // 返还超出可弃数量的费用：不能用 Any（会写入战斗法力池并触发 CanAfford 报错）
             if (x > n)
                 yield return new GainManaAction(new ManaGroup() { Philosophy = x - n });
@@ -81,7 +79,7 @@ namespace TianziMod.Cards
             int attacks = 0;
             int defenses = 0;
             int skills = 0;
-            int junkKinds = 0;
+            List<Card> junkCards = new List<Card>();
             foreach (Card c in dumped)
             {
                 if (c.CardType == CardType.Attack)
@@ -91,7 +89,7 @@ namespace TianziMod.Cards
                 else if (c.CardType == CardType.Skill)
                     skills++;
                 else if (c.CardType == CardType.Ability || c.CardType == CardType.Status || c.CardType == CardType.Misfortune)
-                    junkKinds++;
+                    junkCards.Add(c);
             }
 
             if (attacks > 0)
@@ -100,22 +98,27 @@ namespace TianziMod.Cards
                 yield return BuffAction<Spirit>(defenses, 0, 0, 0, 0.2f);
             if (skills > 0)
                 yield return new GainManaAction(new ManaGroup() { Philosophy = 2 * skills });
-            if (junkKinds > 0)
+            foreach (Card c in junkCards)
             {
-                List<Card> junk = new List<Card>();
-                foreach (Card c in base.Battle.HandZone)
+                if (c.Zone != CardZone.Exile)
+                    yield return new ExileCardAction(c);
+
+                List<Card> pool = new List<Card>();
+                foreach (Card d in base.Battle.DiscardZone)
                 {
-                    if (c.CardType == CardType.Status || c.CardType == CardType.Misfortune)
-                        junk.Add(c);
+                    if (d != null && d != c
+                        && (d.CardType == CardType.Status || d.CardType == CardType.Misfortune))
+                        pool.Add(d);
                 }
-                foreach (Card c in base.Battle.DiscardZone)
+                if (pool.Count > 0)
                 {
-                    if (c.CardType == CardType.Status || c.CardType == CardType.Misfortune)
-                        junk.Add(c);
+                    Card extra = pool[base.GameRun.BattleRng.NextInt(0, pool.Count - 1)];
+                    yield return new ExileCardAction(extra);
                 }
-                if (junk.Count > 0)
-                    yield return new ExileManyCardAction(junk);
             }
+
+            if (n > 0)
+                yield return new DrawManyCardAction(n);
         }
     }
 }
