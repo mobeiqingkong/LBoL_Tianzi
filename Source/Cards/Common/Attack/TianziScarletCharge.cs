@@ -16,21 +16,17 @@ namespace TianziMod.Cards
         public override CardConfig MakeConfig()
         {
             CardConfig config = GetDefaultCardConfig();
-            config.GunName = GunNameID.GetGunFromId(4121);
-            config.GunNameBurst = GunNameID.GetGunFromId(4121);
-
             config.Colors = new List<ManaColor>() { ManaColor.Red };
             config.Cost = new ManaGroup() { Red = 1 };
             config.UpgradedCost = new ManaGroup() { Any = 1 };
             config.Rarity = Rarity.Common;
 
-            config.Type = CardType.Attack;
-            config.TargetType = TargetType.SingleEnemy;
-
-            config.Damage = 4;
-            config.UpgradedDamage = 6;
-            config.Value1 = 3;
-            config.UpgradedValue1 = 4;
+            config.Type = CardType.Skill;
+            config.TargetType = TargetType.Self;
+            
+            config.Value1 = 4;
+            config.UpgradedValue1 = 5;
+            config.Value2 = 1;
 
             config.RelativeEffects = new List<string>() { nameof(TianziScarletChargeSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
@@ -49,7 +45,7 @@ namespace TianziMod.Cards
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
-            yield return base.AttackAction(selector);
+            yield return new DrawManyCardAction(base.Value2);
             yield return BuffAction<TianziScarletChargeSe>(base.Value1, 0, 0, 0, 0.2f);
         }
     }

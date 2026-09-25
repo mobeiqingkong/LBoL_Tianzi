@@ -80,7 +80,7 @@ TianziScarletFlash:
 TianziScarletCharge:
   Name: 绯想之剑充能
   Description: |-
-    造成 {Damage} 点伤害。
+    抽 {Value2} 张牌。
     下一张攻击牌的伤害增加 {Value1} 点。
 
 TianziSkyCleave:

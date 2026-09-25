@@ -29,8 +29,6 @@ namespace TianziMod.StatusEffects
     public sealed class TianziScarletChargeSe : StatusEffect
     {
         private bool _armed;
-        /// <summary>挂上时这张充能牌还在结算，它自己的伤害和 CardUsed 不能把状态清掉。</summary>
-        private bool _ignoreThisPlay = true;
 
         protected override void OnAdded(Unit unit)
         {
@@ -48,7 +46,7 @@ namespace TianziMod.StatusEffects
 
         private void OnPlayerDamageDealing(DamageDealingEventArgs args)
         {
-            if (this._ignoreThisPlay || base.Level <= 0 || args.DamageInfo.DamageType != DamageType.Attack)
+            if (base.Level <= 0 || args.DamageInfo.DamageType != DamageType.Attack)
                 return;
             base.NotifyActivating();
             this._armed = true;
@@ -58,11 +56,6 @@ namespace TianziMod.StatusEffects
 
         private IEnumerable<BattleAction> OnCardUsed(CardUsingEventArgs args)
         {
-            if (this._ignoreThisPlay)
-            {
-                this._ignoreThisPlay = false;
-                yield break;
-            }
             if (this._armed && args.Card != null && args.Card.CardType == CardType.Attack)
                 yield return new RemoveStatusEffectAction(this, true, 0.1f);
         }

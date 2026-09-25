@@ -251,4 +251,4 @@ TianziBossKarmaInfluenceSe:
   Name: 因果影响
   Description: |-
     主角每打出 {Level} 张牌时（进度 {Count}/{Level}）：
-    打出前手牌数为奇数：随机失去 |e:1| 点费用；打出前手牌数为偶数：随机弃 |e:1| 张牌。
+    这张牌从左数第奇数张：随机失去 |e:1| 点费用；第偶数张：随机弃 |e:1| 张牌。

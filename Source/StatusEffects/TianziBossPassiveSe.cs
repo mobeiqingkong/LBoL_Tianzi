@@ -128,20 +128,20 @@ namespace TianziMod.StatusEffects
     }
 
     /// <summary>
-    /// 因果影响：打出第 Level 张牌时按「打出前手牌数」奇偶惩罚。
+    /// 因果影响：打出第 Level 张牌时，按这张牌在手牌中从左数的位置（从 1 开始）奇偶惩罚。
     /// Count 为已打出张数；Count == Level-1 时 Highlight 发光表示即将触发。
     /// </summary>
     [EntityLogic(typeof(TianziBossKarmaInfluenceSeDef))]
     public sealed class TianziBossKarmaInfluenceSe : StatusEffect
     {
-        /// <summary>CardUsing 时快照的打出前手牌数（含正打出的那张）。</summary>
-        private int _handBeforePlay = -1;
+        /// <summary>CardUsing 时这张牌还在手里，记下从左数、从 1 开始的位置。</summary>
+        private int _playIndex = -1;
 
         protected override void OnAdded(Unit unit)
         {
             base.Count = 0;
             base.Highlight = false;
-            this._handBeforePlay = -1;
+            this._playIndex = -1;
             base.HandleOwnerEvent(
                 base.Battle.CardUsing,
                 new GameEventHandler<CardUsingEventArgs>(this.OnCardUsing));
@@ -152,13 +152,19 @@ namespace TianziMod.StatusEffects
 
         private void OnCardUsing(CardUsingEventArgs args)
         {
+            this._playIndex = -1;
             if (args.Card == null || args.Card.CardType == CardType.Status)
-            {
-                this._handBeforePlay = -1;
                 return;
+
+            IReadOnlyList<Card> hand = base.Battle.HandZone;
+            for (int i = 0; i < hand.Count; i++)
+            {
+                if (hand[i] == args.Card)
+                {
+                    this._playIndex = i + 1;
+                    return;
+                }
             }
-            // 此时牌还在手里：手牌数 = 打出前张数
-            this._handBeforePlay = base.Battle.HandZone.Count;
         }
 
         private IEnumerable<BattleAction> OnCardUsed(CardUsingEventArgs args)
@@ -166,10 +172,8 @@ namespace TianziMod.StatusEffects
             if (args.Card == null || args.Card.CardType == CardType.Status)
                 yield break;
 
-            int handBefore = this._handBeforePlay;
-            this._handBeforePlay = -1;
-            if (handBefore < 0)
-                handBefore = base.Battle.HandZone.Count + 1;
+            int playIndex = this._playIndex;
+            this._playIndex = -1;
 
             base.Count++;
             int threshold = Math.Max(base.Level, 1);
@@ -190,8 +194,11 @@ namespace TianziMod.StatusEffects
             base.Count = 0;
             base.NotifyActivating();
 
-            bool oddHand = handBefore % 2 == 1;
-            if (oddHand)
+            if (playIndex <= 0)
+                yield break;
+
+            bool oddIndex = playIndex % 2 == 1;
+            if (oddIndex)
             {
                 foreach (BattleAction action in this.LoseRandomMana())
                     yield return action;
