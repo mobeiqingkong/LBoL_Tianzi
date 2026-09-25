@@ -10,6 +10,7 @@ using LBoL.EntityLib.StatusEffects.Enemy;
 using LBoLEntitySideloader.Attributes;
 using TianziMod.Cards;
 using TianziMod.StatusEffects;
+using UnityEngine;
 
 namespace TianziMod.Enemies
 {
@@ -80,9 +81,12 @@ namespace TianziMod.Enemies
                     bonusEnergy = 1;
                     break;
             }
+            Debug.Log("当前难度是："+base.Difficulty);
+            Debug.Log("当前heal是："+heal);
+            Debug.Log("当前bonusEnergy是："+bonusEnergy);
             // Level=回复；Count=额外 P
             yield return new ApplyStatusEffectAction<TianziBossPeachSe>(
-                this, heal, null, null, bonusEnergy, 0f);
+                this, heal, null, bonusEnergy, bonusEnergy, 0f);
             yield return new ApplyStatusEffectAction<TianziBossHeavenQiSe>(this, null, null, null, null, 0f);
             int threshold = TianziChapterBossPassive.KarmaThreshold(base.Difficulty);
             yield return new ApplyStatusEffectAction<TianziBossKarmaInfluenceSe>(
