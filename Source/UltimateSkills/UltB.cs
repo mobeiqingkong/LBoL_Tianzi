@@ -17,8 +17,8 @@ namespace TianziMod.TianziUlt
         {
             UltimateSkillConfig config = GetDefaultUltConfig();
             // 设计稿：p点最大 200，每次使用消耗 100 → 2 × 100 = 200。
-            config.PowerCost = 100;
-            config.PowerPerLevel = 100;
+            config.PowerCost = 115;
+            config.PowerPerLevel = 115;
             config.MaxPowerLevel = 2;
             config.Damage = 45;
             config.Value1 = 10; // 每场战斗首次额外伤害（合并进同一段）

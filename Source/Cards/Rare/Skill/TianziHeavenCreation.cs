@@ -47,13 +47,39 @@ namespace TianziMod.Cards
 
 
     /// <summary>
-    /// 天界造物：从弃牌堆中选择一张牌，将它的 {Value1} 份复制置入手中。
-    /// 若弃牌堆为空，则抽 {Value2} 张牌。
+    /// 天界造物：从随机罕见牌中选一张加入手中。选牌栏不可取消。
     /// </summary>
     [EntityLogic(typeof(TianziHeavenCreationDef))]
     public sealed class TianziHeavenCreation : TianziCard
     {
-        public override Interaction Precondition()
+        protected override IEnumerable<BattleAction> Actions(
+            UnitSelector selector,
+            ManaGroup consumingMana,
+            Interaction precondition
+        )
+        {
+            List<Card> options = this.RollOptions();
+            if (options.Count == 0)
+                yield break;
+
+            // 出牌前置选牌会被 UseCardAction 强制成可取消，所以改到这里打开，并关掉取消。
+            SelectCardInteraction interaction = new SelectCardInteraction(1, 1, options)
+            {
+                Source = this,
+                CanCancel = false
+            };
+            yield return new InteractionAction(interaction, false);
+            if (interaction.IsCanceled || interaction.SelectedCards == null || interaction.SelectedCards.Count == 0)
+                yield break;
+
+            Card pick = interaction.SelectedCards[0];
+            pick.SetTurnCost(ManaGroup.Empty);
+            pick.IsExile = true;
+            pick.IsEthereal = true;
+            yield return new AddCardsToHandAction(new Card[] { pick }, AddCardsType.Normal, false);
+        }
+
+        private List<Card> RollOptions()
         {
             List<Card> options = new List<Card>();
             List<CardConfig> pool = new List<CardConfig>();
@@ -82,23 +108,7 @@ namespace TianziMod.Cards
                 options.Add(made);
                 pool.RemoveAt(idx);
             }
-            return new SelectCardInteraction(1, 1, options);
-        }
-
-        protected override IEnumerable<BattleAction> Actions(
-            UnitSelector selector,
-            ManaGroup consumingMana,
-            Interaction precondition
-        )
-        {
-            SelectCardInteraction interaction = precondition as SelectCardInteraction;
-            if (interaction == null || interaction.SelectedCards.Count == 0)
-                yield break;
-            Card pick = interaction.SelectedCards[0];
-            pick.SetTurnCost(ManaGroup.Empty);
-            pick.IsExile = true;
-            pick.IsEthereal = true;
-            yield return new AddCardsToHandAction(new Card[] { pick }, AddCardsType.Normal, false);
+            return options;
         }
     }
 }

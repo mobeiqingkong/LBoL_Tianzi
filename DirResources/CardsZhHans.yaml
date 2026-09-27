@@ -355,15 +355,15 @@ TianziHardshipFirst:
   Description: |-
     造成 {Damage} 点伤害。
     手牌张数为奇数时，打出后将{SelfName}置于抽牌堆顶。
-    手牌张数为偶数时，保留所有手牌一回合。
+    手牌张数为偶数时，本回合结束前保留所有手牌。
   ExtraDescription1: |-
     造成 {Damage} 点伤害。
     手牌张数为奇数时，打出后将{SelfName}置于抽牌堆顶。
-    |d:手牌张数为偶数时，保留所有手牌一回合。|
+    |d:手牌张数为偶数时，本回合结束前保留所有手牌。|
   ExtraDescription2: |-
     造成 {Damage} 点伤害。
     |d:手牌张数为奇数时，打出后将{SelfName}置于抽牌堆顶。|
-    手牌张数为偶数时，保留所有手牌一回合。
+    手牌张数为偶数时，本回合结束前保留所有手牌。
   FlavorText: 先天下之忧而忧，后天下之乐而乐——这道理她背得滚瓜烂熟。
 
 TianziUnthinkableBlade:
@@ -451,7 +451,7 @@ TianziPeachEternity:
   Description: |-
     {PlayerName}|绝壁|上限提高 {Value1}。
     {PlayerName}每回合开始时，获得 {Value2} 点|绝壁|。
-FlavorText: 上面写着，保质期：永久。
+  FlavorText: 上面写着，保质期：永久。
 
 TianziParityOddChoice:
   Name: 奇数
@@ -498,7 +498,7 @@ TianziShrugIgnore:
   Name: 耸肩无视
   Description: |-
     获得 {Block} 点|格挡|。
-    {PlayerName}在自己的回合内受到伤害时，获得 |e:1| 点|格挡|。此效果不可叠加。
+    本回合内，{PlayerName}受到伤害时获得 |e:1| 点|格挡|。此效果不可叠加，回合结束时消失。
 
 TianziBlueMeditation:
   Name: 冥想

@@ -204,8 +204,15 @@ TianziDoubleAttackSe:
 
 TianziShrugSe:
   Name: 耸肩
-  Description: "{OwnerName}在自己的回合内受到伤害时，获得 {Level} 点|格挡|。"
-  Brief: 回合内受伤获得|格挡|。
+  Description: |-
+    {OwnerName}在自己的回合内受到伤害时，获得 {Level} 点|格挡|。
+    {OwnerName}的回合结束时，移除此效果。
+  Brief: 本回合受伤获得|格挡|，回合结束时消失。
+
+TianziHardshipRetainSe:
+  Name: 后乐
+  Description: 本回合结束前，保留所有手牌。
+  Brief: 回合结束前保留手牌。
 
 TianziProbeSe:
   Name: 气质探查

@@ -37,7 +37,7 @@ namespace TianziMod.Cards
 
             config.Damage = 12;
             config.UpgradedDamage = 14;
-            config.RelativeEffects = new List<string>() { nameof(TianziParityKwSe) };
+            config.RelativeEffects = new List<string>() { nameof(TianziParityKwSe), nameof(TianziHardshipRetainSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
 
             config.Illustrator = "";
@@ -50,7 +50,7 @@ namespace TianziMod.Cards
     /// <summary>
     /// 先忧后乐之剑：造成 {Damage} 点伤害。
     /// 手牌张数为奇数时，打出后置于抽牌堆顶；
-    /// 为偶数时，保留所有手牌一回合。
+    /// 为偶数时，本回合结束前再让当时的手牌暂留。
     /// </summary>
     [EntityLogic(typeof(TianziHardshipFirstDef))]
     public sealed class TianziHardshipFirst : TianziCard
@@ -75,13 +75,8 @@ namespace TianziMod.Cards
 
         private IEnumerable<BattleAction> EvenBranch()
         {
-            foreach (Card c in new List<Card>(base.Battle.HandZone))
-            {
-                if (c == null)
-                    continue;
-                c.IsTempRetain = true;
-            }
-            yield break;
+            // 先挂标记，等本回合 TurnEnding（弃牌之前）再给当时的手牌上暂留。
+            yield return BuffAction<TianziHardshipRetainSe>(0, 0, 0, 0, 0.1f);
         }
     }
 }

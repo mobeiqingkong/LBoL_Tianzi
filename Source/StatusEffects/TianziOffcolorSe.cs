@@ -34,6 +34,9 @@ namespace TianziMod.StatusEffects
             base.ReactOwnerEvent<DamageEventArgs>(
                 base.Battle.Player.DamageReceived,
                 new EventSequencedReactor<DamageEventArgs>(this.OnDmg));
+            base.ReactOwnerEvent<UnitEventArgs>(
+                base.Battle.Player.TurnEnded,
+                new EventSequencedReactor<UnitEventArgs>(this.OnTurnEnded));
         }
 
         private IEnumerable<BattleAction> OnDmg(DamageEventArgs args)
@@ -45,6 +48,13 @@ namespace TianziMod.StatusEffects
             base.NotifyActivating();
             yield return new CastBlockShieldAction(
                 base.Battle.Player, base.Battle.Player, base.Level, 0, BlockShieldType.Direct, false);
+        }
+
+        private IEnumerable<BattleAction> OnTurnEnded(UnitEventArgs args)
+        {
+            if (base.Battle.BattleShouldEnd)
+                yield break;
+            yield return new RemoveStatusEffectAction(this, true, 0.05f);
         }
     }
 
@@ -345,6 +355,49 @@ namespace TianziMod.StatusEffects
                     TianziMod.GunName.GunNameID.GetGunFromId(4540),
                     GunType.Single);
             }
+        }
+    }
+
+    public sealed class TianziHardshipRetainSeDef : TianziStatusEffectTemplate
+    {
+        public override StatusEffectConfig MakeConfig()
+        {
+            StatusEffectConfig config = GetDefaultStatusEffectConfig();
+            config.Type = StatusEffectType.Positive;
+            config.HasLevel = false;
+            config.IsStackable = true;
+            return config;
+        }
+    }
+
+    /// <summary>
+    /// 先忧后乐之剑的偶数分支：打出时只挂标记，
+    /// 本回合 TurnEnding（弃牌之前）再给当时的手牌上暂留，然后移除自身。
+    /// </summary>
+    [EntityLogic(typeof(TianziHardshipRetainSeDef))]
+    public sealed class TianziHardshipRetainSe : StatusEffect
+    {
+        protected override void OnAdded(Unit unit)
+        {
+            base.ReactOwnerEvent<UnitEventArgs>(
+                base.Battle.Player.TurnEnding,
+                new EventSequencedReactor<UnitEventArgs>(this.OnTurnEnding),
+                GameEventPriority.Lowest);
+        }
+
+        private IEnumerable<BattleAction> OnTurnEnding(UnitEventArgs args)
+        {
+            if (!base.Battle.BattleShouldEnd)
+            {
+                base.NotifyActivating();
+                foreach (Card card in new List<Card>(base.Battle.HandZone))
+                {
+                    if (card == null || card.IsRetain || card.Summoned)
+                        continue;
+                    card.IsTempRetain = true;
+                }
+            }
+            yield return new RemoveStatusEffectAction(this, true, 0.05f);
         }
     }
 }
