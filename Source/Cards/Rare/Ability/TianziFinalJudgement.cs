@@ -26,16 +26,15 @@ namespace TianziMod.Cards
             CardConfig config = GetDefaultCardConfig();
             config.GunName = GunNameID.GetGunFromId(4540);
             config.GunNameBurst = GunNameID.GetGunFromId(4540);
-
-            config.Colors = new List<ManaColor>() { ManaColor.Colorless };
-            config.Cost = new ManaGroup() { Any = 3, Colorless = 1 };
-            config.UpgradedCost = new ManaGroup() { Any = 2, Colorless = 1 };
+            config.Colors = new List<ManaColor>() { ManaColor.White, ManaColor.Green, ManaColor.Red };
+            config.Cost = new ManaGroup() { Any = 1, White = 1, Green = 1, Red = 1};
+            config.UpgradedCost = new ManaGroup() { White = 1, Green = 1, Red = 1 };
             config.Rarity = Rarity.Rare;
 
             config.Type = CardType.Ability;
             config.TargetType = TargetType.Self;
-            config.Mana = new ManaGroup() { Colorless = 1 };
-            config.UpgradedMana = new ManaGroup() { Colorless = 1 };
+            config.Mana = new ManaGroup() { Philosophy = 1 };
+            config.UpgradedMana = new ManaGroup() { Philosophy = 1 };
 
             config.Illustrator = "核燃黑猫";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
