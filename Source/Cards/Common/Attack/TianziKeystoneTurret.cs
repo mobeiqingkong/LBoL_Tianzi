@@ -32,7 +32,7 @@ namespace TianziMod.Cards
             config.Value1 = 3; // 攻击段数
 
             // 精准 = 无视闪避
-            config.Keywords = Keyword.Accuracy;
+            config.Keywords = Keyword.None;
             config.UpgradedKeywords = Keyword.Accuracy;
 
             config.Illustrator = "";

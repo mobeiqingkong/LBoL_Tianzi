@@ -61,7 +61,7 @@ namespace TianziMod.Cards
 
         private IEnumerable<BattleAction> EvenBranch()
         {
-            yield return new DrawManyCardAction(1);
+            yield return new DrawManyCardAction(3);
         }
     }
 }

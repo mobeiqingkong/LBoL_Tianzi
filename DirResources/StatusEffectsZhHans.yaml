@@ -106,7 +106,7 @@ TianziParityKwSe:
 
 TianziKarmaKwSe:
   Name: 因果
-  Description: 根据卡牌种类（攻击 / 防御 / 技能 / 能力 / 诅咒与状态）触发不同效果。
+  Description: 根据卡牌种类（攻击 / 防御 / 技能 / 能力 / 厄运与状态）触发不同效果。
   Brief: 按卡牌种类触发效果。
 
 TianziKarmaSe:
@@ -140,9 +140,9 @@ TianziEnduranceSe:
 TianziPureWishSe:
   Name: 清霖之愿
   Description: |-
-    {OwnerName}每回合前 {Level} 次（剩余 {Count} 次）抽到诅咒或状态牌时，
+    {OwnerName}每回合前 {Level} 次（剩余 {Count} 次）抽到厄运或状态牌时，
     将其放逐并抽 |e:1| 张牌；|庇护|触发时此效果也会生效。
-  Brief: "每回合前 {Level} 次（剩 {Count}）放逐诅咒/状态并补抽。"
+  Brief: "每回合前 {Level} 次（剩 {Count}）放逐厄运/状态并补抽。"
 
 TianziHeavenShieldSe:
   Name: 天界之庇护
@@ -181,8 +181,8 @@ TianziPeachEternitySe:
 TianziScarletChargeSe:
   Name: 绯充
   Description: |-
-    本回合下一张攻击牌的每段伤害增加 {Level}。
-  Brief: "下一张攻击牌每段伤害增加 {Level}。"
+    本回合下一张攻击牌的每次伤害增加 {Level}。
+  Brief: "下一张攻击牌每次伤害增加 {Level}。"
 
 TianziPeachReserveSe:
   Name: 桃储
@@ -235,7 +235,7 @@ TianziGraceSe:
   Brief: 回合开始|格挡|转为|绝壁|。
 
 TianziLethalSe:
-  Name: 纯粹致死
+  Name: 极彩辐光
   Description: "{OwnerName}在回合内获得{Mana}时，对所有敌人造成其最大生命值 |e:1|% 的伤害。"
   Brief: 获得无色法力时百分比伤害。
 

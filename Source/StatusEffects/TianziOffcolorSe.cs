@@ -316,7 +316,7 @@ namespace TianziMod.StatusEffects
     {
         public ManaGroup Mana
         {
-            get { return new ManaGroup() { Colorless = 1 }; }
+            get { return new ManaGroup() { Philosophy = 1 }; }
         }
 
         protected override void OnAdded(Unit unit)
@@ -330,7 +330,7 @@ namespace TianziMod.StatusEffects
         {
             if (base.Battle.BattleShouldEnd || !base.Battle.Player.IsInTurn)
                 yield break;
-            if (args.Value.Colorless <= 0)
+            if (args.Value.Philosophy <= 0)
                 yield break;
             base.NotifyActivating();
             foreach (EnemyUnit enemy in base.Battle.AllAliveEnemies)

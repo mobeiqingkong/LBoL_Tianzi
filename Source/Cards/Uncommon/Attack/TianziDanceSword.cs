@@ -24,7 +24,7 @@ namespace TianziMod.Cards
             config.GunNameBurst = GunNameID.GetGunFromId(7301);
             config.Colors = new List<ManaColor>() { ManaColor.White };
             config.Cost = ManaGroup.Empty;
-            config.Rarity = Rarity.Uncommon;
+            config.Rarity = Rarity.Common;
             config.Type = CardType.Attack;
             config.TargetType = TargetType.SingleEnemy;
             config.Damage = 6;

@@ -81,7 +81,7 @@ TianziScarletCharge:
   Name: 绯想之剑充能
   Description: |-
     抽 {Value2} 张牌。
-    下一张攻击牌的伤害增加 {Value1} 点。
+    下一张攻击牌的每次伤害增加 {Value1} 点。
 
 TianziSkyCleave:
   Name: 天穹斩
@@ -201,7 +201,7 @@ TianziScarletExecution:
   Description: |-
     造成 {Damage} 点伤害。
     手牌张数为奇数时，本回合下一张攻击牌造成原来的|e:2|倍的伤害。
-    手牌张数为偶数时，抽 |e:1| 张牌。
+    手牌张数为偶数时，抽 |e:3| 张牌。
   ExtraDescription1: |-
     造成 {Damage} 点伤害。
     手牌张数为奇数时，本回合下一张攻击牌造成原来的|e:2|倍的伤害。
@@ -310,7 +310,7 @@ TianziPeachGarden:
 
 TianziPureWish:
   Name: 清霖之愿
-  Description: 每回合前 {Value1} 次抽到诅咒或状态牌时，将其|放逐|并抽 |e:1| 张牌；|庇护|触发时此效果也会生效。
+  Description: 每回合前 {Value1} 次抽到厄运或状态牌时，将其|放逐|并抽 |e:1| 张牌；|庇护|触发时此效果也会生效。
 
 TianziHeavenShield:
   Name: 天界之庇护
@@ -349,7 +349,6 @@ TianziFinalBlade:
   Description: |-
     造成 {Damage} 点伤害。
     该敌人每失去 |e:4|% 生命值，{SelfName}的伤害就额外提高该敌人最大生命值 {Value1}% 的伤害。
-  FlavorText: 她把剑举过头顶的那一刻，天上的云停住了。
 
 TianziHardshipFirst:
   Name: 先忧后乐之剑
@@ -400,7 +399,7 @@ TianziScarletApocalypse:
     若打出{SelfName}时已有|天气|，造成原来的|e:1.5|倍的伤害。
 
 TianziFinalJudgement:
-  Name: 纯粹致死
+  Name: 极彩辐光
   Description: "{PlayerName}在自己的回合内获得{Mana}时，对所有敌人造成其最大生命值 |e:1|% 的伤害。"
 
 TianziHeavenCreation:
@@ -452,6 +451,7 @@ TianziPeachEternity:
   Description: |-
     {PlayerName}|绝壁|上限提高 {Value1}。
     {PlayerName}每回合开始时，获得 {Value2} 点|绝壁|。
+FlavorText: 上面写着，保质期：永久。
 
 TianziParityOddChoice:
   Name: 奇数
@@ -486,8 +486,8 @@ TianziKarmaAbilityChoice:
   Description: 触发能力|因果|。
 
 TianziKarmaCurseChoice:
-  Name: 诅咒
-  Description: 触发诅咒或状态|因果|。
+  Name: 厄运
+  Description: 触发厄运或状态|因果|。
 
 TianziIkuFriend:
   Name: 龙宫使者衣玖
@@ -557,3 +557,4 @@ TianziKarmaShackle:
   Description: |-
     打出与此牌相邻的一张手牌时，另一侧相邻牌获得|禁止|；本回合结束时移除因此添加的|禁止|。
   PreventUsageMessage: 因果枷锁限制了相邻牌。
+FlavorText: 凭空而生的枷锁本质也是“因果”带来的必然，就如同远古时代最强大的狩猎者也必将化作化石一般，早已注定……

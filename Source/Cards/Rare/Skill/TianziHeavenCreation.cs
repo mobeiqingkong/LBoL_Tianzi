@@ -82,8 +82,6 @@ namespace TianziMod.Cards
                 options.Add(made);
                 pool.RemoveAt(idx);
             }
-            if (options.Count == 0)
-                return null;
             return new SelectCardInteraction(1, 1, options);
         }
 

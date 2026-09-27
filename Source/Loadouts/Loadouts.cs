@@ -54,7 +54,7 @@ namespace TianziMod
             ModleName: "",
             NarrativeColor: "#d7567b",
             IsSelectable: true,
-            MaxHp: 75,
+            MaxHp: 70,
             InitialMana: new ManaGroup()
             {
                 White = 2,
