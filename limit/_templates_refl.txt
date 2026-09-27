@@ -1,9 +1,0 @@
-﻿CSC : error CS2012: 鏃犳硶鎵撳紑鈥淒:\riderProject\Hinanawi-Tenshi\limit\_dumpone\obj\Debug\net9.0\dump.dll鈥濅互杩涜鍐欏叆 - The process cannot access the file 'D:\riderProject\Hinanawi-Tenshi\limit\_dumpone\obj\Debug\net9.0\dump.dll' because it is being used by another process. [D:\riderProject\Hinanawi-Tenshi\limit\_dumpone\dump.csproj]
-dotnet.exe : 
-所在位置 C:\Users\taole\AppData\Local\Temp\ps-script-fb6338a7-7fe9-4aa8-a00a-b8d16f8c77a9.ps1:110 字符: 1
-+ & "C:\Users\taole\.dotnet\dotnet.exe" run --project $proj --no-restor ...
-+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-鐢熸垚澶辫触銆傝淇鐢熸垚閿欒骞堕噸鏂拌繍琛屻€?

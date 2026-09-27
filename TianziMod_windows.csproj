@@ -5,12 +5,13 @@
     <PublicizerClearCacheOnClean>true</PublicizerClearCacheOnClean>
     <PublicizerLogFilePath>.\Krafs.publicizer.log</PublicizerLogFilePath>
     <PublicizerRuntimeStrategies>IgnoresAccessChecksTo</PublicizerRuntimeStrategies>
+    <!-- limit/ 是反编译资料和查询脚本，不参与 Mod 编译。 -->
     <DefaultItemExcludes>$(DefaultItemExcludes);limit\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <PropertyGroup>
     <!-- Change this path !!!-->
-    <GameFolder>D:\software\steam\steamapps\common\LBoL</GameFolder>
+    <GameFolder>D:\Program FIles\Steam\steamapps\common\LBoL</GameFolder>
     <BepInExFolder>$(GameFolder)\BepInEx</BepInExFolder>
     <RootNamespace>$(MSBuildProjectName.Replace(" ", "_").Replace("-", ""))</RootNamespace>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
@@ -358,6 +359,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- 双保险：即使有人把 limit 里的 .cs 拖进工程，也不要编进 DLL。 -->
     <Compile Remove="limit\**" />
     <EmbeddedResource Remove="limit\**" />
     <None Remove="limit\**" />
@@ -366,7 +368,6 @@
 
   <ItemGroup>
     <Folder Include="DirResources\" />
-    <Folder Include="limit\" />
     <Folder Include="Resources\" />
   </ItemGroup>
 

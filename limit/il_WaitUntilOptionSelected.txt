@@ -1,8 +1,0 @@
-IL_0000: ldarg.0
-IL_0001: ldc.i4.0
-IL_0002: stfld Boolean _selected
-IL_0007: ldarg.0
-IL_0008: ldftn Boolean <WaitUntilOptionSelected>b__20_0()
-IL_000E: newobj Void .ctor(System.Object, IntPtr)
-IL_0013: newobj Void .ctor(System.Func`1[System.Boolean])
-IL_0018: ret

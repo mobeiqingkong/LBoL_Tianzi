@@ -1,1 +1,0 @@
-﻿LBoL.Presentation.UI.Widgets.HealthBar

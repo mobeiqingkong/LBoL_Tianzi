@@ -1,9 +1,0 @@
-﻿LBoLEntitySideloader.CustomKeywords.KwDescPos
-LBoLEntitySideloader.CustomKeywords.CloningMethod
-LBoLEntitySideloader.CustomKeywords.CardKeyword
-LBoLEntitySideloader.CustomKeywords.Clone_Patch
-LBoLEntitySideloader.CustomKeywords.KeywordManager
-LBoLEntitySideloader.CustomKeywords.IOnTooltipDisplay
-LBoLEntitySideloader.CustomKeywords.IOverrideSEBrief
-LBoLEntitySideloader.CustomKeywords.IExtendedKeywordName
-LBoLEntitySideloader.CustomKeywords.IExtendedCardClone

@@ -1,8 +1,0 @@
-IL_0000: ldarg.0
-IL_0001: ldfld LBoL.Core.Stations.GapStation _gapStation
-IL_0006: ldarg.1
-IL_0007: castclass LBoL.Core.GapOptions.DrinkTea
-IL_000C: callvirt Void DrinkTea(LBoL.Core.GapOptions.DrinkTea)
-IL_0011: ldarg.0
-IL_0012: call Void SelectedAndHide()
-IL_0017: ret
