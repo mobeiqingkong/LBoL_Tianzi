@@ -30,7 +30,7 @@ namespace TianziMod.Cards
             config.UpgradedValue1 = 2;
             config.RelativeKeyword = Keyword.Block;
             config.UpgradedRelativeKeyword = Keyword.Block;
-            config.Illustrator = "";
+            config.Illustrator = "Tilt_sick";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

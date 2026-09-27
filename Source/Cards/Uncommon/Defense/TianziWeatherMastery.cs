@@ -39,7 +39,7 @@ namespace TianziMod.Cards
             config.RelativeEffects = new List<string>();
             config.UpgradedRelativeEffects = config.RelativeEffects;
 
-            config.Illustrator = "";
+            config.Illustrator = "紅月夜";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

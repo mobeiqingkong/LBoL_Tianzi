@@ -32,7 +32,7 @@ namespace TianziMod.Cards
             config.UpgradedValue2 = 2;
             config.RelativeEffects = new List<string>() { nameof(Firepower) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "きさらぎこうし";
             config.RelativeKeyword = Keyword.Block;
             config.UpgradedRelativeKeyword = Keyword.Block;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

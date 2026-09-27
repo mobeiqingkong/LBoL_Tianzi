@@ -34,7 +34,7 @@ namespace TianziMod.Cards
             config.Keywords = Keyword.Exile | Keyword.Echo;
             config.UpgradedKeywords = Keyword.Exile | Keyword.Echo;
 
-            config.Illustrator = "";
+            config.Illustrator = "亜音";
             config.RelativeKeyword = Keyword.Exile;
             config.UpgradedRelativeKeyword = Keyword.Exile;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

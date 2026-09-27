@@ -44,7 +44,7 @@ namespace TianziMod.Cards
             };
             config.UpgradedRelativeEffects = config.RelativeEffects;
 
-            config.Illustrator = "";
+            config.Illustrator = "fasnakegod";
             config.RelativeKeyword = Keyword.Exile;
             config.UpgradedRelativeKeyword = Keyword.Exile;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

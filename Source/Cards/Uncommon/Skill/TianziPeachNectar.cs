@@ -35,7 +35,7 @@ namespace TianziMod.Cards
             config.Keywords = Keyword.Exile | Keyword.Replenish;
             config.UpgradedKeywords = Keyword.Exile | Keyword.Replenish;
 
-            config.Illustrator = "";
+            config.Illustrator = "绫缪";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

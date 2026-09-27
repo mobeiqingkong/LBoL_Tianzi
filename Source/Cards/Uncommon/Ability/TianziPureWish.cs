@@ -29,7 +29,7 @@ namespace TianziMod.Cards
             config.UpgradedValue1 = 3;
             config.RelativeEffects = new List<string>() { nameof(AmuletForCard) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "朝音うるは";
             config.RelativeKeyword = Keyword.Exile;
             config.UpgradedRelativeKeyword = Keyword.Exile;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

@@ -28,7 +28,7 @@ namespace TianziMod.Cards
             config.Value1 = 2;
             config.RelativeEffects = TianziWeather.RelativeIds(includeForecast: true);
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "atkdog";
             config.RelativeKeyword = Keyword.Block;
             config.UpgradedRelativeKeyword = Keyword.Block;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

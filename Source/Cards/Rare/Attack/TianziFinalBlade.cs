@@ -42,7 +42,7 @@ namespace TianziMod.Cards
             config.Keywords = Keyword.Exile | Keyword.Retain | Keyword.Accuracy;
             config.UpgradedKeywords = Keyword.Exile | Keyword.Retain | Keyword.Accuracy;
 
-            config.Illustrator = "";
+            config.Illustrator = "赤蜻蛉";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

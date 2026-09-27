@@ -38,6 +38,7 @@ namespace TianziMod.Cards
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.RelativeKeyword = Keyword.Block | Keyword.Exile | Keyword.Ethereal | Keyword.Upgrade;
             config.UpgradedRelativeKeyword = Keyword.Block | Keyword.Exile | Keyword.Ethereal | Keyword.Upgrade;
+            config.Illustrator = "朱シオ";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

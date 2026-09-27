@@ -35,7 +35,7 @@ namespace TianziMod.Cards
             config.UpgradedKeywords = Keyword.Initial | Keyword.Replenish;
             config.RelativeKeyword = Keyword.Exile;
             config.UpgradedRelativeKeyword = Keyword.Exile;
-            config.Illustrator = "";
+            config.Illustrator = "CYC";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

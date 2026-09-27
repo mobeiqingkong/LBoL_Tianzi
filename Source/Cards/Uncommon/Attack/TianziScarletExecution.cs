@@ -34,7 +34,7 @@ namespace TianziMod.Cards
             config.UpgradedDamage = 9;
             config.RelativeEffects = new List<string>() { nameof(TianziParityKwSe), nameof(TianziDoubleAttackSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "猫水瀬";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

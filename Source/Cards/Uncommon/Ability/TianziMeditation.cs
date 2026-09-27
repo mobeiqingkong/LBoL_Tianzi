@@ -28,7 +28,7 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.Keywords = Keyword.Initial;
             config.UpgradedKeywords = Keyword.Initial;
-            config.Illustrator = "";
+            config.Illustrator = "here /ヘレ";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

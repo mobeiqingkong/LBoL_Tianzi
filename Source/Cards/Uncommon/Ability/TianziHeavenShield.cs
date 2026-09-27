@@ -30,7 +30,7 @@ namespace TianziMod.Cards
             config.UpgradedMana = new ManaGroup() { White = 1 };
             config.RelativeEffects = new List<string>() { nameof(AmuletForCard) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "天天天桃子";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

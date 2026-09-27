@@ -30,7 +30,7 @@ namespace TianziMod.Cards
             config.RelativeEffects = new List<string>() { nameof(TianziMod.StatusEffects.TianziParityKwSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
 
-            config.Illustrator = "";
+            config.Illustrator = "ひいらぎ";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

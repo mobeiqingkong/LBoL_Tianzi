@@ -35,6 +35,7 @@ namespace TianziMod.Cards
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.RelativeKeyword = Keyword.Block;
             config.UpgradedRelativeKeyword = Keyword.Block;
+            config.Illustrator = "Pepper409";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

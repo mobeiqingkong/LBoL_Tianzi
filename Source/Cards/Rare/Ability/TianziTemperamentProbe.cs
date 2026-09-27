@@ -31,6 +31,7 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.RelativeEffects = new List<string>() { nameof(TianziParityKwSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
+            config.Illustrator = "朱シオ";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

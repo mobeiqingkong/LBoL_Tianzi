@@ -45,7 +45,7 @@ namespace TianziMod.Cards
             };
             config.UpgradedRelativeEffects = config.RelativeEffects;
 
-            config.Illustrator = "";
+            config.Illustrator = "久蒼穹";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

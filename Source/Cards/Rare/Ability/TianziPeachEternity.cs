@@ -40,7 +40,7 @@ namespace TianziMod.Cards
             config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe), nameof(TianziPeachEternitySe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
 
-            config.Illustrator = "";
+            config.Illustrator = "7saki";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

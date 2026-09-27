@@ -44,6 +44,7 @@ namespace TianziMod.Cards
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.RelativeKeyword = Keyword.Scry;
             config.UpgradedRelativeKeyword = Keyword.Scry;
+            config.Illustrator = "わんこソラ";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

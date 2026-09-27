@@ -30,6 +30,7 @@ namespace TianziMod.Cards
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.RelativeKeyword = Keyword.Exile;
             config.UpgradedRelativeKeyword = Keyword.Exile;
+            config.Illustrator = "ボキ ★シモ一ル";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

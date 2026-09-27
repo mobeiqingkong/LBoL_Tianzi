@@ -30,7 +30,7 @@ namespace TianziMod.Cards
             config.UpgradedScry = 3;
             config.RelativeCards = new List<string>() { nameof(TianziPlayChoice), nameof(TianziExileChoice) };
             config.UpgradedRelativeCards = config.RelativeCards;
-            config.Illustrator = "";
+            config.Illustrator = "竜崎いち";
             config.RelativeKeyword = Keyword.Block | Keyword.Scry | Keyword.Exile;
             config.UpgradedRelativeKeyword = Keyword.Block | Keyword.Scry | Keyword.Exile;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

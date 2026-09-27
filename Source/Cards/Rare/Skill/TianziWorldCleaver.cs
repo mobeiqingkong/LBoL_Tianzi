@@ -38,7 +38,7 @@ namespace TianziMod.Cards
             config.UpgradedRelativeKeyword = Keyword.Exile | Keyword.Echo;
             config.RelativeEffects = new List<string>() { nameof(Firepower), nameof(Spirit) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "無銘室";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

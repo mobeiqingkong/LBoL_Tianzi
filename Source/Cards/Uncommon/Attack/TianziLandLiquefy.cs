@@ -34,7 +34,7 @@ namespace TianziMod.Cards
             config.UpgradedDamage = 20;
             config.Value1 = 5;
             config.UpgradedValue1 = 7;
-            config.Illustrator = "";
+            config.Illustrator = "kirero";
             config.RelativeKeyword = Keyword.Block | Keyword.Shield;
             config.UpgradedRelativeKeyword = Keyword.Block | Keyword.Shield;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

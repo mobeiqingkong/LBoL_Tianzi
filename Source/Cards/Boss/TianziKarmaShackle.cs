@@ -28,6 +28,7 @@ namespace TianziMod.Cards
             config.UpgradedKeywords = config.Keywords;
             config.RelativeKeyword = Keyword.Forbidden;
             config.UpgradedRelativeKeyword = Keyword.Forbidden;
+            config.Illustrator = "青蛙吃蛇";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

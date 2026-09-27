@@ -28,7 +28,7 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.RelativeEffects = new List<string>() { nameof(TianziKarmaKwSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "here /ヘレ";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

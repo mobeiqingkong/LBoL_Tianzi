@@ -28,7 +28,7 @@ namespace TianziMod.Cards
             config.UpgradedValue1 = 4;
             config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe), nameof(TianziParityKwSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "苏予九u";
             config.RelativeKeyword = Keyword.Block;
             config.UpgradedRelativeKeyword = Keyword.Block;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

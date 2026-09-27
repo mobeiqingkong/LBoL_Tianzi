@@ -40,7 +40,7 @@ namespace TianziMod.Cards
             config.UpgradedKeywords = Keyword.Accuracy;
             config.RelativeEffects = new List<string>() { nameof(Vulnerable) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "竜崎いち";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

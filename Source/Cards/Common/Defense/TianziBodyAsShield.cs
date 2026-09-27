@@ -33,7 +33,7 @@ namespace TianziMod.Cards
             config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe) };
             config.UpgradedRelativeEffects = new List<string>() { nameof(TianziTempHpSe) };
 
-            config.Illustrator = "";
+            config.Illustrator = "rakkidei";
             config.RelativeKeyword = Keyword.Block;
             config.UpgradedRelativeKeyword = Keyword.Block;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

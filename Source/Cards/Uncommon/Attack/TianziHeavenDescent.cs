@@ -33,7 +33,7 @@ namespace TianziMod.Cards
             config.UpgradedValue1 = 7;
             config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe), nameof(TianziParityKwSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "NoroWillis";
             config.RelativeKeyword = Keyword.Shield;
             config.UpgradedRelativeKeyword = Keyword.Shield;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

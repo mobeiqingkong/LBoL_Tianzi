@@ -36,7 +36,7 @@ namespace TianziMod.Cards
             config.Value1 = 2;
             config.RelativeEffects = new List<string>() { nameof(Vulnerable) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "ねこ";
             config.RelativeKeyword = Keyword.Block | Keyword.Shield;
             config.UpgradedRelativeKeyword = Keyword.Block | Keyword.Shield;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

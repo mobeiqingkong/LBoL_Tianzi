@@ -37,6 +37,7 @@ namespace TianziMod.Cards
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.RelativeKeyword = Keyword.Exile;
             config.UpgradedRelativeKeyword = Keyword.Exile;
+            config.Illustrator = "那个火柴人。";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

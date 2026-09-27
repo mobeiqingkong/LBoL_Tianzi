@@ -33,7 +33,7 @@ namespace TianziMod.Cards
             config.Damage = 13;
             config.UpgradedDamage = 17;
             config.Mana = new ManaGroup() { Red = 1 };
-            config.Illustrator = "";
+            config.Illustrator = "かすおかすと";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

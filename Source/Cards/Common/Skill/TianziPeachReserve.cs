@@ -29,7 +29,7 @@ namespace TianziMod.Cards
             config.UpgradedKeywords = Keyword.Exile | Keyword.Retain;
             config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "茶侘(ちゃた)";
             config.RelativeKeyword = Keyword.Block;
             config.UpgradedRelativeKeyword = Keyword.Block;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

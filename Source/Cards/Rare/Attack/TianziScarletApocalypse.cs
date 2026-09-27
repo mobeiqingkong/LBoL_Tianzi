@@ -36,7 +36,7 @@ namespace TianziMod.Cards
             config.UpgradedKeywords = Keyword.Accuracy;
             config.RelativeEffects = TianziWeather.RelativeIds(includeForecast: true);
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "kannnu";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

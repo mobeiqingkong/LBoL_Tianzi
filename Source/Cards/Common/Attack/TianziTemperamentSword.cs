@@ -38,6 +38,7 @@ namespace TianziMod.Cards
                 nameof(TianziKarmaKwSe),
             };
             config.UpgradedRelativeEffects = config.RelativeEffects;
+            config.Illustrator = "じゅんけ";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

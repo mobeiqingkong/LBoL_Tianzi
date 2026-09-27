@@ -30,7 +30,7 @@ namespace TianziMod.Cards
             config.Keywords = Keyword.Basic;
             config.UpgradedKeywords = Keyword.Basic;
 
-            config.Illustrator = "";
+            config.Illustrator = "鶴亀";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

@@ -36,7 +36,7 @@ namespace TianziMod.Cards
             config.Mana = new ManaGroup() { White = 1 };
             config.UpgradedMana = new ManaGroup() { White = 1 };
 
-            config.Illustrator = "";
+            config.Illustrator = "画渣桃乐";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

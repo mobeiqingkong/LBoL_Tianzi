@@ -43,7 +43,7 @@ namespace TianziMod.Cards
             config.RelativeEffects = new List<string>() { nameof(TianziRegenSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
 
-            config.Illustrator = "";
+            config.Illustrator = "ryosios";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

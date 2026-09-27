@@ -40,7 +40,7 @@ namespace TianziMod.Cards
             config.RelativeEffects = new List<string>() { nameof(TianziParityKwSe), nameof(TianziHardshipRetainSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
 
-            config.Illustrator = "";
+            config.Illustrator = "大國オサム";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

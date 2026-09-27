@@ -30,7 +30,7 @@ namespace TianziMod.Cards
             config.UpgradedKeywords = Keyword.Initial;
             config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "緑QN";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

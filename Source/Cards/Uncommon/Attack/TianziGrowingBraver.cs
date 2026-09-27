@@ -35,7 +35,7 @@ namespace TianziMod.Cards
             config.UpgradedValue1 = 1;
             config.RelativeEffects = new List<string>() { nameof(Firepower) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "春藤平四郎";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

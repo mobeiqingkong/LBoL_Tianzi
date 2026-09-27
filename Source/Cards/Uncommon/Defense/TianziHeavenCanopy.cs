@@ -38,7 +38,7 @@ namespace TianziMod.Cards
             config.Value1 = 1; // 抽牌数
             config.UpgradedValue1 = 2;
 
-            config.Illustrator = "";
+            config.Illustrator = "黄茋多糖不加冰";
             config.RelativeKeyword = Keyword.Block;
             config.UpgradedRelativeKeyword = Keyword.Block;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

@@ -32,7 +32,7 @@ namespace TianziMod.Cards
             config.Damage = 8;
             config.UpgradedDamage = 12;
 
-            config.Illustrator = "";
+            config.Illustrator = "おもいか";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

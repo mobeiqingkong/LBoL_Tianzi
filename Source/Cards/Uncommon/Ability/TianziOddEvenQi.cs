@@ -28,7 +28,7 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.RelativeEffects = new List<string>() { nameof(TianziParityKwSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "pigsir13152";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

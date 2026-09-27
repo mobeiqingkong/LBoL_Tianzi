@@ -30,7 +30,7 @@ namespace TianziMod.Cards
             config.Keywords = Keyword.Exile;
             config.UpgradedKeywords = Keyword.Exile;
 
-            config.Illustrator = "";
+            config.Illustrator = "STM";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

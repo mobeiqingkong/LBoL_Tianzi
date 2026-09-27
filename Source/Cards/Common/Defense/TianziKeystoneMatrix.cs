@@ -33,7 +33,7 @@ namespace TianziMod.Cards
             config.RelativeEffects = new List<string>() { nameof(TianziKeystoneMatrixSe) };
             config.UpgradedRelativeEffects = new List<string>() { nameof(TianziKeystoneMatrixSe) };
 
-            config.Illustrator = "";
+            config.Illustrator = "蟹丹@C100";
             config.RelativeKeyword = Keyword.Block;
             config.UpgradedRelativeKeyword = Keyword.Block;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

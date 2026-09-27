@@ -19,15 +19,15 @@ namespace TianziMod.Cards
             config.GunNameBurst = GunNameID.GetGunFromId(4122);
 
             config.Colors = new List<ManaColor>() { ManaColor.White };
-            config.Cost = new ManaGroup() { Any = 2, White = 1 };
-            config.UpgradedCost = new ManaGroup() { Any = 1, White = 1 };
+            config.Cost = new ManaGroup() { Any = 1, White = 1 };
+            config.UpgradedCost = new ManaGroup() { Any = 2 };
             config.Rarity = Rarity.Common;
 
             config.Type = CardType.Attack;
             config.TargetType = TargetType.AllEnemies;
 
-            config.Damage = 6;
-            config.UpgradedDamage = 7;
+            config.Damage = 4;
+            config.UpgradedDamage = 5;
 
             config.Value1 = 3; // 攻击段数
 
@@ -35,7 +35,7 @@ namespace TianziMod.Cards
             config.Keywords = Keyword.None;
             config.UpgradedKeywords = Keyword.Accuracy;
 
-            config.Illustrator = "";
+            config.Illustrator = "タツ";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

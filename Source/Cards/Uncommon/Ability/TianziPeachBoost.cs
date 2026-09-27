@@ -29,7 +29,7 @@ namespace TianziMod.Cards
             config.UpgradedValue1 = 4;
             config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "伊吹のつ";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

@@ -37,7 +37,7 @@ namespace TianziMod.Cards
             config.Value1 = 3;
             config.UpgradedValue1 = 5;
 
-            config.Illustrator = "";
+            config.Illustrator = "kirero";
             config.RelativeKeyword = Keyword.Exile | Keyword.Ethereal;
             config.UpgradedRelativeKeyword = Keyword.Exile | Keyword.Ethereal;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

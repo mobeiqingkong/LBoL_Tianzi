@@ -38,7 +38,7 @@ namespace TianziMod.Cards
             config.UpgradedValue2 = 5;
             config.RelativeEffects = new List<string>() { nameof(Weak) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "kaden";
             config.RelativeKeyword = Keyword.Block;
             config.UpgradedRelativeKeyword = Keyword.Block;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

@@ -36,7 +36,7 @@ namespace TianziMod.Cards
             config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe), nameof(TianziGraceSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
 
-            config.Illustrator = "";
+            config.Illustrator = "亜音";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

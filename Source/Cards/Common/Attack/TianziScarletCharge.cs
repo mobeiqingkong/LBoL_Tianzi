@@ -31,7 +31,7 @@ namespace TianziMod.Cards
             config.RelativeEffects = new List<string>() { nameof(TianziScarletChargeSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
 
-            config.Illustrator = "";
+            config.Illustrator = "安德小骸";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

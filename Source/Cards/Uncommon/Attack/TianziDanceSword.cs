@@ -36,7 +36,7 @@ namespace TianziMod.Cards
             config.UpgradedMana = new ManaGroup() { Philosophy = 2 };
             config.RelativeEffects = new List<string>() { nameof(Weak) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "aji";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

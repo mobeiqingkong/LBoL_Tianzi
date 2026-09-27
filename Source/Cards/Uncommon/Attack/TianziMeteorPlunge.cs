@@ -30,7 +30,7 @@ namespace TianziMod.Cards
             config.UpgradedDamage = 21;
             config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "蓬莱雾理";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

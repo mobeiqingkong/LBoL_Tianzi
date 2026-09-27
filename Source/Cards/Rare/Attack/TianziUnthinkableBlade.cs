@@ -54,7 +54,7 @@ namespace TianziMod.Cards
             config.RelativeEffects = effects;
             config.UpgradedRelativeEffects = config.RelativeEffects;
 
-            config.Illustrator = "";
+            config.Illustrator = "甜";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

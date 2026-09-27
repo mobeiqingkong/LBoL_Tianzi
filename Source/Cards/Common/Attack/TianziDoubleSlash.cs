@@ -35,7 +35,7 @@ namespace TianziMod.Cards
             config.RelativeCards = new List<string>() { nameof(TianziSecondSlash) };
             config.UpgradedRelativeCards = new List<string>() { nameof(TianziSecondSlash) };
 
-            config.Illustrator = "";
+            config.Illustrator = "燗汰朗";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

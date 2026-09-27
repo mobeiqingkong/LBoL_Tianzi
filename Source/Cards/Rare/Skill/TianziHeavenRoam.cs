@@ -36,7 +36,7 @@ namespace TianziMod.Cards
             config.Keywords = Keyword.Initial | Keyword.Debut;
             config.UpgradedKeywords = Keyword.Initial | Keyword.Debut;
 
-            config.Illustrator = "";
+            config.Illustrator = "伊吹のつ";
             config.RelativeKeyword = Keyword.Exile | Keyword.Debut;
             config.UpgradedRelativeKeyword = Keyword.Exile | Keyword.Debut;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

@@ -27,7 +27,7 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.RelativeEffects = new List<string>() { nameof(Spirit) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
-            config.Illustrator = "";
+            config.Illustrator = "天天天桃子";
             config.RelativeKeyword = Keyword.Block;
             config.UpgradedRelativeKeyword = Keyword.Block;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

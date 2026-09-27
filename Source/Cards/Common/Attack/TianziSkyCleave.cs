@@ -38,7 +38,7 @@ namespace TianziMod.Cards
             config.RelativeEffects = new List<string>() { nameof(Weak) };
             config.UpgradedRelativeEffects = new List<string>() { nameof(Weak) };
 
-            config.Illustrator = "";
+            config.Illustrator = "咲";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

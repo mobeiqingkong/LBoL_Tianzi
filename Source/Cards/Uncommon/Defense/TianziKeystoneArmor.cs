@@ -35,7 +35,7 @@ namespace TianziMod.Cards
             config.Keywords = Keyword.Shield;
             config.UpgradedKeywords = Keyword.Shield;
 
-            config.Illustrator = "";
+            config.Illustrator = "page";
             config.RelativeKeyword = Keyword.Block | Keyword.Shield;
             config.UpgradedRelativeKeyword = Keyword.Block | Keyword.Shield;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
