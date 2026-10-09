@@ -24,11 +24,11 @@ namespace TianziMod.Cards
             config.Type = CardType.Defense;
             config.TargetType = TargetType.Self;
 
-            config.Block = 3;
-            config.UpgradedBlock = 4;
+            config.Block = 4;
+            config.UpgradedBlock = 5;
 
-            config.Value1 = 3;
-            config.UpgradedValue1 = 4;
+            config.Value1 = 4;
+            config.UpgradedValue1 = 5;
 
             config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe) };
             config.UpgradedRelativeEffects = new List<string>() { nameof(TianziTempHpSe) };

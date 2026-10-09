@@ -25,7 +25,8 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.Block = 8;
             config.UpgradedBlock = 12;
-            config.Value1 = 2;
+            config.Value1 = 1;
+            config.UpgradedValue1 = 2;
             config.RelativeEffects = TianziWeather.RelativeIds(includeForecast: true);
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "atkdog";

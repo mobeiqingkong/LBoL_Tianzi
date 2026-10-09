@@ -32,8 +32,8 @@ namespace TianziMod.Cards
             config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe) };
             config.UpgradedRelativeEffects = new List<string>() { nameof(TianziTempHpSe) };
 
-            config.Keywords = Keyword.Exile | Keyword.Replenish;
-            config.UpgradedKeywords = Keyword.Exile | Keyword.Replenish;
+            config.Keywords = Keyword.Exile;
+            config.UpgradedKeywords = Keyword.Exile;
 
             config.Illustrator = "绫缪";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

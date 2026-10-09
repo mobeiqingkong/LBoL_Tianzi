@@ -28,8 +28,6 @@ namespace TianziMod.Cards
             config.UpgradedValue1 = 5;
             config.Value2 = 6;
             config.UpgradedValue2 = 8;
-            config.Keywords = Keyword.Retain | Keyword.Replenish;
-            config.UpgradedKeywords = Keyword.Retain | Keyword.Replenish;
             config.RelativeEffects = new List<string>()
             {
                 nameof(TianziTempHpSe),
@@ -92,7 +90,11 @@ namespace TianziMod.Cards
 
         private IEnumerable<BattleAction> DoorAttack(Card origin)
         {
-            if (origin == null)
+            // |一次性|（Keyword.Disposable）等牌「不能成为复制效果的对象」，
+            // 这里直接用引擎自己的判定 Card.CanBeDuplicated
+            // （它同时排除：一次性 / 工具牌 / 复制品本身 / 非战斗内出现的牌）。
+            // 命中时只保留 Actions 里已经做完的|升级|，不再给复制品。
+            if (origin == null || !origin.CanBeDuplicated)
                 yield break;
             Card copy = origin.CloneBattleCard();
             copy.SetTurnCost(ManaGroup.Empty);

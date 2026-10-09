@@ -11,7 +11,7 @@
 
   <PropertyGroup>
     <!-- Change this path !!!-->
-    <GameFolder>D:\Program FIles\Steam\steamapps\common\LBoL</GameFolder>
+    <GameFolder>E:\Game\CrackGame\LBoL</GameFolder>
     <BepInExFolder>$(GameFolder)\BepInEx</BepInExFolder>
     <RootNamespace>$(MSBuildProjectName.Replace(" ", "_").Replace("-", ""))</RootNamespace>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
@@ -266,7 +266,7 @@
   <ItemGroup>
     <!--CHANGE THIS PATH-->
     <Reference Include="LBoL-Entity-Sideloader">
-      <HintPath>$(BepInExFolder)\plugins\LBoL-Entity-Sideloader\LBoL-Entity-Sideloader.dll</HintPath>
+      <HintPath>D:\Steam\steamapps\workshop\content\1140150\3572815053\LBoL-Entity-Sideloader.dll</HintPath>
     </Reference>
     <Reference Include="LBoL.Base">
       <HintPath>$(GameFolder)\LBoL_Data\Managed\LBoL.Base.dll</HintPath>

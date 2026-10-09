@@ -40,12 +40,18 @@ namespace TianziMod.StatusEffects
             IReadOnlyList<Card> hand = base.Battle.HandZone;
             if (hand == null || hand.Count == 0)
                 return;
-            Card card = hand[Random.Range(0, hand.Count)];
-            if (card != null && card.CostToMana(false).Total > 0)
+            List<Card> candidates = new List<Card>();
+            foreach (Card c in hand)
             {
-                base.NotifyActivating();
-                card.DecreaseTurnCost(this.Mana);
+                if (c != null && !c.IsForbidden && c.Cost.Any > 0)
+                    candidates.Add(c);
             }
+            if (candidates.Count == 0)
+                return;
+
+            Card card = candidates[Random.Range(0, candidates.Count)];
+            base.NotifyActivating();
+            card.DecreaseTurnCost(this.Mana);
         }
 
         protected override IEnumerable<BattleAction> OnWeatherTurnStarting(UnitEventArgs args)

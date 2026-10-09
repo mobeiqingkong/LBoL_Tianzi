@@ -23,7 +23,7 @@ namespace TianziMod.Cards
             config.GunName = GunNameID.GetGunFromId(11231);
             config.GunNameBurst = GunNameID.GetGunFromId(11231);
             config.Colors = new List<ManaColor>() { ManaColor.Red };
-            config.Cost = new ManaGroup() { Red = 2 };
+            config.Cost = new ManaGroup() { Red = 1, Any = 1};
             config.Rarity = Rarity.Uncommon;
             config.Type = CardType.Attack;
             config.TargetType = TargetType.SingleEnemy;

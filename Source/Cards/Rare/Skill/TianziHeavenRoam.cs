@@ -32,7 +32,7 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
 
             config.Value1 = 5;
-            config.UpgradedValue1 = 4;
+            config.UpgradedValue1 = 5;
             config.Keywords = Keyword.Initial | Keyword.Debut;
             config.UpgradedKeywords = Keyword.Initial | Keyword.Debut;
 

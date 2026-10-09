@@ -29,10 +29,10 @@ namespace TianziMod.Cards
             config.Rarity = Rarity.Uncommon;
             config.Type = CardType.Attack;
             config.TargetType = TargetType.SingleEnemy;
-            config.Damage = 12;
-            config.UpgradedDamage = 15;
+            config.Damage = 8;
+            config.UpgradedDamage = 12;
             config.Value1 = 1;
-            config.UpgradedValue1 = 1;
+            config.UpgradedValue1 = 2;
             config.RelativeEffects = new List<string>() { nameof(Firepower) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "春藤平四郎";

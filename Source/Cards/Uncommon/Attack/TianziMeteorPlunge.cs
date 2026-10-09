@@ -26,8 +26,9 @@ namespace TianziMod.Cards
             config.Rarity = Rarity.Uncommon;
             config.Type = CardType.Attack;
             config.TargetType = TargetType.AllEnemies;
-            config.Damage = 17;
-            config.UpgradedDamage = 21;
+            config.Damage = 14;
+            config.UpgradedDamage = 14;
+            config.UpgradedKeywords = Keyword.Accuracy;
             config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "蓬莱雾理";

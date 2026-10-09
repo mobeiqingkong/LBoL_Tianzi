@@ -22,15 +22,15 @@ namespace TianziMod.Cards
             config.GunNameBurst = GunNameID.GetGunFromId(7500);
 
             config.Colors = new List<ManaColor>() { ManaColor.Red };
-            config.Cost = new ManaGroup() { Red = 2 };
-            config.UpgradedCost = new ManaGroup() { Any = 1, Red = 1 };
+            config.Cost = new ManaGroup() { Red = 1, Any = 1 };
+            config.UpgradedCost = new ManaGroup() { Any = 1 };
             config.Rarity = Rarity.Common;
 
             config.Type = CardType.Attack;
             config.TargetType = TargetType.SingleEnemy;
 
             config.Damage = 8;
-            config.UpgradedDamage = 12;
+            config.UpgradedDamage = 9;
 
             config.Illustrator = "おもいか";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

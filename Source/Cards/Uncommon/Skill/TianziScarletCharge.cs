@@ -24,8 +24,8 @@ namespace TianziMod.Cards
             config.Type = CardType.Skill;
             config.TargetType = TargetType.Self;
             
-            config.Value1 = 4;
-            config.UpgradedValue1 = 5;
+            config.Value1 = 3;
+            config.UpgradedValue1 = 4;
             config.Value2 = 1;
 
             config.RelativeEffects = new List<string>() { nameof(TianziScarletChargeSe) };

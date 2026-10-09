@@ -34,7 +34,8 @@ namespace TianziMod.Exhibits
     /// <summary>
     /// 仙桃（光耀）【A】
     /// 专属牌进卡池。每场战斗第一回合开始时多抽 1 张，并额外获得 2 点白。
-    /// 每回合结束获得 1 点 P。影响生命值的伤害（含绝壁被击破）回复 2 点，每场最多 7 次；
+    /// 每回合结束获得 1 点 P。生命值因伤害实际减少时回复 2 点，每场最多 7 次；
+    /// 被绝壁 / 格挡 / 护盾吸收掉的伤害不算，不触发回血。
     /// 满 7 次后不再于回合结束获得 P。
     /// </summary>
     [EntityLogic(typeof(TianziExhibitADef))]
@@ -50,7 +51,6 @@ namespace TianziMod.Exhibits
         protected override void OnEnterBattle()
         {
             base.Counter = MaxTriggers;
-            TianziTempHp.DamageAbsorbing = 0;
             base.ReactBattleEvent<UnitEventArgs>(
                 base.Battle.Player.TurnStarted,
                 new EventSequencedReactor<UnitEventArgs>(this.OnPlayerTurnStarted)
@@ -96,11 +96,10 @@ namespace TianziMod.Exhibits
             if (base.Battle.BattleShouldEnd || base.Counter <= 0)
                 yield break;
 
+            // DamageInfo.Damage 已是扣掉格挡 / 护盾 / 绝壁之后真正打到生命值的伤害，
+            // 被绝壁挡下的部分不算「影响生命值」，不回血。
             int damage = (int)Math.Round(args.DamageInfo.Damage, MidpointRounding.AwayFromZero);
-            int absorbed = TianziTempHp.DamageAbsorbing;
-            TianziTempHp.DamageAbsorbing = 0;
-            // 绝壁先于生命值吸收伤害，吸收后剩余伤害可能是 0，仍算影响生命值
-            if (damage <= 0 && absorbed <= 0)
+            if (damage <= 0)
                 yield break;
 
             base.Counter -= 1;

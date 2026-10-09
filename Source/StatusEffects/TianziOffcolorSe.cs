@@ -352,7 +352,7 @@ namespace TianziMod.StatusEffects
                     base.Battle.Player,
                     enemy,
                     DamageInfo.HpLose(dmg),
-                    TianziMod.GunName.GunNameID.GetGunFromId(4540),
+                    TianziMod.GunName.GunNameID.GetGunFromId(7181),
                     GunType.Single);
             }
         }

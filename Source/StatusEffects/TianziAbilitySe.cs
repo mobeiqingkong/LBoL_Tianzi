@@ -468,8 +468,8 @@ namespace TianziMod.StatusEffects
                 new EventSequencedReactor<UnitEventArgs>(this.OnPlayerTurnEnding)
             );
             base.ReactOwnerEvent<UnitEventArgs>(
-                base.Battle.Player.TurnStarting,
-                new EventSequencedReactor<UnitEventArgs>(this.OnPlayerTurnStarting)
+                base.Battle.Player.TurnStarted,
+                new EventSequencedReactor<UnitEventArgs>(this.OnPlayerTurnStarted)
             );
         }
 
@@ -479,7 +479,7 @@ namespace TianziMod.StatusEffects
             yield break;
         }
 
-        private IEnumerable<BattleAction> OnPlayerTurnStarting(UnitEventArgs args)
+        private IEnumerable<BattleAction> OnPlayerTurnStarted(UnitEventArgs args)
         {
             if (base.Battle.BattleShouldEnd)
                 yield break;

@@ -36,10 +36,10 @@ namespace TianziMod.Cards
             config.ActiveCost = -8;
             config.UpgradedActiveCost = -8;
             // 不可设正数 UltimateCost：MinActiveCost 取 Max 后会把主动门槛算成负数，3 点也能放主动
-            config.Value1 = 4;
+            config.Value1 = 4; 
             config.Value2 = 3;
-            config.Scry = 4;
-            config.UpgradedScry = 4;
+            config.Scry = 3;
+            config.UpgradedScry = 3;
             config.RelativeEffects = new List<string>() { nameof(TempElectric), nameof(Invincible) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.RelativeKeyword = Keyword.Scry;

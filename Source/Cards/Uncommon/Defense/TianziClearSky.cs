@@ -36,12 +36,12 @@ namespace TianziMod.Cards
             // Debug.LogError("<Id> must set block or shield in config")。
             // 这张卡是「每放逐一张牌获得护盾」，把【单张护盾值】直接放在 Shield 上，
             // 卡面 {Shield} 显示的数值就和实际每张给的护盾一致。
-            config.Shield = 5;
-            config.UpgradedShield = 6;
-            config.Value1 = 2; // 最多放逐张数
+            config.Shield = 7;
+            config.UpgradedShield = 8;
+            config.Value1 = 1; // 最多放逐张数
 
             config.Keywords = Keyword.Exile;
-            config.UpgradedKeywords = Keyword.Exile | Keyword.Echo;
+            config.UpgradedKeywords = Keyword.Exile;
 
             config.Illustrator = "鱼鱼鱼鱼花";
             config.RelativeKeyword = Keyword.Shield | Keyword.Exile;
@@ -92,17 +92,24 @@ namespace TianziMod.Cards
             List<Card> picks = new List<Card>(interaction.SelectedCards);
             yield return new ExileManyCardAction(picks);
 
-            int shield = base.ConfigShield * picks.Count;
-            if (shield > 0)
+            // 每放逐一张牌「单独结算一次」护盾，而不是把总量一次给完 ——
+            // 这样「灵力」（Spirit）和「神恩」（Grace）会按张数各加上它们的层数。
+            // ⚠ 必须用 BlockShieldType.Normal：Spirit / Grace 的 BlockShieldGaining
+            //   守卫是 `if (args.Type != BlockShieldType.Direct)`，写 Direct 会被整段跳过。
+            int perCard = base.ConfigShield;
+            if (perCard > 0)
             {
-                yield return new CastBlockShieldAction(
-                    base.Battle.Player,
-                    base.Battle.Player,
-                    0,
-                    shield,
-                    BlockShieldType.Direct,
-                    false
-                );
+                for (int i = 0; i < picks.Count; i++)
+                {
+                    yield return new CastBlockShieldAction(
+                        base.Battle.Player,
+                        base.Battle.Player,
+                        0,
+                        perCard,
+                        BlockShieldType.Normal,
+                        false
+                    );
+                }
             }
             yield break;
         }

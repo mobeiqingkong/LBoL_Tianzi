@@ -4,7 +4,7 @@ TianziTempHpSe:
     独立于生命值上限的额外战斗内生命值，上限 |e:15|。
     可连携触发任何与生命值相关的效果。
     受到伤害时优先于|格挡|和|护盾|被扣减。
-  Brief: 黄色额外生命，受击时优先于格挡扣减,上限 |e:15|。
+  Brief: 黄色额外生命值，受击时优先于格挡扣减,上限 |e:15|。
 
 TianziRegenSe:
   Name: 自愈
@@ -15,9 +15,9 @@ TianziRegenSe:
 TianziWeatherClear:
   Name: 快晴
   Description: |-
-    回合开始时，随机一张卡牌的费用暂时减少{Mana}。
+    回合开始时，随机一张可打出的手牌费用暂时减少{Mana}。
     {OwnerName}的|闪避|不会在回合开始时消失。
-  Brief: "回合开始时，随机一张牌费用暂时减少{Mana}；|闪避|不会消失。"
+  Brief: "回合开始时，随机一张手牌费用暂时减少{Mana}；|闪避|不会消失。"
 
 TianziWeatherMist:
   Name: 雾雨
@@ -28,14 +28,14 @@ TianziWeatherMist:
 TianziWeatherCloud:
   Name: 云天
   Description: |-
-    回合开始时，本回合内所有卡牌的费用减少{Mana}。
-  Brief: "回合开始时，本回合内所有卡牌费用减少{Mana}。"
+    回合开始时，本回合内所有手牌的费用减少{Mana}。
+  Brief: "回合开始时，本回合内所有手牌费用减少{Mana}。"
 
 TianziWeatherAzure:
   Name: 苍天
   Description: |-
-    回合开始时，{OwnerName}获得 |e:7| 点<sprite="Point" name="Power">。
-  Brief: "回合开始时，获得 |e:7| 点<sprite=\"Point\" name=\"Power\">。"
+    回合结束时，{OwnerName}获得 |e:7| 点<sprite="Point" name="Power">。
+  Brief: "回合结束时，获得 |e:7| 点<sprite=\"Point\" name=\"Power\">。"
 
 TianziWeatherHail:
   Name: 雹
@@ -46,8 +46,8 @@ TianziWeatherHail:
 TianziWeatherFog:
   Name: 浓雾
   Description: |-
-    {OwnerName}造成的未被阻挡的伤害会恢复自身 |e:5|% 生命值。
-  Brief: "未被阻挡的伤害回复 |e:5|% 生命值。"
+    {OwnerName}造成未被阻挡的伤害时，会使自身恢复造成伤害量 |e:5|% 的生命值。
+  Brief: "造成未被阻挡的伤害时，会使自身恢复造成伤害量 |e:5|% 的生命值。"
 
 TianziWeatherTyphoon:
   Name: 台风
@@ -59,17 +59,18 @@ TianziWeatherTyphoon:
 TianziWeatherSun:
   Name: 烈日
   Description: |-
-    每个敌人回合结束时，失去最大生命值的 |e:1|%。
-  Brief: 敌人回合结束时失去 |e:1|% 最大生命值。
+    {OwnerName}的回合结束时，所有敌人失去最大生命值的 |e:1|%。
+  Brief: "{OwnerName}的回合结束时，所有敌人失去最大生命值的 |e:1|%。"
 
 TianziPeachBoostSe:
   Name: 仙桃增幅
   Description: |-
     {OwnerName}获得|绝壁|时，额外获得 |e:1| 点|绝壁|。
-  Brief: "获得|绝壁|时额外增加 |e:1|。"
+    此能力无法叠加。
+  Brief: "获得|绝壁|时额外增加 |e:1|。无法叠加。"
 
 TianziPeachGardenSe:
-  Name: 漫漫桃园
+  Name: 漫漫桃源
   Description: |-
     {OwnerName}的|绝壁|减少时，获得 |e:1| 点|绝壁|。
   Brief: "|绝壁|减少时获得 |e:1| 点|绝壁|。"
@@ -84,7 +85,8 @@ TianziScarletWaveSe:
   Name: 绯想剑斩波
   Description: |-
     {OwnerName}每回合前 {Level} 次（剩余 {Count} 次）攻击造成伤害时，获得等量的|格挡|。
-  Brief: "每回合前 {Level} 次（剩 {Count}）攻击伤害转|格挡|。"
+    此能力无法叠加。
+  Brief: "每回合前 {Level} 次（剩 {Count}）攻击伤害转|格挡|。无法叠加。"
 
 TianziKeystoneMatrixSe:
   Name: 石阵
@@ -110,12 +112,12 @@ TianziKarmaKwSe:
   Brief: 按卡牌种类触发效果。
 
 TianziKarmaSe:
-  Name: 因果之剑
+  Name: 因果掌控
   Description: 带有|因果|关键字的牌打出时，因果效果改为自行选择触发。
   Brief: 因果效果改为自行选择。
 
 TianziOddEvenSe:
-  Name: 天人之气
+  Name: 天人气性
   Description: |-
     手牌张数的「奇数 / 偶数」分支效果改为由{OwnerName}选择触发。
   Brief: 奇偶分支改为自行选择。
@@ -142,21 +144,24 @@ TianziPureWishSe:
   Description: |-
     {OwnerName}每回合前 {Level} 次（剩余 {Count} 次）抽到厄运或状态牌时，
     将其放逐并抽 |e:1| 张牌；|庇护|触发时此效果也会生效。
-  Brief: "每回合前 {Level} 次（剩 {Count}）放逐厄运/状态并补抽。"
+    此能力无法叠加。
+  Brief: "每回合前 {Level} 次（剩 {Count}）放逐厄运/状态并补抽。无法叠加。"
 
 TianziHeavenShieldSe:
   Name: 天界之庇护
   Description: |-
     {OwnerName}的回合开始时获得{Mana}。
     {OwnerName}的回合结束时获得 |e:1| 层|庇护|。
-  Brief: "回合开始获得{Mana}，回合结束获得|庇护|。"
+    此能力无法叠加。
+  Brief: "回合开始获得{Mana}，回合结束获得|庇护|。无法叠加。"
 
 TianziMortalJourneySe:
   Name: 凡间之游
   Description: |-
     {OwnerName}每打出 {Level} 张牌，获得{Mana}并抽 |e:1| 张牌。
     还需打出 {Count} 张牌。
-  Brief: "还需 {Count}/{Level} 张牌触发。"
+    此能力无法叠加。
+  Brief: "还需 {Count}/{Level} 张牌触发。无法叠加。"
 
 TianziPeachTalismanSe:
   Name: 桃符「固若金汤的仙桃」
@@ -176,13 +181,12 @@ TianziPeachEternitySe:
   Description: |-
     {OwnerName}的|绝壁|上限提高 {Level}；
     每回合开始获得 {Count} 点|绝壁|。
-  Brief: "|绝壁|上限 +{Level}，每回合 +{Count}。"
 
 TianziScarletChargeSe:
-  Name: 绯充
+  Name: 盈能
   Description: |-
-    本回合下一张攻击牌的每次伤害增加 {Level}。
-  Brief: "下一张攻击牌每次伤害增加 {Level}。"
+    本回合下一张攻击牌的每次伤害增加 {Level}，该效果将在主角的普通回合结束时消失。
+  Brief: "下一张攻击牌每次伤害增加 {Level}，该效果将在主角的普通回合结束时消失。"
 
 TianziPeachReserveSe:
   Name: 桃储
@@ -193,17 +197,17 @@ TianziPeachReserveSe:
   Brief: 回合结束获得|绝壁|；|绝壁|减少时反哺|格挡|。
 
 TianziNextTurnPhilSe:
-  Name: 彩费
+  Name: 幻虹
   Description: "{OwnerName}下回合开始时获得{Mana}。"
   Brief: 下回合获得{Mana}。
 
 TianziDoubleAttackSe:
-  Name: 倍击
+  Name: 三倍度反
   Description: "本回合下一张攻击牌造成原来的|e:2|倍的伤害。"
   Brief: "下一张攻击造成原来的|e:2|倍的伤害。"
 
 TianziShrugSe:
-  Name: 耸肩
+  Name: 耸肩无视
   Description: |-
     {OwnerName}在自己的回合内受到伤害时，获得 {Level} 点|格挡|。
     {OwnerName}的回合结束时，移除此效果。
@@ -244,7 +248,7 @@ TianziGraceSe:
 TianziLethalSe:
   Name: 极彩辐光
   Description: "{OwnerName}在回合内获得{Mana}时，对所有敌人造成其最大生命值 |e:1|% 的伤害。"
-  Brief: 获得无色法力时百分比伤害。
+  Brief: 获得{Mana}时造成敌人最大生命值百分比伤害。
 
 TianziBossPeachSe:
   Name: 仙桃

@@ -29,8 +29,8 @@ namespace TianziMod.Cards
             config.Rarity = Rarity.Rare;
             config.Type = CardType.Attack;
             config.TargetType = TargetType.SingleEnemy;
-            config.Damage = 16;
-            config.UpgradedDamage = 24;
+            config.Damage = 12;
+            config.UpgradedDamage = 16;
             config.Value1 = 1;
             config.Keywords = Keyword.Accuracy;
             config.UpgradedKeywords = Keyword.Accuracy;

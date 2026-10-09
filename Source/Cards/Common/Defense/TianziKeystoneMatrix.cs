@@ -28,7 +28,7 @@ namespace TianziMod.Cards
             config.UpgradedBlock = 7;
 
             config.Value1 = 2; // 持续回合
-            config.UpgradedValue1 = 3;
+            config.UpgradedValue1 = 2;
 
             config.RelativeEffects = new List<string>() { nameof(TianziKeystoneMatrixSe) };
             config.UpgradedRelativeEffects = new List<string>() { nameof(TianziKeystoneMatrixSe) };

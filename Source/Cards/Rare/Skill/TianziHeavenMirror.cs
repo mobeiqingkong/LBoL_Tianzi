@@ -25,7 +25,7 @@ namespace TianziMod.Cards
 
             config.Colors = new List<ManaColor>() { ManaColor.White };
             config.Cost = new ManaGroup() { White = 2 };
-            config.UpgradedCost = new ManaGroup() { White = 1 };
+            config.UpgradedCost = new ManaGroup() { White = 2 };
             config.Rarity = Rarity.Rare;
 
             config.Type = CardType.Skill;
@@ -35,7 +35,6 @@ namespace TianziMod.Cards
             config.UpgradedKeywords = Keyword.Exile | Keyword.Echo;
 
             config.Illustrator = "亜音";
-            config.RelativeKeyword = Keyword.Exile;
             config.UpgradedRelativeKeyword = Keyword.Exile;
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;

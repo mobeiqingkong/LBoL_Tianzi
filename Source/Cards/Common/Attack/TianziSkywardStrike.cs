@@ -29,7 +29,7 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.SingleEnemy;
 
             config.Damage = 12;
-            config.UpgradedDamage = 12;
+            config.UpgradedDamage = 16;
 
             config.Value1 = 2;
             config.UpgradedValue1 = 3;

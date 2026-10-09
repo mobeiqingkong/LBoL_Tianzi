@@ -73,7 +73,6 @@ namespace TianziMod.StatusEffects
             // 意图/预览（OnlyCalculate）不能 ReduceBy，否则敌人攻击会显示成 0×N
             if (args.Cause == ActionCause.OnlyCalculate)
                 return;
-            TianziTempHp.DamageAbsorbing = 0;
             int incoming = (int)Math.Round(args.DamageInfo.Damage, MidpointRounding.AwayFromZero);
             if (incoming <= 0)
                 return;
@@ -81,7 +80,6 @@ namespace TianziMod.StatusEffects
             int cost = Math.Min(incoming, base.Level);
             base.NotifyActivating();
             this._pendingCost += cost;
-            TianziTempHp.DamageAbsorbing = this._pendingCost;
             // Measure 之前必须用 ReduceBy（尚未 Blocked/Shielded）
             args.DamageInfo = args.DamageInfo.ReduceBy(cost);
             args.AddModifier(this);
@@ -188,9 +186,6 @@ namespace TianziMod.StatusEffects
             EnsureBattleHooks(unit == null ? null : unit.Battle);
             return new ApplyStatusEffectAction<TianziTempHpSe>(unit, delta, null, null, null, wait);
         }
-
-        /// <summary>本次伤害结算里，绝壁已经吸收、尚未清掉的点数。预览不算。</summary>
-        public static int DamageAbsorbing;
 
         public static int LostThisTurn;
         public static int LostLastTurn;

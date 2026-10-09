@@ -26,7 +26,7 @@ namespace TianziMod.Cards
             config.Type = CardType.Skill;
             config.TargetType = TargetType.Self;
 
-            config.Keywords = Keyword.Initial | Keyword.Replenish | Keyword.Exile;
+            config.Keywords =  Keyword.Exile;
             config.UpgradedKeywords = Keyword.Initial | Keyword.Replenish | Keyword.Exile;
             config.RelativeKeyword = Keyword.Exile;
             config.UpgradedRelativeKeyword = Keyword.Exile;
@@ -51,18 +51,6 @@ namespace TianziMod.Cards
             Interaction precondition
         )
         {
-            if (base.IsUpgraded)
-            {
-                List<Card> junk = new List<Card>();
-                foreach (Card c in base.Battle.HandZone)
-                {
-                    if (c != null && (c.CardType == CardType.Status || c.CardType == CardType.Misfortune))
-                        junk.Add(c);
-                }
-                if (junk.Count > 0)
-                    yield return new ExileManyCardAction(junk);
-            }
-
             ManaGroup pool = base.Battle.BaseTurnMana;
             ManaGroup gain = new ManaGroup()
             {

@@ -28,14 +28,14 @@ namespace TianziMod.Cards
             config.GunNameBurst = GunNameID.GetGunFromId(520);
 
             config.Colors = new List<ManaColor>() { ManaColor.White, ManaColor.Red };
-            config.Cost = new ManaGroup() { White = 1, Red = 1 };
+            config.Cost = new ManaGroup() { White = 1, Red = 1,  Any = 1 };
             config.Rarity = Rarity.Rare;
 
             config.Type = CardType.Attack;
             config.TargetType = TargetType.SingleEnemy;
 
-            config.Damage = 10;
-            config.UpgradedDamage = 15;
+            config.Damage = 8;
+            config.UpgradedDamage = 12;
 
             config.Keywords = Keyword.Exile | Keyword.Accuracy;
             config.UpgradedKeywords = Keyword.Exile | Keyword.Accuracy;

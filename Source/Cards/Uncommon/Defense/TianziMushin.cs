@@ -21,12 +21,12 @@ namespace TianziMod.Cards
             config.Colors = new List<ManaColor>() { ManaColor.White };
             config.Cost = new ManaGroup() { Any = 1, White = 1 };
             config.UpgradedCost = new ManaGroup() { Any = 2 };
-            config.Rarity = Rarity.Common;
+            config.Rarity = Rarity.Uncommon;
             config.Type = CardType.Defense;
             config.TargetType = TargetType.Self;
-            config.Block = 8;
-            config.UpgradedBlock = 12;
-            config.Scry = 3;
+            config.Block = 6;
+            config.UpgradedBlock = 9;
+            config.Scry = 2;
             config.UpgradedScry = 3;
             config.RelativeCards = new List<string>() { nameof(TianziPlayChoice), nameof(TianziExileChoice) };
             config.UpgradedRelativeCards = config.RelativeCards;

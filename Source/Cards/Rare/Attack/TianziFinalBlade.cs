@@ -51,7 +51,7 @@ namespace TianziMod.Cards
 
     /// <summary>
     /// 终绝的一剑：造成 {Damage} 点伤害。
-    /// 目标每失去 4% 生命值，此牌伤害额外提高目标最大生命值 {Value1}% 的伤害。（放逐 / 保留）
+    /// 目标每失去 6% 生命值，此牌伤害额外提高目标最大生命值 {Value1}% 的伤害。（放逐 / 保留）
     /// </summary>
     [EntityLogic(typeof(TianziFinalBladeDef))]
     public sealed class TianziFinalBlade : TianziCard
@@ -64,7 +64,7 @@ namespace TianziMod.Cards
                 if (target == null || !target.IsAlive || target.MaxHp <= 0)
                     return 0;
                 float lostRatio = 1f - (float)target.Hp / target.MaxHp;
-                int steps = (int)Math.Floor(lostRatio * 100f / 4f);
+                int steps = (int)Math.Floor(lostRatio * 100f / 6f);
                 if (steps <= 0)
                     return 0;
                 return (int)Math.Round(steps * target.MaxHp * base.Value1 / 100f, MidpointRounding.AwayFromZero);

@@ -35,6 +35,7 @@ namespace TianziMod.Cards
             config.Mana = new ManaGroup() { Red = 1 };
             config.Illustrator = "かすおかすと";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
+            config.Keywords = Keyword.Accuracy;
             return config;
         }
     }

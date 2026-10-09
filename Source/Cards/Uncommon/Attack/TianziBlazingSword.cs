@@ -35,8 +35,7 @@ namespace TianziMod.Cards
             config.Damage = 5;
             config.UpgradedDamage = 6;
             config.Value1 = 1;
-            config.UpgradedValue1 = 2;
-            config.Keywords = Keyword.Accuracy;
+            config.UpgradedValue1 = 1;
             config.UpgradedKeywords = Keyword.Accuracy;
             config.RelativeEffects = new List<string>() { nameof(Vulnerable) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
@@ -53,6 +52,14 @@ namespace TianziMod.Cards
         protected override IEnumerable<BattleAction> Actions(
             UnitSelector selector, ManaGroup consumingMana, Interaction precondition)
         {
+            bool hasWeather = base.Battle.Player.StatusEffects.Any(se => se is TianziWeatherSeBase);
+            if (!hasWeather)
+            {
+                foreach (BattleAction action in
+                    TianziWeather.Apply(TianziWeather.Kind.Clear, base.Battle.Player, 1))
+                    yield return action;
+            }
+
             foreach (Unit enemy in selector.GetUnits(base.Battle))
             {
                 if (!enemy.IsAlive)

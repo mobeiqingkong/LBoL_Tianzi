@@ -27,13 +27,14 @@ namespace TianziMod.Cards
             config.Type = CardType.Status;
             config.TargetType = TargetType.Self;
             config.Colors = new List<ManaColor>() { ManaColor.Colorless };
-            config.Cost = ManaGroup.Empty;
+            config.Cost = new ManaGroup() { Any = 5 };
             config.Rarity = Rarity.Rare;
             config.Value1 = 2;
             config.Keywords = Keyword.Exile | Keyword.Ethereal;
             config.UpgradedKeywords = Keyword.Exile | Keyword.Ethereal;
             config.RelativeEffects = new List<string>() { nameof(SpiritNegative) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
+            config.Illustrator = "Magic Daily";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
         }

@@ -1,12 +1,13 @@
-using System.Collections.Generic;
 using LBoL.Base;
 using LBoL.ConfigData;
 using LBoL.Core;
 using LBoL.Core.Battle;
 using LBoL.Core.Cards;
 using LBoLEntitySideloader.Attributes;
+using System.Collections.Generic;
 using TianziMod.Cards.Template;
 using TianziMod.GunName;
+using TianziMod.StatusEffects;
 
 namespace TianziMod.Cards
 {
@@ -26,10 +27,14 @@ namespace TianziMod.Cards
             config.Type = CardType.Attack;
             config.TargetType = TargetType.AllEnemies;
 
-            config.Damage = 4;
-            config.UpgradedDamage = 5;
+            config.Damage = 3;
+            config.UpgradedDamage = 4;
 
-            config.Value1 = 3; // 攻击段数
+            config.Value1 = 5; // 绝壁
+            config.Value2 = 3; // 攻击段数
+
+            config.RelativeEffects = new List<string>() { nameof(TianziTempHpSe) };
+            config.UpgradedRelativeEffects = new List<string>() { nameof(TianziTempHpSe) };
 
             // 精准 = 无视闪避
             config.Keywords = Keyword.None;
@@ -42,7 +47,7 @@ namespace TianziMod.Cards
     }
 
 
-    /// <summary>要石浮游炮：造成 {Damage} 点伤害 {Value1} 次。（精准）</summary>
+    /// <summary>要石浮游炮：造成 {Damage} 点伤害 {Value2} 次。（精准）</summary>
     [EntityLogic(typeof(TianziKeystoneTurretDef))]
     public sealed class TianziKeystoneTurret : TianziCard
     {
@@ -52,7 +57,9 @@ namespace TianziMod.Cards
             Interaction precondition
         )
         {
-            base.CardGuns = new Guns(base.GunName, base.Value1, true);
+            BattleAction gain = TianziTempHp.GainAction(base.Battle.Player, base.Value1);
+            if (gain != null) yield return gain;
+            base.CardGuns = new Guns(base.GunName, base.Value2, true);
             foreach (GunPair gunPair in base.CardGuns.GunPairs)
             {
                 yield return base.AttackAction(selector, gunPair);

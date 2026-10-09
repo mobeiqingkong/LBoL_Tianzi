@@ -8,6 +8,7 @@ using LBoL.Core.Battle.BattleActions;
 using LBoL.Core.Cards;
 using LBoL.Core.StatusEffects;
 using LBoL.Core.Units;
+using LBoL.EntityLib.Cards.Neutral.NoColor;
 using LBoL.EntityLib.StatusEffects.ExtraTurn;
 using LBoLEntitySideloader.Attributes;
 using TianziMod.Cards.Template;
@@ -35,7 +36,8 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
             config.Mana = new ManaGroup() { Philosophy = 1 };
             config.UpgradedMana = new ManaGroup() { Philosophy = 1 };
-
+            config.RelativeCards = new List<string>() { nameof(GManaCard) };
+            config.UpgradedRelativeCards = new List<string>() { nameof(PManaCard) };
             config.Illustrator = "核燃黑猫";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);
             return config;
@@ -62,6 +64,16 @@ namespace TianziMod.Cards
         )
         {
             yield return BuffAction<TianziLethalSe>(1, 0, 0, 0, 0.2f);
+
+            // 打出时将 1 张「生机」加入手中；本牌已升级则改为「幻虹」。
+            // 用「换卡」而不是「把生机升级」：原生从不升级法力牌，需要更强的一张时一律换卡
+            // （参见 EntityLib 的同款写法 —— 升级场合发 PManaCard 幻虹，否则发 GManaCard 生机）。
+            Card mana;
+            if (base.IsUpgraded)
+                mana = Library.CreateCard<PManaCard>();
+            else
+                mana = Library.CreateCard<GManaCard>();
+            yield return new AddCardsToHandAction(new Card[] { mana });
         }
     }
 }
