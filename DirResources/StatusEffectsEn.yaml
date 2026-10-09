@@ -17,7 +17,7 @@ TianziWeatherClear:
   Description: |-
     On gaining this effect, gain 1 |Graze| and 1 random mana of {OwnerName}'s base colors.
     {OwnerName}'s |Graze| does not expire at the start of the turn.
-  Brief: On gain, 1 |Graze| and some base-color mana; |Graze| does not expire.
+  Brief: On gain, 1 |Graze| and some base-color mana; |Graze| does not expire at the start of the turn.
 
 TianziWeatherMist:
   Name: Misty Rain
@@ -47,7 +47,7 @@ TianziWeatherFog:
   Name: Dense Fog
   Description: |-
     When {OwnerName} deals unblocked damage, gain life equal to 5% of the damage dealt.
-  Brief: Heal some % of unblocked damage dealt.
+  Brief: Heal 5% of unblocked damage dealt.
 
 TianziWeatherTyphoon:
   Name: Typhoon
@@ -60,7 +60,7 @@ TianziWeatherSun:
   Name: Blazing Sun
   Description: |-
     At the end of {OwnerName}'s turn, all enemies lose 1% of their maximum life.
-  Brief: At end of {OwnerName}'s turn, enemies lose some % of maximum life.
+  Brief: At end of {OwnerName}'s turn, enemies lose 1% of maximum life.
 
 TianziPeachBoostSe:
   Name: Peach Boost

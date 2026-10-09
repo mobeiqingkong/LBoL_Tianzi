@@ -17,7 +17,7 @@ TianziWeatherClear:
   Description: |-
     이 효과를 얻을 때 |그레이즈|를 1 얻고, {OwnerName}의 기본 마나 색 중 하나를 무작위로 1 얻습니다.
     {OwnerName}의 |그레이즈|는 턴 시작 시 사라지지 않습니다.
-  Brief: 획득 시 |그레이즈|와 기본 색 마나를 얻습니다. |그레이즈|는 사라지지 않습니다.
+  Brief: 획득 시 |그레이즈|와 기본 색 마나를 얻습니다. |그레이즈|는 턴 시작 시 사라지지 않습니다.
 
 TianziWeatherMist:
   Name: 안개비
@@ -47,7 +47,7 @@ TianziWeatherFog:
   Name: 짙은 안개
   Description: |-
     {OwnerName}가 방어되지 않은 피해를 줄 때, 준 피해의 5%만큼 체력을 회복합니다.
-  Brief: 방어되지 않은 피해의 일부를 체력으로 회복합니다.
+  Brief: 방어되지 않은 피해의 5%를 체력으로 회복합니다.
 
 TianziWeatherTyphoon:
   Name: 태풍
@@ -60,7 +60,7 @@ TianziWeatherSun:
   Name: 맹렬한 태양
   Description: |-
     {OwnerName}의 턴 종료 시 모든 적이 최대 체력의 1%를 잃습니다.
-  Brief: "{OwnerName}의 턴 종료 시 적이 최대 체력의 일부를 잃습니다."
+  Brief: "{OwnerName}의 턴 종료 시 적이 최대 체력의 1%를 잃습니다."
 
 TianziPeachBoostSe:
   Name: 선도 증폭

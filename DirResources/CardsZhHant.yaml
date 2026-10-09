@@ -357,7 +357,7 @@ TianziFinalBlade:
   Name: 終絕的一劍
   Description: |-
     造成 {Damage} 點傷害。
-    該敵人每失去 6% 生命值，{SelfName}的傷害就額外提高該敵人最大生命值 {Value1}% 的傷害。
+    該敵人每失去 6% 生命值，{SelfName}的傷害就額外提高該敵人最大生命值 {Value1}% 的傷害。
 
 TianziHardshipFirst:
   Name: 先憂後樂之劍
@@ -410,10 +410,10 @@ TianziScarletApocalypse:
 TianziFinalJudgement:
   Name: 極彩輻光
   Description: |-
-    {PlayerName}在自己的回合內獲得{Mana}時，對所有敵人造成其最大生命值 1% 的傷害。
+    {PlayerName}在自己的回合內獲得{Mana}時，對所有敵人造成其最大生命值 1% 的傷害。
     將一張|生機|加入手牌。
   UpgradedDescription: |-
-    {PlayerName}在自己的回合內獲得{Mana}時，對所有敵人造成其最大生命值 1% 的傷害。
+    {PlayerName}在自己的回合內獲得{Mana}時，對所有敵人造成其最大生命值 1% 的傷害。
     將一張|幻虹|加入手牌。
 
 TianziHeavenCreation:
@@ -437,7 +437,7 @@ TianziHeavenMirror:
   Name: 天界之鏡
   Description: |-
     將本回合上一張打出的牌的一張複製加入手中。
-    它費用為 0，具有|放逐|。
+    它費用為0，具有|放逐|。
 
 TianziPeachTalisman:
   Name: 桃符「固若金湯的仙桃」

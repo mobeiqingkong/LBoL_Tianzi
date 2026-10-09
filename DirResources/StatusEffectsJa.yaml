@@ -17,7 +17,7 @@ TianziWeatherClear:
   Description: |-
     この効果を得た時、|グレイズ|を1獲得し、{OwnerName}の基本法力色のマナを1つランダムに獲得する。
     {OwnerName}の|グレイズ|はターン開始時に消滅しない。
-  Brief: 獲得時に|グレイズ|と基本色マナを獲得。|グレイズ|は消滅しない。
+  Brief: 獲得時に|グレイズ|と基本色マナを獲得。|グレイズ|はターン開始時に消滅しない。
 
 TianziWeatherMist:
   Name: 霧雨
@@ -47,7 +47,7 @@ TianziWeatherFog:
   Name: 濃霧
   Description: |-
     {OwnerName}がブロックされていないダメージを与えた時、与えたダメージの5%分のHPを回復する。
-  Brief: ブロックされていないダメージの一部をHPに変換。
+  Brief: ブロックされていないダメージの5%をHPに変換。
 
 TianziWeatherTyphoon:
   Name: 台風
@@ -60,7 +60,7 @@ TianziWeatherSun:
   Name: 烈日
   Description: |-
     {OwnerName}のターン終了時、全ての敵は最大HPの1%を失う。
-  Brief: "{OwnerName}のターン終了時、敵は最大HPの一部を失う。"
+  Brief: "{OwnerName}のターン終了時、敵は最大HPの1%を失う。"
 
 TianziPeachBoostSe:
   Name: 仙桃増幅

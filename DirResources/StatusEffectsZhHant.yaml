@@ -17,7 +17,7 @@ TianziWeatherClear:
   Description: |-
     獲得本效果時，獲得一層|閃避|，並隨機獲得一點{OwnerName}的基礎法力顏色的費用。
     {OwnerName}的|閃避|不會在回合開始時消失。
-  Brief: "獲得本效果時獲得若干層|閃避|與若干點基礎色法力；|閃避|不會消失。"
+  Brief: "獲得本效果時獲得若干層|閃避|與若干點基礎色法力；|閃避|不會在回合開始時消失。"
 
 TianziWeatherMist:
   Name: 霧雨
@@ -46,8 +46,8 @@ TianziWeatherHail:
 TianziWeatherFog:
   Name: 濃霧
   Description: |-
-    {OwnerName}造成未被阻擋的傷害時，會使自身恢復造成傷害量 5% 的生命值。
-  Brief: "造成未被阻擋的傷害時，會使自身恢復造成傷害量若干% 的生命值。"
+    {OwnerName}造成未被阻擋的傷害時，會使自身恢復造成傷害量 5% 的生命值。
+  Brief: "造成未被阻擋的傷害時，會使自身恢復造成傷害量 5% 的生命值。"
 
 TianziWeatherTyphoon:
   Name: 颱風
@@ -60,7 +60,7 @@ TianziWeatherSun:
   Name: 烈日
   Description: |-
     {OwnerName}的回合結束時，所有敵人失去最大生命值的 1%。
-  Brief: "{OwnerName}的回合結束時，所有敵人失去最大生命值的若干%。"
+  Brief: "{OwnerName}的回合結束時，所有敵人失去最大生命值的 1%。"
 
 TianziPeachBoostSe:
   Name: 仙桃增幅
@@ -248,7 +248,7 @@ TianziGraceSe:
 
 TianziLethalSe:
   Name: 極彩輻光
-  Description: "{OwnerName}在回合內獲得{Mana}時，對所有敵人造成其最大生命值 1% 的傷害。"
+  Description: "{OwnerName}在回合內獲得{Mana}時，對所有敵人造成其最大生命值 1% 的傷害。"
   Brief: 獲得{Mana}時造成敵人最大生命值百分比傷害。
 
 TianziBossPeachSe:
