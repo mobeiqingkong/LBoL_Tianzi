@@ -1,0 +1,29 @@
+TianziExhibitA:
+  Name: Peach
+  Description: |-
+    Provides base mana {Mana}. Adds |Tenshi Hinanawi|'s exclusive cards to the card pool.
+    Draws 1 additional card and grants {Mana2} at the start of the first turn of each battle.
+    At the end of each turn, grants 1 <sprite="Point" name="Power">.
+    Whenever {PlayerName} takes damage that affects life, gains {Value1} life (up to 7 times per battle).
+    After triggering 7 times, no longer grants <sprite="Point" name="Power"> at the end of each turn.
+  FlavorText: |-
+    The first fruit to grow in the peach garden of Bhaavaagra. They say eating it extends your life by three thousand years. Tenshi tucked it into her robes and brought it down to the mortal world, reasoning that "the road is long and it makes a decent snack".
+    "A peach like this is for important moments! ...What counts as an important moment? Hmm, being in a good mood, I suppose."
+
+TianziBossKeepsake:
+  Name: Tenshi's Keepsake
+  Description: |-
+    A memento left behind after defeating Chapter 1's Tenshi.
+    If you carry this keepsake into Chapter 2, the boss battle will always be against Tenshi Hinanawi.
+  FlavorText: |-
+    "Give me back my treasure!"
+
+TianziExhibitB:
+  Name: Sword of Hisou
+  Description: |-
+    Provides base mana {Mana}. Adds |Tenshi Hinanawi|'s exclusive cards to the card pool.
+    The first time each turn {PlayerName} applies a debuff to an enemy, applies 1 extra turn of |Weak|;
+    if that enemy is already |Weak|, applies 1 extra turn of |Vulnerable| instead.
+  FlavorText: |-
+    A longsword forged from the weather of Hisou Heaven and Tenshi's own temperament. Its blade is colorless, yet it always reflects the truest emotions of whoever holds it - so when she is in a bad mood, nobody wants to stand across from her.
+    "This sword doesn't lie. What it shows is the real me - and right now, I'd say it's 'kind of want to punch you'."

@@ -1,0 +1,15 @@
+TianziUltA:
+  Title: 氣符
+  Content: "無念無想的境界"
+  Description: |-
+    {PlayerName}獲得一回合|天衣無縫|。
+    恢復五點生命值。
+    移除{PlayerName}身上的所有負面效果。
+
+TianziUltB:
+  Title: 彩符
+  Content: "天穹虹華之劍"
+  Description: |-
+    隨機釋放一種天氣，持續三回合。
+    對目標造成 {Damage} 點傷害。
+    本場戰鬥中首次使用時，額外造成 {Value1} 點傷害。

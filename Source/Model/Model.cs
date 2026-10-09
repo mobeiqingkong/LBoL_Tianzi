@@ -28,12 +28,10 @@ namespace TianziMod.model
 
         public override LocalizationOption LoadLocalization()
         {
-            // UnitModel 没有 TypeFactory，不能走 BatchLocalization（factoryType=null 会刷
-            // FillLocalizationTables was given a null facType）。直接用 LocalizationFiles 写入 UnitNameTable。
-            LocalizationFiles files = new LocalizationFiles(BepinexPlugin.directorySource);
-            files.AddLocaleFile(Locale.ZhHans, TianziLocalization.UnitModel + "ZhHans");
-            files.fallbackLoc = Locale.ZhHans;
-            return files;
+            // UnitModel 没有 EntityLogic，template 侧 factoryType 为 null，
+            // 但 BatchLocalization 只是把它记下来用于批量填充，AddEntity 本身不依赖它。
+            // 走 DiscoverAndLoadLocFiles ⇒ 新增语言只丢 UnitModel<Locale>.yaml 即可。
+            return TianziLocalization.UnitModelBatchLoc.AddEntity(this);
         }
 
         public override ModelOption LoadModelOptions()

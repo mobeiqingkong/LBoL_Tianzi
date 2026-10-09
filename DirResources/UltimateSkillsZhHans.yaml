@@ -2,14 +2,14 @@ TianziUltA:
   Title: 气符
   Content: "无念无想的境界"
   Description: |-
-    {PlayerName}获得 |e:1| 回合|天衣无缝|。
-    恢复 |e:5| 点生命值。
+    {PlayerName}获得一回合|天衣无缝|。
+    恢复五点生命值。
     移除{PlayerName}身上的所有负面效果。
 
 TianziUltB:
   Title: 彩符
   Content: "天穹虹华之剑"
   Description: |-
-    随机释放一种天气，持续 |e:3| 回合。
-    对目标造成 {Damage} 点伤害。
-    本场战斗中首次使用时，额外造成 {Value1} 点伤害。
+    随机释放一种天气，持续三回合。
+    对目标造成 {Damage} 点伤害。
+    本场战斗中首次使用时，额外造成 {Value1} 点伤害。

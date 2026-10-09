@@ -1,0 +1,575 @@
+TianziKeystoneShot:
+  Name: 要石電擊
+  Description: 造成 {Damage} 點傷害。
+
+TianziKeystoneGuard:
+  Name: 要石護盾
+  Description: 獲得 {Block} 點|格擋|。
+
+TianziScarletSlash:
+  Name: 緋想劍斬擊
+  Description: 造成 {Damage} 點傷害。
+
+TianziScarletGuard:
+  Name: 緋想劍格擋
+  Description: 獲得 {Block} 點|格擋|。
+
+TianziKeystoneTurret:
+  Name: 要石浮遊炮
+  Description: |-
+    獲得 {Value1} 點|絕壁|。
+    對所有敵人造成 {Damage} 點傷害 {Value2} 次。
+
+TianziMushin:
+  Name: 無念無想
+  Description: |-
+    |占卜| {Scry}。
+    獲得 {Block} 點|格擋|。
+    抽取抽牌堆頂的一張牌，可選擇打出或|放逐|。
+
+TianziBodyAsShield:
+  Name: 以身為盾
+  Description: 獲得 {Block} 點|格擋|及 {Value1} 點|絕壁|。
+
+TianziKeystoneMatrix:
+  Name: 要石矩陣
+  Description: |-
+    獲得 {Block} 點|格擋|。
+    接下來 {Value1} 回合內，回合開始時獲得 {Block} 點|格擋|。
+
+TianziHeavenStepGuard:
+  Name: 桃枝庇護
+  Description: |-
+    獲得 {Block} 點|格擋|。
+    手牌張數為奇數時，獲得 {Value1} 點|絕壁|。
+    手牌張數為偶數時，抽一張牌。
+  ExtraDescription1: |-
+    獲得 {Block} 點|格擋|。
+    手牌張數為奇數時，獲得 {Value1} 點|絕壁|。
+    |d:手牌張數為偶數時，抽一張牌。|
+  ExtraDescription2: |-
+    獲得 {Block} 點|格擋|。
+    |d:手牌張數為奇數時，獲得 {Value1} 點絕壁。|
+    手牌張數為偶數時，抽一張牌。
+
+TianziWeatherWatch:
+  Name: 天氣觀測
+  Description: |-
+    獲得 {Block} 點|格擋|。
+    下回合釋放一種|天氣|，持續 {Value1} 回合。
+
+TianziHeavenlyShower:
+  Name: 天界之洗禮
+  Description: |-
+    抽 {Value1} 張牌。
+    恢復 {Value2} 點生命值。
+
+TianziScarletFlash:
+  Name: 灼熱氣焰
+  Description: |-
+    造成 {Damage} 點傷害。
+    手牌張數為奇數時，傷害提升至 {Value1} 點。
+    手牌張數為偶數時，獲得{Mana}。
+  ExtraDescription1: |-
+    造成 {Damage} 點傷害。
+    手牌張數為奇數時，傷害提升至 {Value1} 點。
+    |d:手牌張數為偶數時，獲得{Mana}。|
+  ExtraDescription2: |-
+    造成 {Damage} 點傷害。
+    |d:手牌張數為奇數時，傷害提升至 {Value1} 點。|
+    手牌張數為偶數時，獲得{Mana}。
+
+TianziScarletCharge:
+  Name: 緋想之劍充能
+  Description: |-
+    抽 {Value2} 張牌。
+    下一張攻擊牌的每次傷害增加 {Value1} 點，該效果將在主角的普通回合結束時消失。
+
+TianziSkyCleave:
+  Name: 天穹斬
+  Description: |-
+    造成 {Damage} 點傷害二次。
+    施加 {Value1} 回合|虛弱|。
+
+TianziSkywardStrike:
+  Name: 天地之壓
+  Description: |-
+    造成 {Damage} 點傷害。
+    本回合每打出一張防禦牌，{SelfName}的傷害提高 {Value1} 點。
+
+TianziDoubleSlash:
+  Name: 雙斬
+  Description: |-
+    造成 {Damage} 點傷害 {Value1} 次。
+    將一張|再斬|加入手中。
+
+TianziSecondSlash:
+  Name: 再斬
+  Description: |-
+    造成 {Damage} 點傷害。
+    若目標擁有|格擋|或|護盾|，造成原來的二倍的傷害。
+
+TianziTemperamentSword:
+  Name: 氣質之劍
+  Description: |-
+    |因果|：上一張打出的牌為攻擊牌則施加 {Value1} 回合|易傷|；
+    為防禦或技能牌則施加 {Value1} 回合|虛弱|。
+    造成 {Damage} 點傷害。
+
+TianziScarletFlameWheel:
+  Name: 緋焰射擊
+  Description: |-
+    造成 {Damage} 點傷害。
+    再對隨機的敵人造成同樣的傷害。
+
+TianziWorldRevolve:
+  Name: 天地迴轉
+  Description: |-
+    手牌張數為奇數時，抽 {Value1} 張牌。
+    手牌張數為偶數時，將棄牌堆的 {Value1} 張隨機牌置入手中。
+  ExtraDescription1: |-
+    手牌張數為奇數時，抽 {Value1} 張牌。
+    |d:手牌張數為偶數時，將棄牌堆的 {Value1} 張隨機牌置入手中。|
+  ExtraDescription2: |-
+    |d:手牌張數為奇數時，抽 {Value1} 張牌。|
+    手牌張數為偶數時，將棄牌堆的 {Value1} 張隨機牌置入手中。
+
+TianziPeachNectar:
+  Name: 桃之甘露
+  Description: |-
+    恢復 {Value1} 點生命值。
+    獲得 {Value2} 點|絕壁|。
+
+TianziPeachReserve:
+  Name: 仙桃儲備
+  Description: |-
+    |回合結束時|：如果{SelfName}在手牌中，獲得二點|絕壁|。
+    |回合開始時|：如果{SelfName}在手牌中，上回合每減少 {Value1} 點|絕壁|，獲得 {Value2} 點|格擋|並抽一張牌，一回合最多生效二次。
+  FlavorText: 她把仙桃掰成小塊收進袖子裡，說是路上萬一餓了可以墊一墊。
+
+TianziBlazingSword:
+  Name: 氣焰萬丈之劍
+  Description: |-
+    施加 {Value1} 回合|易傷|。
+    造成 {Damage} 點傷害。
+    每額外支付一點法力，攻擊次數增加 1。
+    若{PlayerName}當前沒有天氣，獲得一回合|快晴|。
+TianziGrowingBraver:
+  Name: 緋焰鐳射
+  Description: |-
+    造成 {Damage} 點傷害。
+    造成未被阻擋的傷害時，獲得 {Value1} 點|火力|。
+
+TianziMeteorPlunge:
+  Name: 墜入大氣圈
+  Description: |-
+    對所有敵人造成 {Damage} 點傷害。
+    再對所有敵人造成一次{PlayerName}的|絕壁|的二倍的傷害。
+
+TianziQuakeWorld:
+  Name: 一擊震乾坤
+  Description: |-
+    造成 {Damage} 點傷害。
+    獲得{Mana}。
+    {PlayerName}本回合每打出過一張其他攻擊牌，{SelfName}耗能減少一點任意費用。
+
+TianziOverwhelming:
+  Name: 摧枯拉朽
+  Description: |-
+    造成 {Damage} 點傷害。
+    若此傷害突破了目標的|格擋|或|護盾|，施加 {Value1} 回合|易傷|。
+
+TianziDanceSword:
+  Name: 環舞之劍
+  Description: |-
+    立刻扣除一點{Mana1}。
+    造成 {Damage} 點傷害。
+    施加 {Value1} 回合|虛弱|。
+    下回合獲得{Mana}，抽一張牌；若未能扣除法力則不會獲得費用。
+
+TianziLandLiquefy:
+  Name: 大地液化
+  Description: |-
+    對所有敵人造成 {Damage} 點傷害，
+    並使其失去 {Value1} 點|格擋|及|護盾|。
+
+TianziKeystoneStorm:
+  Name: 天罰的石柱
+  Description: |-
+    對所有敵人造成 {Damage} 點傷害，並施加一回合|虛弱|。
+    獲得 {Value1} 點|格擋|。若手牌數不少於 3，額外獲得 {Value2} 點|格擋|。
+
+TianziScarletExecution:
+  Name: 緋色狂想
+  Description: |-
+    造成 {Damage} 點傷害。
+    手牌張數為奇數時，本回合下一張攻擊牌造成原來的二倍的傷害。
+    手牌張數為偶數時，抽三張牌。
+  ExtraDescription1: |-
+    造成 {Damage} 點傷害。
+    手牌張數為奇數時，本回合下一張攻擊牌造成原來的二倍的傷害。
+    |d:手牌張數為偶數時，抽三張牌。|
+  ExtraDescription2: |-
+    造成 {Damage} 點傷害。
+    |d:手牌張數為奇數時，本回合下一張攻擊牌造成原來的二倍的傷害。|
+    手牌張數為偶數時，抽三張牌。
+
+TianziHeavenDescent:
+  Name: 天穹崩落
+  Description: |-
+    造成 {Damage} 點傷害。
+    消耗所有|絕壁|，對目標造成消耗值的二倍的傷害。
+    手牌張數為奇數時，此傷害額外增加 {Value1}。
+    手牌張數為偶數時，獲得消耗的|絕壁|等量|護盾|。
+  ExtraDescription1: |-
+    造成 {Damage} 點傷害。
+    消耗所有|絕壁|，對目標造成消耗值的二倍的傷害。
+    手牌張數為奇數時，此傷害額外增加 {Value1}。
+    |d:手牌張數為偶數時，獲得消耗的絕壁等量護盾。|
+  ExtraDescription2: |-
+    造成 {Damage} 點傷害。
+    消耗所有|絕壁|，對目標造成消耗值的二倍的傷害。
+    |d:手牌張數為奇數時，此傷害額外增加 {Value1}。|
+    手牌張數為偶數時，獲得消耗的|絕壁|等量|護盾|。
+
+TianziKeystoneArmor:
+  Name: 要石覆體
+  Description: |-
+    獲得 {Block} 點|格擋|及 {Shield} 點|護盾|。
+    每多打出一次{SelfName}，獲得的|護盾|額外增加 {Value1}。
+
+TianziClearSky:
+  Name: 晴空萬里
+  Description: |-
+    從手牌、抽牌堆及棄牌堆中，選擇至多 {Value1} 張牌|放逐|。
+    每|放逐|一張牌，獲得 {Shield} 點|護盾|。
+
+TianziHeavenCanopy:
+  Name: 有頂天穹
+  Description: |-
+    獲得 {Block} 點|格擋|。
+    抽 {Value1} 張牌。
+
+TianziHeavenlyFlight:
+  Name: 天人翱翔
+  Description: |-
+    獲得{Mana}。
+    抽 {Value1} 張牌。
+
+TianziHeavenlyInstinct:
+  Name: 天人的直覺
+  Description: |-
+    手牌張數為奇數時，獲得{Mana}。
+    手牌張數為偶數時，抽 {Value1} 張牌。
+  ExtraDescription1: |-
+    手牌張數為奇數時，獲得{Mana}。
+    |d:手牌張數為偶數時，抽 {Value1} 張牌。|
+  ExtraDescription2: |-
+    |d:手牌張數為奇數時，獲得{Mana}。|
+    手牌張數為偶數時，抽 {Value1} 張牌。
+
+TianziHeavenlyRitual:
+  Name: 天人的流儀
+  Description: |-
+    |占卜| {Scry}。抽一張牌。
+    抽到攻擊牌則獲得一點|火力|；防禦牌則獲得一點|靈力|；
+    技能牌則額外抽 {Value1} 張；狀態或厄運則將其|放逐|。
+
+TianziHeavenlyWriting:
+  Name: 天人落書
+  Description: |-
+    選擇一張手牌|放逐|，抽 {Value1} 張牌。
+    根據|放逐|的牌：攻擊隨機施加一回合|易傷|；防禦隨機施加一回合|虛弱|；
+    技能額外抽一張；能力獲得 {Value2} 層|庇護|；詛咒或狀態將一張|光芒|加入手中。
+
+TianziWeatherMastery:
+  Name: 無垢之土
+  Description: |-
+    選擇一張手牌丟棄。獲得 {Block} 點|格擋|。
+    選擇棄牌堆內至多一張牌置於抽牌堆頂。
+    若手牌數量大於 {Value1}，額外獲得{Mana}。
+
+TianziScarletRadiance:
+  Name: 緋想的威光
+  Description: 每當一張牌被|放逐|，對所有敵人造成 {Value1} 點攻擊傷害。
+
+TianziScarletWave:
+  Name: 緋想劍斬波
+  Description: |-
+    每回合前 {Value1} 次攻擊造成傷害時，獲得等量的|格擋|。
+    此能力無法疊加。
+
+TianziOddEvenQi:
+  Name: 天人氣性
+  Description: 具有|奇偶數|的牌打出時，奇偶效果改為由{PlayerName}選擇觸發。
+
+TianziPeachBoost:
+  Name: 仙桃增幅
+  Description: |-
+    獲得|絕壁|時額外獲得一點。
+    立即獲得 {Value1} 點|絕壁|。
+    此能力無法疊加。
+
+TianziPeachGarden:
+  Name: 漫漫桃源
+  Description: "|絕壁|減少時，獲得一點|絕壁|。"
+
+TianziPureWish:
+  Name: 清霖之願
+  Description: |-
+    每回合前 {Value1} 次抽到厄運或狀態牌時，將其|放逐|並抽一張牌；|庇護|觸發時此效果也會生效。
+    此能力無法疊加。
+
+TianziHeavenShield:
+  Name: 天界之庇護
+  Description: |-
+    {PlayerName}的回合開始時獲得{Mana}。
+    {PlayerName}的回合結束時獲得一層|庇護|。
+    此能力無法疊加。
+
+TianziMeditation:
+  Name: 一念
+  Description: |-
+    每回合多抽一張牌。
+    回合開始時，可將一張手牌與棄牌堆內的一張牌互換。
+
+TianziEndurance:
+  Name: 天人的耐性
+  Description: |-
+    回合開始時獲得十點|格擋|，
+    並獲得一點|靈力|（最多累計三點）。
+
+TianziPeachBlossom:
+  Name: 因果掌控
+  Description: 具有|因果|的牌打出時，因果效果改為由{PlayerName}選擇觸發。
+
+TianziHeavenlyTempo:
+  Name: 天人永不落俗
+  Description: |-
+    {PlayerName}的回合開始時，奇數回合獲得 {Value1} 點|火力|；
+    偶數回合獲得當前|火力|的 {Value2} 倍|格擋|（至多二十五點）。
+  UpgradedDescription: |-
+    {PlayerName}的回合開始時，奇數回合獲得 {Value1} 點|火力|；
+    偶數回合獲得當前|火力|的 {Value2} 倍|格擋|（至多二十五點）。
+    多次打出時，火力獲取疊加。
+
+TianziFinalBlade:
+  Name: 終絕的一劍
+  Description: |-
+    造成 {Damage} 點傷害。
+    該敵人每失去 6% 生命值，{SelfName}的傷害就額外提高該敵人最大生命值 {Value1}% 的傷害。
+
+TianziHardshipFirst:
+  Name: 先憂後樂之劍
+  Description: |-
+    造成 {Damage} 點傷害。
+    手牌張數為奇數時，打出後將{SelfName}置於抽牌堆頂。
+    手牌張數為偶數時，本回合結束前保留所有手牌。
+  ExtraDescription1: |-
+    造成 {Damage} 點傷害。
+    手牌張數為奇數時，打出後將{SelfName}置於抽牌堆頂。
+    |d:手牌張數為偶數時，本回合結束前保留所有手牌。|
+  ExtraDescription2: |-
+    造成 {Damage} 點傷害。
+    |d:手牌張數為奇數時，打出後將{SelfName}置於抽牌堆頂。|
+    手牌張數為偶數時，本回合結束前保留所有手牌。
+  FlavorText: 先天下之憂而憂，後天下之樂而樂——這道理她背得滾瓜爛熟。
+
+TianziUnthinkableBlade:
+  Name: 非想「非想非非想之劍」
+  Description: |-
+    造成 {Damage} 點傷害。
+    下回合隨機釋放一種|天氣|，持續 {Value1} 回合。
+    結束{PlayerName}的回合，進行一個額外的回合。
+    |時間有限|{Mana}。
+  FlavorText: 那一劍沒有名字，因為想不出來的時候，名字也就無所謂了。
+
+TianziPureDawn:
+  Name: 恆淨之黎
+  Description: |-
+    造成 {Damage} 點傷害。
+    移除{PlayerName}身上的所有負面效果，
+    並獲得等同於造成傷害一半的|自愈|。
+  FlavorText: 天亮得毫無雜念，像是有人把整個天空洗過一遍。
+
+TianziWorldCleaver:
+  Name: 乾坤一擲
+  Description: |-
+    消耗全部費用（X）。選擇丟棄與消耗費用相等數量的手牌。
+    每丟棄一張牌觸發一次：攻擊獲得一點|火力|；防禦獲得一點|靈力|；
+    技能獲得{Mana}；能力、厄運與狀態則|放逐|這張牌，並額外隨機|放逐|棄牌堆中的一張厄運或狀態。
+    返還超出可棄手牌數量的{Mana2}。然後抽取等量的牌。
+
+TianziScarletApocalypse:
+  Name: 氣符「天啟氣象之劍」
+  Description: |-
+    造成 {Damage} 點傷害。
+    下回合隨機釋放一種|天氣|，持續 {Value1} 回合。
+    若打出{SelfName}時已有|天氣|，造成原來的1.5倍的傷害。
+
+TianziFinalJudgement:
+  Name: 極彩輻光
+  Description: |-
+    {PlayerName}在自己的回合內獲得{Mana}時，對所有敵人造成其最大生命值 1% 的傷害。
+    將一張|生機|加入手牌。
+  UpgradedDescription: |-
+    {PlayerName}在自己的回合內獲得{Mana}時，對所有敵人造成其最大生命值 1% 的傷害。
+    將一張|幻虹|加入手牌。
+
+TianziHeavenCreation:
+  Name: 天界造物
+  Description: |-
+    從 {Value1} 張隨機的{PlayerName}的罕見牌中選擇一張加入手中。
+    它費用為 0，具有|放逐|、|虛無|。
+
+TianziRainbowAura:
+  Name: 虹彩氣息
+  Description: 根據{PlayerName}的基礎法力顏色種類，各獲得二點法力。
+
+TianziHeavenRoam:
+  Name: 天界漫遊
+  Description: |-
+    選擇一張手牌|放逐|，抽一張牌。
+    {PlayerName}每打出 {Value1} 張牌，{SelfName}就從棄牌堆回到手中。
+    |初見|：將一張|光芒|加入手中。
+
+TianziHeavenMirror:
+  Name: 天界之鏡
+  Description: |-
+    將本回合上一張打出的牌的一張複製加入手中。
+    它費用為 0，具有|放逐|。
+
+TianziPeachTalisman:
+  Name: 桃符「固若金湯的仙桃」
+  Description: |-
+    獲得一回合|天衣無縫|及 {Value1} 點|絕壁|。
+    每四個自然回合獲得一層|天衣無縫|。
+  FlavorText: 桃符貼在門框上，連天狗的團扇都敲不開。
+
+TianziMortalJourney:
+  Name: 凡間之遊
+  Description: |-
+    {PlayerName}每打出 {Value1} 張牌，獲得{Mana}並抽一張牌。
+    此能力無法疊加。
+  FlavorText: 下凡一趟，她學會了凡人的節奏：走幾步，歇一歇。
+
+TianziHeavenThrone:
+  Name: 有頂天的恩寵
+  Description: |-
+    回合開始失去|格擋|時，將剩餘|格擋|轉化為|絕壁|。
+    每回合開始獲得{Mana}。
+
+TianziPeachEternity:
+  Name: “野生桃奶”
+  Description: |-
+    {PlayerName}|絕壁|上限提高 {Value1}。
+    {PlayerName}每回合開始時，獲得 {Value2} 點|絕壁|。
+  FlavorText: 上面寫著，保質期：永久。
+
+TianziParityOddChoice:
+  Name: 奇數
+  Description: 觸發奇數效果。
+
+TianziParityEvenChoice:
+  Name: 偶數
+  Description: 觸發偶數效果。
+
+TianziPlayChoice:
+  Name: 打出
+  Description: 打出這張牌。
+
+TianziExileChoice:
+  Name: 放逐
+  Description: "|放逐|這張牌。"
+
+TianziKarmaAttackChoice:
+  Name: 攻擊
+  Description: 觸發攻擊|因果|。
+
+TianziKarmaDefenseChoice:
+  Name: 防禦
+  Description: 觸發防禦|因果|。
+
+TianziKarmaSkillChoice:
+  Name: 技能
+  Description: 觸發技能|因果|。
+
+TianziKarmaAbilityChoice:
+  Name: 能力
+  Description: 觸發能力|因果|。
+
+TianziKarmaCurseChoice:
+  Name: 厄運
+  Description: 觸發厄運或狀態|因果|。
+
+TianziIkuFriend:
+  Name: 龍宮使者衣玖
+  Description: "{FriendP}|占卜| {Scry}。直到自己的回合開始之前獲得 {Value2} 層|帶電|。"
+  ExtraDescription1: "{FriendA}獲得一回合|天衣無縫|。"
+
+TianziShrugIgnore:
+  Name: 聳肩無視
+  Description: |-
+    獲得 {Block} 點|格擋|。
+    本回合內，{PlayerName}受到傷害時獲得一點|格擋|。此效果不可疊加，回合結束時消失。
+
+TianziBlueMeditation:
+  Name: 冥想
+  Description: |-
+    將一張|水花|加入手中。
+    手牌張數為奇數時，抽一張牌。
+    手牌張數為偶數時，選擇一張手牌|放逐|。
+  ExtraDescription1: |-
+    將一張|水花|加入手中。
+    手牌張數為奇數時，抽一張牌。
+    |d:手牌張數為偶數時，選擇一張手牌放逐。|
+  ExtraDescription2: |-
+    將一張|水花|加入手中。
+    |d:手牌張數為奇數時，抽一張牌。|
+    手牌張數為偶數時，選擇一張手牌|放逐|。
+
+TianziTemperamentProbe:
+  Name: 氣質探查
+  Description: '{PlayerName}在回合內每打出一張具有|奇偶數|的牌，抽一張牌。'
+
+TianziEarthStone:
+  Name: 靈想「鎮守大地之石」
+  Description: |-
+    進入手中時|放逐|{SelfName}。
+    獲得{Value1}層|鎮石|。
+
+TianziFeast:
+  Name: 慶功宴
+  Description: 每當一名敵人被打敗，恢復二點生命值，獲得{Mana}，抽一張牌。
+
+
+TianziPeachMake:
+  Name: 仙桃製成
+  Description: |-
+    失去三點|絕壁|。若沒有|絕壁|則不生效。
+    恢復二點生命值，獲得二點<sprite="Point" name="Power">，獲得{Mana}，抽 {Value1} 張牌。
+
+TianziDomainDuel:
+  Name: 境界對決
+  Description: 完全抵擋下一次受到的敵人攻擊傷害，並完整返還這一次傷害。
+
+TianziHeavenDoor:
+  Name: 天界之扉
+  Description: |-
+    選擇一張手牌將其|升級|，獲得 {Value1} 點|絕壁|。
+    根據|升級|的牌：
+    攻擊則將其複製加入手中，費用為 0，具有|放逐|、|虛無|；
+    防禦則獲得 {Value2} 點|格擋|；
+    技能則抽二張牌。
+
+TianziAyaNewsSp:
+  Name: 《文文新聞》天子特刊
+  Description: '|回合結束時|：失去 {Value1} 點|靈力|。'
+  FlavorText: 月都萬象展特集！詳細刊載了有關{PlayerName}的流言蜚語。
+
+TianziKarmaShackle:
+  Name: 因果枷鎖
+  Description: |-
+    打出與此牌相鄰的一張手牌時，另一側相鄰牌獲得|禁止|；本回合結束時移除因此添加的|禁止|。
+  PreventUsageMessage: 因果枷鎖限制了相鄰牌。
+  FlavorText: 憑空而生的枷鎖本質也是“因果”帶來的必然，就如同遠古時代最強大的狩獵者也必將化作化石一般，早已註定……

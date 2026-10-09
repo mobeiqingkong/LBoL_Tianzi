@@ -24,10 +24,8 @@ namespace TianziMod.model
 
         public override LocalizationOption LoadLocalization()
         {
-            LocalizationFiles files = new LocalizationFiles(BepinexPlugin.directorySource);
-            files.AddLocaleFile(Locale.ZhHans, TianziLocalization.UnitModel + "ZhHans");
-            files.fallbackLoc = Locale.ZhHans;
-            return files;
+            // 与 TianziModel 同理：走批量发现，新增语言只丢 UnitModel<Locale>.yaml。
+            return TianziLocalization.UnitModelBatchLoc.AddEntity(this);
         }
 
         public override ModelOption LoadModelOptions()

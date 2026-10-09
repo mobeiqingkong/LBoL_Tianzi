@@ -1,0 +1,15 @@
+TianziUltA:
+  Title: 気符
+  Content: "無念無想の境界"
+  Description: |-
+    {PlayerName}は|天衣無縫|を1ターン獲得する。
+    HPを5回復する。
+    {PlayerName}のデバフを全て除去する。
+
+TianziUltB:
+  Title: 彩符
+  Content: "天穹虹華の剣"
+  Description: |-
+    天気を1つランダムに発動する。3ターン持続。
+    対象に{Damage}のダメージを与える。
+    この戦闘で最初に使用した時、さらに{Value1}のダメージを与える。

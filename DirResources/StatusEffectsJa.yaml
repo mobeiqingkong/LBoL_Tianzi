@@ -1,0 +1,273 @@
+TianziTempHpSe:
+  Name: 絶壁
+  Description: |-
+    最大HPとは別枠の戦闘中専用HP。上限は15。
+    HPに関わるあらゆる効果と連携する。
+    ダメージを受けた時、|ブロック|と|バリア|より先に減少する。
+  Brief: 黄色の追加HP。被弾時はブロックより先に減少。上限は15。
+
+TianziRegenSe:
+  Name: 自然治癒
+  Description: |-
+    {OwnerName}のターン終了時に{Level}HP回復し、ターン開始時にスタックが1減少する。
+  Brief: ターン終了時に{Level}HP回復。
+
+TianziWeatherClear:
+  Name: 快晴
+  Description: |-
+    この効果を得た時、|グレイズ|を1獲得し、{OwnerName}の基本法力色のマナを1つランダムに獲得する。
+    {OwnerName}の|グレイズ|はターン開始時に消滅しない。
+  Brief: 獲得時に|グレイズ|と基本色マナを獲得。|グレイズ|は消滅しない。
+
+TianziWeatherMist:
+  Name: 霧雨
+  Description: |-
+    {OwnerName}のスペルカードの与えるダメージが1.25倍になる。
+  Brief: スペルカードのダメージが上昇する。
+
+TianziWeatherCloud:
+  Name: 曇天
+  Description: |-
+    この効果がある間、カードを1枚プレイするごとに無色マナを1獲得する。
+  Brief: カードをプレイするごとに無色マナを獲得。
+
+TianziWeatherAzure:
+  Name: 蒼天
+  Description: |-
+    ターン終了時、{OwnerName}は<sprite="Point" name="Power">を7獲得する。
+  Brief: ターン終了時に<sprite="Point" name="Power">を獲得。
+
+TianziWeatherHail:
+  Name: 雹
+  Description: |-
+    {OwnerName}は毎ターン終了時、次のターンに基本法力と同量のマナを獲得する。
+  Brief: 次のターンに基本法力と同量のマナを獲得。
+
+TianziWeatherFog:
+  Name: 濃霧
+  Description: |-
+    {OwnerName}がブロックされていないダメージを与えた時、与えたダメージの5%分のHPを回復する。
+  Brief: ブロックされていないダメージの一部をHPに変換。
+
+TianziWeatherTyphoon:
+  Name: 台風
+  Description: |-
+    敵は|ブロック|と|バリア|を獲得できない。
+    敵が既に持つ|ブロック|と|バリア|を即座に全て除去する。
+  Brief: 敵は|ブロック|と|バリア|を獲得できず、既存のものも除去される。
+
+TianziWeatherSun:
+  Name: 烈日
+  Description: |-
+    {OwnerName}のターン終了時、全ての敵は最大HPの1%を失う。
+  Brief: "{OwnerName}のターン終了時、敵は最大HPの一部を失う。"
+
+TianziPeachBoostSe:
+  Name: 仙桃増幅
+  Description: |-
+    {OwnerName}が|絶壁|を獲得した時、|絶壁|をさらに1獲得する。
+    この能力は重複しない。
+  Brief: "|絶壁|獲得時に|絶壁|が増加。重複不可。"
+
+TianziPeachGardenSe:
+  Name: 桃源郷
+  Description: |-
+    {OwnerName}の|絶壁|が減少した時、|絶壁|を1獲得する。
+  Brief: "|絶壁|減少時に|絶壁|を獲得。"
+
+TianziScarletRadianceSe:
+  Name: 緋想の威光
+  Description: |-
+    カードが廃棄されるたび、全ての敵に{Level}の攻撃ダメージを与える。
+  Brief: カード廃棄時に敵全体へ{Level}ダメージ。
+
+TianziScarletWaveSe:
+  Name: 緋想剣斬波
+  Description: |-
+    {OwnerName}が毎ターン最初の{Level}回（残り{Count}回）の攻撃でダメージを与えた時、同量の|ブロック|を獲得する。
+    この能力は重複しない。
+  Brief: 毎ターン最初の{Level}回（残り{Count}）の攻撃ダメージを|ブロック|に変換。重複不可。
+
+TianziKeystoneMatrixSe:
+  Name: 石陣
+  Description: |-
+    これから{Duration}ターンの間、{OwnerName}はターン開始時に{Level}の|ブロック|を獲得する。
+  Brief: ターン開始時に{Level}の|ブロック|を獲得。
+
+TianziNextTurnManaSe:
+  Name: 蓄力
+  Description: |-
+    {OwnerName}は次のターン開始時に{Mana}を獲得する。
+  Brief: 次のターンに{Mana}を獲得。
+
+TianziParityKwSe:
+  Name: 奇数・偶数
+  Description: |-
+    手札の枚数が奇数か偶数かによって異なる効果を発動する。
+  Brief: 手札の偶奇で効果が変わる。
+
+TianziKarmaKwSe:
+  Name: 因果
+  Description: "カードの種類（攻撃 / 防御 / スキル / アビリティ / 厄と状態）によって異なる効果を発動する。"
+  Brief: カードの種類で効果が変わる。
+
+TianziKarmaSe:
+  Name: 因果掌握
+  Description: |-
+    |因果|キーワードを持つカードをプレイした時、発動する因果効果を自分で選べるようになる。
+  Brief: 因果効果を選択可能にする。
+
+TianziOddEvenSe:
+  Name: 天人の気質
+  Description: |-
+    手札の枚数の「奇数 / 偶数」分岐効果を{OwnerName}が選択して発動できるようになる。
+  Brief: 偶奇分岐を選択可能にする。
+
+TianziWeatherForecastSe:
+  Name: 観測
+  Description: "次のターン開始時に天気を1つランダムに発動する。{Duration}ターン持続。"
+  Brief: 次のターンに天気を発動。
+
+TianziMeditationSe:
+  Name: 一念
+  Description: |-
+    {OwnerName}は毎ターン追加でカードを1枚引く。
+    ターン開始時、手札1枚と捨て札1枚を入れ替えられる。
+  Brief: 毎ターン追加ドロー。手札と捨て札を入れ替え可能。
+
+TianziEnduranceSe:
+  Name: 天人の耐性
+  Description: |-
+    {OwnerName}はターン開始時に10の|ブロック|を獲得し、
+    |霊力|を1獲得する（最大3まで蓄積）。
+  Brief: ターン開始時にブロックと|霊力|を獲得。
+
+TianziPureWishSe:
+  Name: 清霖の願い
+  Description: |-
+    {OwnerName}が毎ターン最初の{Level}回（残り{Count}回）厄か状態のカードを引いた時、
+    それを廃棄してカードを1枚引く。|庇護|が発動した時もこの効果は働く。
+    この能力は重複しない。
+  Brief: 毎ターン{Level}回（残り{Count}）、厄/状態を廃棄して引き直す。重複不可。
+
+TianziHeavenShieldSe:
+  Name: 天界の庇護
+  Description: |-
+    {OwnerName}はターン開始時に{Mana}を獲得する。
+    {OwnerName}はターン終了時に|庇護|を1獲得する。
+    この能力は重複しない。
+  Brief: ターン開始時に{Mana}、終了時に|庇護|を獲得。重複不可。
+
+TianziMortalJourneySe:
+  Name: 凡間の遊び
+  Description: |-
+    {OwnerName}が{Level}枚のカードをプレイするごとに、{Mana}を獲得しカードを1枚引く。
+    あと{Count}枚で発動する。
+    この能力は重複しない。
+  Brief: あと{Count}/{Level}枚で発動。重複不可。
+
+TianziPeachTalismanSe:
+  Name: 桃符「金城鉄壁の仙桃」
+  Description: |-
+    4ターンごとに、{OwnerName}は|天衣無縫|を1ターン獲得し、
+    即座に{Level}の|絶壁|を獲得する。
+  Brief: 数ターンごとに|天衣無縫|と|絶壁|を獲得。
+
+TianziHeavenlyTempoSe:
+  Name: 天人は俗に落ちず
+  Description: |-
+    奇数ターンの開始時に{Count}の|火力|を獲得する。
+    偶数ターンの開始時に現在の|火力|の{Level}倍の|ブロック|を獲得する（最大25）。
+  Brief: 奇数は|火力|、偶数は|ブロック|を最大25まで獲得。
+
+TianziPeachEternitySe:
+  Name: "野生の桃ミルク"
+  Description: |-
+    {OwnerName}の|絶壁|の上限を{Level}上げる。
+    毎ターン開始時に{Count}の|絶壁|を獲得する。
+  Brief: "|絶壁|の上限が上昇し、毎ターン|絶壁|を獲得。"
+
+TianziScarletChargeSe:
+  Name: 盈能
+  Description: |-
+    このターン、次の攻撃カードの与えるダメージが1ヒットにつき{Level}増加する。この効果はプレイヤーの通常ターン終了時に消える。
+  Brief: 次の攻撃が1ヒットにつき{Level}増加。ターン終了まで。
+
+TianziPeachReserveSe:
+  Name: 桃貯め
+  Description: |-
+    {OwnerName}は毎ターン終了時に2の|絶壁|を獲得する。
+    |絶壁|が累計{Level}減少するごとに、{Count}の|ブロック|を獲得しカードを1枚引く。
+    1ターンに最大2回まで発動する。
+  Brief: ターン終了時に|絶壁|を獲得。|絶壁|の減少が|ブロック|に還元される。
+
+TianziNextTurnPhilSe:
+  Name: 幻虹
+  Description: "{OwnerName}は次のターン開始時に{Mana}を獲得する。"
+  Brief: 次のターンに{Mana}を獲得。
+
+TianziDoubleAttackSe:
+  Name: 三倍度反
+  Description: "このターン、次の攻撃カードの与えるダメージが2倍になる。"
+  Brief: 次の攻撃のダメージが数倍になる。
+
+TianziShrugSe:
+  Name: 肩すくめ無視
+  Description: |-
+    {OwnerName}が自分のターン中にダメージを受けた時、{Level}の|ブロック|を獲得する。
+    {OwnerName}のターン終了時にこの効果を除去する。
+  Brief: このターン被弾時に|ブロック|を獲得。ターン終了時に消滅。
+
+TianziHardshipRetainSe:
+  Name: 後楽
+  Description: このターンが終わるまで、手札を全てキープする。
+  Brief: ターン終了まで手札をキープ。
+
+TianziProbeSe:
+  Name: 気質探査
+  Description: "{OwnerName}が|奇数・偶数|カードをプレイするたび、カードを1枚引く。"
+  Brief: 偶奇カードのプレイでドロー。
+
+TianziEarthDelaySe:
+  Name: 鎮石
+  Description: "これから{Count}ターンの開始時に、{Level}の|自然治癒|を獲得する。"
+  Brief: これからのターンに|自然治癒|を獲得。
+
+TianziFeastSe:
+  Name: 祝宴
+  Description: "敵を1体倒すたび、HPを2回復し、{Mana}を獲得してカードを1枚引く。"
+  Brief: 撃破時に回復、マナ獲得、ドロー。
+
+TianziReflectSe:
+  Name: 境界対決
+  Description: "次の{Level}回の敵の攻撃によるHP減少を完全に防ぎ、そのまま全額を返す。"
+  Brief: 次の攻撃を防いで返す。
+
+TianziGraceSe:
+  Name: 有頂天の恩寵
+  Description: |-
+    ターン開始時に|ブロック|を失った時、残った|ブロック|を|絶壁|に変換する。
+    毎ターン開始時に{Mana}を獲得する。
+  Brief: ターン開始時に|ブロック|を|絶壁|に変換。
+
+TianziLethalSe:
+  Name: 極彩輻光
+  Description: "{OwnerName}がターン中に{Mana}を獲得した時、全ての敵に最大HPの1%のダメージを与える。"
+  Brief: "{Mana}獲得時に敵最大HPの割合ダメージ。"
+
+TianziBossPeachSe:
+  Name: 仙桃
+  Description: "ダメージを受けた時{Level}HP回復し、さらに{Count}の<sprite=\"Point\" name=\"Power\">を蓄積する。"
+  Brief: 被弾時にHP回復と<sprite=\"Point\" name=\"Power\">の蓄積。
+
+TianziBossHeavenQiSe:
+  Name: 天人の気
+  Description: ターン終了時、デバフは1ではなく2スタック減少する。
+  Brief: ターン終了時にデバフが余分に減少。
+
+TianziBossKarmaInfluenceSe:
+  Name: 因果影響
+  Description: |-
+    主人公が{Level}枚のカードをプレイするごと（進行度{Count}/{Level}）：
+    このカードが左から奇数枚目ならランダムにマナを1失う。偶数枚目ならランダムにカードを1枚捨てる。
+  Brief: "{Level}枚ごとに、偶奇の位置で罰を与える。"

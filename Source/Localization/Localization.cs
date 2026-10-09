@@ -29,6 +29,14 @@ namespace TianziMod.Localization
             typeof(PlayerUnitTemplate),
             PlayerUnit
         );
+        // UnitModel 走独立的 BatchLocalization（照 CirnoR 的做法）：
+        // DiscoverAndLoadLocFiles 会枚举 Locale 全量取值去找 UnitModel<Locale>.yaml，
+        // 所以以后加语言只需要往 DirResources 丢一个 yaml，不用改代码。
+        public static BatchLocalization UnitModelBatchLoc = new BatchLocalization(
+            BepinexPlugin.directorySource,
+            typeof(UnitModelTemplate),
+            UnitModel
+        );
         public static BatchLocalization UltimateSkillsBatchLoc = new BatchLocalization(
             BepinexPlugin.directorySource,
             typeof(UltimateSkillTemplate),
@@ -50,6 +58,7 @@ namespace TianziMod.Localization
             CardsBatchLoc.DiscoverAndLoadLocFiles(Cards);
             ExhibitsBatchLoc.DiscoverAndLoadLocFiles(Exhibits);
             PlayerUnitBatchLoc.DiscoverAndLoadLocFiles(PlayerUnit);
+            UnitModelBatchLoc.DiscoverAndLoadLocFiles(UnitModel);
             UltimateSkillsBatchLoc.DiscoverAndLoadLocFiles(UltimateSkills);
             StatusEffectsBatchLoc.DiscoverAndLoadLocFiles(StatusEffects);
             EnemiesUnitBatchLoc.DiscoverAndLoadLocFiles(EnemiesUnit);
