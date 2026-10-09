@@ -7,6 +7,12 @@
     <PublicizerRuntimeStrategies>IgnoresAccessChecksTo</PublicizerRuntimeStrategies>
     <!-- limit/ 是反编译资料和查询脚本，不参与 Mod 编译。 -->
     <DefaultItemExcludes>$(DefaultItemExcludes);limit\**</DefaultItemExcludes>
+    <!-- 只压掉两类纯噪音，其余警告保持开启：
+         CS1591  GenerateDocumentationFile=True 会要求每个 public 成员都写 XML 注释
+                 （本项目几百个实体类，属结构性噪音，不是缺陷）；
+         CS0436  Krafs.Publicizer 内嵌的 IgnoresAccessChecksToAttribute 与 MonoMod.Utils 里的重名，
+                 编译器实际采用的正是 publicizer 那一份，是预期行为。 -->
+    <NoWarn>$(NoWarn);CS1591;CS0436</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -266,7 +272,7 @@
   <ItemGroup>
     <!--CHANGE THIS PATH-->
     <Reference Include="LBoL-Entity-Sideloader">
-      <HintPath>D:\Steam\steamapps\workshop\content\1140150\3572815053\LBoL-Entity-Sideloader.dll</HintPath>
+      <HintPath>$(BepInExFolder)\plugins\LBoL-Entity-Sideloader\LBoL-Entity-Sideloader.dll</HintPath>
     </Reference>
     <Reference Include="LBoL.Base">
       <HintPath>$(GameFolder)\LBoL_Data\Managed\LBoL.Base.dll</HintPath>

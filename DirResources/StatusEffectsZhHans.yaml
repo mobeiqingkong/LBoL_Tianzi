@@ -15,9 +15,9 @@ TianziRegenSe:
 TianziWeatherClear:
   Name: 快晴
   Description: |-
-    回合开始时，随机一张可打出的手牌费用暂时减少{Mana}。
+    获得此效果时，获得 1 层|闪避|，并随机获得 1 点{OwnerName}的基础法力颜色的费用。
     {OwnerName}的|闪避|不会在回合开始时消失。
-  Brief: "回合开始时，随机一张手牌费用暂时减少{Mana}；|闪避|不会消失。"
+  Brief: "获得此效果时同时获得 1 层|闪避|与 1 点基础色法力；|闪避|不会消失。"
 
 TianziWeatherMist:
   Name: 雾雨
@@ -28,8 +28,8 @@ TianziWeatherMist:
 TianziWeatherCloud:
   Name: 云天
   Description: |-
-    回合开始时，本回合内所有手牌的费用减少{Mana}。
-  Brief: "回合开始时，本回合内所有手牌费用减少{Mana}。"
+    此效果存在时，每打出一张牌，获得 1 点无色法力。
+  Brief: "每打出一张牌获得 1 点无色法力。"
 
 TianziWeatherAzure:
   Name: 苍天
@@ -125,7 +125,7 @@ TianziOddEvenSe:
 TianziWeatherForecastSe:
   Name: 观测
   Description: "下回合开始时随机释放一种天气，持续 {Duration} 回合。"
-  Brief: 下回合释放天气。
+  Brief: 下回合开始时释放一种天气。
 
 TianziMeditationSe:
   Name: 一念

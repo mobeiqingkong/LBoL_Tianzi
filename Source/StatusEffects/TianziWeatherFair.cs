@@ -13,59 +13,55 @@ using UnityEngine;
 namespace TianziMod.StatusEffects
 {
     // ================================================================
-    //  快晴：回合开始时随机一张卡牌任意费用 -1；自身的闪避不会消失
+    //  快晴：获得该效果时给 1 层闪避 + 1 点主角基础法力颜色的费用；自身闪避不会消失
+    //  「闪避不会消失」由 TianziClearKeepGrazePatch 拦 Graze.LoseGraze 实现
     // ================================================================
     public sealed class TianziWeatherClearDef : TianziStatusEffectTemplate
     {
-        public override StatusEffectConfig MakeConfig() { return TianziWeather.BaseConfig(); }
+        public override StatusEffectConfig MakeConfig()
+        {
+            StatusEffectConfig config = TianziWeather.BaseConfig();
+            // 不可堆叠：重复获得时走「新增实例」路径，由基类 OnAdding 移除旧天气，
+            // 净效果 = 用新的持续时间替换、并重新触发一次「获得时」效果（1 层闪避 + 1 点基础色法力）。
+            config.IsStackable = false;
+            return config;
+        }
     }
 
     [EntityLogic(typeof(TianziWeatherClearDef))]
     public sealed class TianziWeatherClear : TianziWeatherSeBase
     {
-        public ManaGroup Mana
+        /// <summary>获得该天气时：1 层闪避 + 主角基础法力颜色的 1 点费用。</summary>
+        protected override void OnAdded(Unit unit)
         {
-            get { return ManaGroup.Anys(1); }
+            base.OnAdded(unit);
+            if (base.Battle.BattleShouldEnd)
+                return;
+            base.NotifyActivating();
+            // startAutoDecreasing:false ⇒ 施加后第一次回合开始不扣层（见 Graze.LoseGraze）
+            this.React(new ApplyStatusEffectAction<Graze>(base.Owner, 1, null, null, null, 0.2f, false));
+            this.React(new GainManaAction(this.RandomBasicMana()));
         }
-
-        protected override void RegisterHooks() { }
 
         internal void KeepGraze()
         {
             base.NotifyActivating();
         }
 
-        private void CheatOneCardCost()
+        /// <summary>主角的基础法力颜色（白 / 红）随机取一种，给 1 点。</summary>
+        private ManaGroup RandomBasicMana()
         {
-            IReadOnlyList<Card> hand = base.Battle.HandZone;
-            if (hand == null || hand.Count == 0)
-                return;
-            List<Card> candidates = new List<Card>();
-            foreach (Card c in hand)
-            {
-                if (c != null && !c.IsForbidden && c.Cost.Any > 0)
-                    candidates.Add(c);
-            }
-            if (candidates.Count == 0)
-                return;
-
-            Card card = candidates[Random.Range(0, candidates.Count)];
-            base.NotifyActivating();
-            card.DecreaseTurnCost(this.Mana);
+            PlayerUnit player = base.Battle.Player;
+            if (player == null || player.Config == null)
+                return ManaGroup.Whites(1);
+            ManaColor pick = Random.Range(0, 2) == 0 ? player.Config.LeftColor : player.Config.RightColor;
+            return ManaGroup.FromColor(pick, 1);
         }
 
         protected override IEnumerable<BattleAction> OnWeatherTurnStarting(UnitEventArgs args)
         {
             foreach (BattleAction action in this.TickDuration())
                 yield return action;
-        }
-
-        protected override IEnumerable<BattleAction> OnWeatherTurnStarted(UnitEventArgs args)
-        {
-            if (base.Battle.BattleShouldEnd)
-                yield break;
-            this.CheatOneCardCost();
-            yield break;
         }
     }
 
@@ -109,7 +105,7 @@ namespace TianziMod.StatusEffects
     }
 
     // ================================================================
-    //  云天：回合开始时所有卡牌任意费用 -1（Mana Any×1）
+    //  云天：该效果存在时，每打出一张牌获得 1 点无色法力
     // ================================================================
     public sealed class TianziWeatherCloudDef : TianziStatusEffectTemplate
     {
@@ -119,47 +115,32 @@ namespace TianziMod.StatusEffects
     [EntityLogic(typeof(TianziWeatherCloudDef))]
     public sealed class TianziWeatherCloud : TianziWeatherSeBase
     {
-        public ManaGroup Mana
+        private static ManaGroup ColorlessMana
         {
-            get { return ManaGroup.Anys(1); }
+            get { return ManaGroup.Colorlesses(1); }
         }
 
         protected override void RegisterHooks()
         {
-            base.ReactOwnerEvent<CardsEventArgs>(
-                base.Battle.CardsAddedToHand,
-                new EventSequencedReactor<CardsEventArgs>(this.OnCardsAddedToHand)
+            base.ReactOwnerEvent<CardUsingEventArgs>(
+                base.Battle.CardUsed,
+                new EventSequencedReactor<CardUsingEventArgs>(this.OnCardUsed)
             );
         }
 
-        private IEnumerable<BattleAction> OnCardsAddedToHand(CardsEventArgs args)
+        /// <summary>每打出一张牌，获得 1 点无色法力。</summary>
+        private IEnumerable<BattleAction> OnCardUsed(CardUsingEventArgs args)
         {
-            this.CheatCost(args.Cards);
-            yield break;
-        }
-
-        private void CheatCost(IEnumerable<Card> cards)
-        {
-            foreach (Card card in cards)
-            {
-                if (card != null && card.CostToMana(false).Total > 0)
-                    card.DecreaseTurnCost(this.Mana);
-            }
+            if (base.Battle.BattleShouldEnd || args.Card == null)
+                yield break;
+            base.NotifyActivating();
+            yield return new GainManaAction(ColorlessMana);
         }
 
         protected override IEnumerable<BattleAction> OnWeatherTurnStarting(UnitEventArgs args)
         {
             foreach (BattleAction action in this.TickDuration())
                 yield return action;
-        }
-
-        protected override IEnumerable<BattleAction> OnWeatherTurnStarted(UnitEventArgs args)
-        {
-            if (base.Battle.BattleShouldEnd)
-                yield break;
-            base.NotifyActivating();
-            this.CheatCost(base.Battle.HandZone);
-            yield break;
         }
     }
 

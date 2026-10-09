@@ -37,7 +37,7 @@ namespace TianziMod.Cards
             config.Value1 = 1;
             config.UpgradedValue1 = 1;
             config.UpgradedKeywords = Keyword.Accuracy;
-            config.RelativeEffects = new List<string>() { nameof(Vulnerable) };
+            config.RelativeEffects = new List<string>() { nameof(Vulnerable), nameof(TianziWeatherClear) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
             config.Illustrator = "竜崎いち";
             config.Index = CardIndexGenerator.GetUniqueIndex(config);

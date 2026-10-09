@@ -18,10 +18,10 @@ namespace TianziMod.Cards
 {
 
     // ==================================================================================
-    //  罕见 · 技能牌�? 张）
+    //  罕见 · 技能牌（10 张）
     // ==================================================================================
 
-    // ------------------------------------------------------------------ 天人的飞�?
+    // ------------------------------------------------------------------ 天人的飞翔
     public sealed class TianziHeavenlyFlightDef : TianziCardTemplate
     {
         public override CardConfig MakeConfig()
@@ -38,7 +38,7 @@ namespace TianziMod.Cards
             config.Mana = new ManaGroup() { Philosophy = 3 };
             config.UpgradedMana = new ManaGroup() { Philosophy = 4 };
 
-            config.Value1 = 1; // 抽牌�?
+            config.Value1 = 1; // 抽牌数
             config.UpgradedValue1 = 2;
 
             config.Keywords = Keyword.Exile | Keyword.Replenish;
@@ -51,7 +51,7 @@ namespace TianziMod.Cards
     }
 
 
-    /// <summary>天人的飞翔：获得 {Mana} 点彩色费用。抽 {Value1} 张牌。（放�?/ 填充�?/summary>
+    /// <summary>天人的飞翔：获得 {Mana} 点彩色费用。抽 {Value1} 张牌。（放逐 / 填充）</summary>
     [EntityLogic(typeof(TianziHeavenlyFlightDef))]
     public sealed class TianziHeavenlyFlight : TianziCard
     {

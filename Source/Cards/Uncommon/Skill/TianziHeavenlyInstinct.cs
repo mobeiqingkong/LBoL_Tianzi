@@ -17,7 +17,7 @@ using TianziMod.StatusEffects;
 namespace TianziMod.Cards
 {
 
-    // ------------------------------------------------------------------ 天人的直�?
+    // ------------------------------------------------------------------ 天人的直觉
     public sealed class TianziHeavenlyInstinctDef : TianziCardTemplate
     {
         public override CardConfig MakeConfig()
@@ -32,7 +32,7 @@ namespace TianziMod.Cards
             config.TargetType = TargetType.Self;
 
             config.Mana = new ManaGroup() { White = 1, Red = 1 };
-            config.Value1 = 2; // 偶数手牌抽牌�?
+            config.Value1 = 2; // 偶数手牌抽牌数
 
             config.RelativeEffects = new List<string>() { nameof(TianziParityKwSe) };
             config.UpgradedRelativeEffects = config.RelativeEffects;
@@ -48,7 +48,7 @@ namespace TianziMod.Cards
 
 
     /// <summary>
-    /// 天人的直觉：手牌张数为奇数时，获�?{Mana} 点费用；
+    /// 天人的直觉：手牌张数为奇数时，获得 {Mana} 点费用；
     /// 为偶数时，抽 {Value1} 张牌。（放逐；升级后取消放逐）
     /// </summary>
     [EntityLogic(typeof(TianziHeavenlyInstinctDef))]
